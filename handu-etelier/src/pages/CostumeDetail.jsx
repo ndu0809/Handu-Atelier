@@ -4,7 +4,6 @@ import {
 } from "react";
 
 import {
-    Link,
     useNavigate,
     useParams,
 } from "react-router-dom";
@@ -20,22 +19,19 @@ import {
     getCostumes,
 } from "./services/CostumeService";
 
+
 function CostumeDetail() {
     const { code } = useParams();
     const navigate = useNavigate();
 
-    const [costume, setCostume] =
-        useState(null);
+    const [costume, setCostume] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    const [loading, setLoading] =
-        useState(true);
 
-    const [error, setError] =
-        useState("");
-
-    // =============================================
+    // ==================================================
     // FORMAT RUPIAH
-    // =============================================
+    // ==================================================
 
     const formatRupiah = (value) => {
         return new Intl.NumberFormat(
@@ -50,28 +46,49 @@ function CostumeDetail() {
         );
     };
 
-    // =============================================
+
+    // ==================================================
     // IMAGE URL
-    // =============================================
+    // ==================================================
 
     const getImageUrl = (image) => {
         if (!image) {
             return "";
         }
 
-        if (
-            image.startsWith("http://") ||
-            image.startsWith("https://")
-        ) {
-            return image;
+        const value = String(image).trim();
+
+        if (!value) {
+            return "";
         }
 
-        return image;
+        if (
+            value.startsWith("http://") ||
+            value.startsWith("https://")
+        ) {
+            return value;
+        }
+
+        if (value.startsWith("/")) {
+            return value;
+        }
+
+        return `/${value}`;
     };
 
-    // =============================================
-    // LOAD COSTUME BY CODE
-    // =============================================
+
+    // ==================================================
+    // KEMBALI KE HALAMAN KOLEKSI
+    // ==================================================
+
+    const handleBackToCollection = () => {
+        navigate("/collections");
+    };
+
+
+    // ==================================================
+    // LOAD DATA KOSTUM
+    // ==================================================
 
     useEffect(() => {
         let cancelled = false;
@@ -82,30 +99,29 @@ function CostumeDetail() {
                 setError("");
                 setCostume(null);
 
-                const data =
-                    await getCostumes();
+                const data = await getCostumes();
 
                 if (cancelled) {
                     return;
                 }
 
                 const normalizedCode =
-                    String(
-                        code || ""
-                    )
+                    String(code || "")
                         .trim()
                         .toLowerCase();
 
                 const found =
-                    data.find(
-                        (item) =>
-                            String(
-                                item.code || ""
-                            )
-                                .trim()
-                                .toLowerCase() ===
-                            normalizedCode
-                    );
+                    Array.isArray(data)
+                        ? data.find(
+                            (item) =>
+                                String(
+                                    item.code || ""
+                                )
+                                    .trim()
+                                    .toLowerCase() ===
+                                normalizedCode
+                        )
+                        : null;
 
                 if (!found) {
                     setError(
@@ -116,6 +132,7 @@ function CostumeDetail() {
                 }
 
                 setCostume(found);
+
             } catch (err) {
                 console.error(
                     "Error detail kostum:",
@@ -124,10 +141,11 @@ function CostumeDetail() {
 
                 if (!cancelled) {
                     setError(
-                        err.message ||
-                            "Gagal mengambil detail kostum."
+                        err?.message ||
+                        "Gagal mengambil detail kostum."
                     );
                 }
+
             } finally {
                 if (!cancelled) {
                     setLoading(false);
@@ -142,9 +160,10 @@ function CostumeDetail() {
         };
     }, [code]);
 
-    // =============================================
+
+    // ==================================================
     // LOADING
-    // =============================================
+    // ==================================================
 
     if (loading) {
         return (
@@ -165,9 +184,10 @@ function CostumeDetail() {
         );
     }
 
-    // =============================================
+
+    // ==================================================
     // ERROR
-    // =============================================
+    // ==================================================
 
     if (error || !costume) {
         return (
@@ -176,7 +196,7 @@ function CostumeDetail() {
                     min-h-screen
                     bg-[#090909]
                     text-white
-                    pt-32
+                    pt-40
                     px-6
                     pb-20
                 "
@@ -223,33 +243,42 @@ function CostumeDetail() {
                                 "Data kostum tidak tersedia."}
                         </p>
 
-                        <Link
-                            to="/"
+                        <button
+                            type="button"
+                            onClick={
+                                handleBackToCollection
+                            }
                             className="
                                 inline-flex
                                 items-center
+                                justify-center
                                 gap-2
                                 mt-7
-                                px-5
+                                px-6
                                 py-3
                                 rounded-xl
                                 bg-[#D4AF37]
                                 text-black
                                 font-semibold
+                                hover:bg-[#e2bd43]
+                                transition
+                                cursor-pointer
                             "
                         >
                             <FaArrowLeft />
-                            Kembali ke Beranda
-                        </Link>
+
+                            Kembali ke Koleksi
+                        </button>
                     </div>
                 </div>
             </div>
         );
     }
 
-    // =============================================
+
+    // ==================================================
     // DATA
-    // =============================================
+    // ==================================================
 
     const imageUrl =
         getImageUrl(
@@ -260,9 +289,10 @@ function CostumeDetail() {
         costume.available === true &&
         Number(costume.stock) > 0;
 
-    // =============================================
-    // PINJAM
-    // =============================================
+
+    // ==================================================
+    // HANDLE PEMINJAMAN
+    // ==================================================
 
     const handleBorrow = () => {
         if (!available) {
@@ -276,9 +306,10 @@ function CostumeDetail() {
         );
     };
 
-    // =============================================
+
+    // ==================================================
     // RENDER
-    // =============================================
+    // ==================================================
 
     return (
         <div
@@ -286,45 +317,109 @@ function CostumeDetail() {
                 min-h-screen
                 bg-[#090909]
                 text-white
-                pt-32
-                px-6
-                pb-20
             "
         >
+
+            {/* ==================================================
+                CONTENT
+            ================================================== */}
+
             <main
                 className="
                     max-w-7xl
                     mx-auto
+                    px-6
+                    pt-52
+                    pb-20
                 "
             >
-                {/* BACK */}
 
-                <Link
-                    to="/"
-                    className="
-                        inline-flex
-                        items-center
-                        gap-2
-                        text-gray-500
-                        hover:text-[#D4AF37]
-                        transition
-                        mb-8
-                    "
-                >
-                    <FaArrowLeft />
-                    Kembali
-                </Link>
+                {/* ==================================================
+                    TOMBOL KEMBALI KE KOLEKSI
+                ================================================== */}
 
-                {/* DETAIL */}
+                <div className="mb-8">
+
+                    <button
+                        type="button"
+                        onClick={
+                            handleBackToCollection
+                        }
+                        className="
+                            group
+                            inline-flex
+                            items-center
+                            gap-3
+                            px-5
+                            py-3
+                            rounded-full
+                            bg-[#141414]
+                            border
+                            border-[#D4AF37]/40
+                            text-[#D4AF37]
+                            text-sm
+                            font-semibold
+                            shadow-lg
+                            shadow-black/20
+                            hover:bg-[#D4AF37]
+                            hover:text-black
+                            hover:border-[#D4AF37]
+                            transition-all
+                            duration-300
+                            cursor-pointer
+                        "
+                    >
+
+                        <span
+                            className="
+                                flex
+                                items-center
+                                justify-center
+                                w-7
+                                h-7
+                                rounded-full
+                                border
+                                border-[#D4AF37]/40
+                                group-hover:border-black/20
+                                transition-all
+                                duration-300
+                            "
+                        >
+                            <FaArrowLeft
+                                className="
+                                    text-[11px]
+                                    transition-transform
+                                    duration-300
+                                    group-hover:-translate-x-1
+                                "
+                            />
+                        </span>
+
+                        <span>
+                            Kembali ke Koleksi
+                        </span>
+
+                    </button>
+
+                </div>
+
+
+                {/* ==================================================
+                    DETAIL KOSTUM
+                ================================================== */}
 
                 <div
                     className="
                         grid
                         lg:grid-cols-2
                         gap-10
+                        items-start
                     "
                 >
-                    {/* FOTO */}
+
+                    {/* ==================================================
+                        FOTO KOSTUM
+                    ================================================== */}
 
                     <div
                         className="
@@ -333,8 +428,11 @@ function CostumeDetail() {
                             bg-[#141414]
                             border
                             border-white/5
+                            shadow-2xl
+                            shadow-black/30
                         "
                     >
+
                         <div
                             className="
                                 aspect-[4/5]
@@ -344,23 +442,25 @@ function CostumeDetail() {
                                 justify-center
                             "
                         >
+
                             {imageUrl ? (
                                 <img
                                     src={imageUrl}
                                     alt={
-                                        costume.costumeName
+                                        costume.costumeName ||
+                                        "Kostum"
                                     }
                                     className="
                                         w-full
                                         h-full
                                         object-cover
                                     "
-                                    onError={(e) => {
-                                        e.currentTarget.style.display =
+                                    onError={(event) => {
+                                        event.currentTarget.style.display =
                                             "none";
 
                                         const parent =
-                                            e.currentTarget
+                                            event.currentTarget
                                                 .parentElement;
 
                                         if (
@@ -375,7 +475,25 @@ function CostumeDetail() {
                                                 );
 
                                             fallback.className =
-                                                "image-fallback";
+                                                "image-fallback flex items-center justify-center w-full h-full";
+
+                                            const icon =
+                                                document.createElement(
+                                                    "div"
+                                                );
+
+                                            icon.textContent =
+                                                "Kostum";
+
+                                            icon.style.color =
+                                                "#D4AF37";
+
+                                            icon.style.fontSize =
+                                                "24px";
+
+                                            fallback.appendChild(
+                                                icon
+                                            );
 
                                             parent.appendChild(
                                                 fallback
@@ -391,12 +509,22 @@ function CostumeDetail() {
                                     "
                                 />
                             )}
+
                         </div>
+
                     </div>
 
-                    {/* INFORMASI */}
+
+                    {/* ==================================================
+                        INFORMASI KOSTUM
+                    ================================================== */}
 
                     <div>
+
+                        {/* ==================================================
+                            COLLECTION
+                        ================================================== */}
+
                         <p
                             className="
                                 text-[#D4AF37]
@@ -409,6 +537,11 @@ function CostumeDetail() {
                                 "Koleksi"}
                         </p>
 
+
+                        {/* ==================================================
+                            NAMA KOSTUM
+                        ================================================== */}
+
                         <h1
                             className="
                                 text-4xl
@@ -417,47 +550,68 @@ function CostumeDetail() {
                                 mt-3
                             "
                         >
-                            {
-                                costume.costumeName
-                            }
+                            {costume.costumeName ||
+                                "Nama Kostum"}
                         </h1>
+
+
+                        {/* ==================================================
+                            NAMA COLLECTION
+                        ================================================== */}
 
                         <p
                             className="
-                                text-gray-500
+                                text-gray-400
                                 mt-3
+                                text-base
                             "
                         >
-                            {
-                                costume.collectionName
-                            }
+                            {costume.collectionName ||
+                                "-"}
                         </p>
 
-                        {/* STATUS */}
+
+                        {/* ==================================================
+                            STATUS
+                        ================================================== */}
 
                         <div className="mt-6">
+
                             <span
                                 className={`
                                     inline-flex
+                                    items-center
                                     px-4
                                     py-2
                                     rounded-full
                                     text-sm
                                     font-semibold
+                                    border
+
                                     ${
                                         available
-                                            ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                            : "bg-red-500/10 text-red-400 border border-red-500/20"
+                                            ? "bg-green-500/10 text-green-400 border-green-500/20"
+                                            : "bg-red-500/10 text-red-400 border-red-500/20"
                                     }
                                 `}
                             >
+
+                                <span className="mr-1">
+                                    •
+                                </span>
+
                                 {available
                                     ? "Tersedia"
                                     : "Tidak Tersedia"}
+
                             </span>
+
                         </div>
 
-                        {/* HARGA */}
+
+                        {/* ==================================================
+                            HARGA
+                        ================================================== */}
 
                         <div
                             className="
@@ -469,12 +623,13 @@ function CostumeDetail() {
                                 p-6
                             "
                         >
+
                             <p
                                 className="
                                     text-xs
                                     uppercase
                                     tracking-[3px]
-                                    text-gray-600
+                                    text-gray-500
                                 "
                             >
                                 Harga Sewa
@@ -492,9 +647,13 @@ function CostumeDetail() {
                                     costume.price
                                 )}
                             </p>
+
                         </div>
 
-                        {/* DETAIL GRID */}
+
+                        {/* ==================================================
+                            DETAIL GRID
+                        ================================================== */}
 
                         <div
                             className="
@@ -504,6 +663,11 @@ function CostumeDetail() {
                                 mt-6
                             "
                         >
+
+                            {/* ==================================================
+                                KODE KOLEKSI
+                            ================================================== */}
+
                             <div
                                 className="
                                     rounded-2xl
@@ -513,7 +677,13 @@ function CostumeDetail() {
                                     p-5
                                 "
                             >
-                                <p className="text-xs text-gray-600">
+
+                                <p
+                                    className="
+                                        text-xs
+                                        text-gray-500
+                                    "
+                                >
                                     Kode Koleksi
                                 </p>
 
@@ -527,7 +697,13 @@ function CostumeDetail() {
                                     {costume.code ||
                                         "-"}
                                 </p>
+
                             </div>
+
+
+                            {/* ==================================================
+                                KATEGORI
+                            ================================================== */}
 
                             <div
                                 className="
@@ -538,15 +714,32 @@ function CostumeDetail() {
                                     p-5
                                 "
                             >
-                                <p className="text-xs text-gray-600">
+
+                                <p
+                                    className="
+                                        text-xs
+                                        text-gray-500
+                                    "
+                                >
                                     Kategori
                                 </p>
 
-                                <p className="font-semibold mt-2">
+                                <p
+                                    className="
+                                        font-semibold
+                                        mt-2
+                                    "
+                                >
                                     {costume.categoryName ||
                                         "-"}
                                 </p>
+
                             </div>
+
+
+                            {/* ==================================================
+                                UKURAN
+                            ================================================== */}
 
                             <div
                                 className="
@@ -557,15 +750,32 @@ function CostumeDetail() {
                                     p-5
                                 "
                             >
-                                <p className="text-xs text-gray-600">
+
+                                <p
+                                    className="
+                                        text-xs
+                                        text-gray-500
+                                    "
+                                >
                                     Ukuran
                                 </p>
 
-                                <p className="font-semibold mt-2">
+                                <p
+                                    className="
+                                        font-semibold
+                                        mt-2
+                                    "
+                                >
                                     {costume.size ||
                                         "-"}
                                 </p>
+
                             </div>
+
+
+                            {/* ==================================================
+                                WARNA
+                            ================================================== */}
 
                             <div
                                 className="
@@ -576,15 +786,32 @@ function CostumeDetail() {
                                     p-5
                                 "
                             >
-                                <p className="text-xs text-gray-600">
+
+                                <p
+                                    className="
+                                        text-xs
+                                        text-gray-500
+                                    "
+                                >
                                     Warna
                                 </p>
 
-                                <p className="font-semibold mt-2">
+                                <p
+                                    className="
+                                        font-semibold
+                                        mt-2
+                                    "
+                                >
                                     {costume.color ||
                                         "-"}
                                 </p>
+
                             </div>
+
+
+                            {/* ==================================================
+                                STOK
+                            ================================================== */}
 
                             <div
                                 className="
@@ -595,19 +822,34 @@ function CostumeDetail() {
                                     p-5
                                 "
                             >
-                                <p className="text-xs text-gray-600">
+
+                                <p
+                                    className="
+                                        text-xs
+                                        text-gray-500
+                                    "
+                                >
                                     Stok
                                 </p>
 
-                                <p className="font-semibold mt-2">
-                                    {
-                                        costume.stock
-                                    }
+                                <p
+                                    className="
+                                        font-semibold
+                                        mt-2
+                                    "
+                                >
+                                    {costume.stock ??
+                                        0}
                                 </p>
+
                             </div>
+
                         </div>
 
-                        {/* DESKRIPSI */}
+
+                        {/* ==================================================
+                            DESKRIPSI
+                        ================================================== */}
 
                         <div
                             className="
@@ -619,12 +861,13 @@ function CostumeDetail() {
                                 p-6
                             "
                         >
+
                             <p
                                 className="
                                     text-xs
                                     uppercase
                                     tracking-[3px]
-                                    text-gray-600
+                                    text-gray-500
                                 "
                             >
                                 Deskripsi
@@ -640,19 +883,20 @@ function CostumeDetail() {
                                 {costume.description ||
                                     "Tidak ada deskripsi kostum."}
                             </p>
+
                         </div>
 
-                        {/* TOMBOL PINJAM */}
+
+                        {/* ==================================================
+                            TOMBOL AJUKAN PEMINJAMAN
+                        ================================================== */}
 
                         <div
                             className="
                                 mt-8
-                                flex
-                                flex-col
-                                sm:flex-row
-                                gap-3
                             "
                         >
+
                             <button
                                 type="button"
                                 onClick={
@@ -662,7 +906,7 @@ function CostumeDetail() {
                                     !available
                                 }
                                 className="
-                                    flex-1
+                                    w-full
                                     px-6
                                     py-4
                                     rounded-xl
@@ -673,38 +917,33 @@ function CostumeDetail() {
                                     items-center
                                     justify-center
                                     gap-2
+                                    hover:bg-[#e2bd43]
+                                    transition-all
+                                    duration-300
                                     disabled:opacity-40
                                     disabled:cursor-not-allowed
                                 "
                             >
+
                                 <FaCalendarAlt />
 
                                 {available
-                                    ? "Pinjam Kostum"
+                                    ? "Ajukan Peminjaman"
                                     : "Kostum Tidak Tersedia"}
+
                             </button>
 
-                            <Link
-                                to="/"
-                                className="
-                                    px-6
-                                    py-4
-                                    rounded-xl
-                                    border
-                                    border-white/10
-                                    text-gray-400
-                                    text-center
-                                    hover:text-white
-                                "
-                            >
-                                Kembali
-                            </Link>
                         </div>
+
                     </div>
+
                 </div>
+
             </main>
+
         </div>
     );
 }
+
 
 export default CostumeDetail;

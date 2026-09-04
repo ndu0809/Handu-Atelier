@@ -1,25 +1,15 @@
 import Navbar from "../components/layout/Navbar";
-
 import Hero from "../components/home/Hero";
-
 import Features from "../components/home/Features";
-
 import Categories from "../components/home/Categories";
-
 import FeaturedCostumes from "../components/home/FeaturedCostumes";
-
 import HowToRent from "../components/home/HowToRent";
-
 import Testimonials from "../components/home/Testimonials";
-
 import About from "../components/home/About";
-
 import Footer from "../components/layout/Footer";
 
 function Home() {
-
     return (
-
         <div
             className="
                 relative
@@ -31,7 +21,6 @@ function Home() {
         >
 
             {/* Glow kiri atas */}
-
             <div
                 className="
                     absolute
@@ -43,12 +32,9 @@ function Home() {
                     bg-[#D4AF37]/15
                     blur-[150px]
                 "
-            >
-            </div>
-
+            ></div>
 
             {/* Glow kanan */}
-
             <div
                 className="
                     absolute
@@ -60,9 +46,7 @@ function Home() {
                     bg-[#8A6A16]/20
                     blur-[150px]
                 "
-            >
-            </div>
-
+            ></div>
 
             <Navbar />
 
@@ -72,25 +56,19 @@ function Home() {
 
             <Features />
 
+            {/* TETAP ADA DI HALAMAN UTAMA */}
             <HowToRent />
 
             <FeaturedCostumes />
 
             <Categories />
 
-            {/* ==================================================
-                KOLEKSI DINAMIS DARI DATABASE
-            ================================================== */}
-
             <Testimonials />
 
             <Footer />
 
         </div>
-
     );
-
 }
-
 
 export default Home;

@@ -1,477 +1,706 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar";
-import { getCostumeById } from "../../services/CostumeService";
-
-// ======================================================
-// SEMUA GAMBAR KOSTUM
-// ======================================================
-
-const costumeImages = import.meta.glob(
-  "../../assets/images/costumes/*",
-  {
-    eager: true,
-    query: "?url",
-    import: "default",
-  }
-);
-
-// ======================================================
-// CARI GAMBAR
-// ======================================================
-
-function getCostumeImage(filename) {
-  if (!filename) {
-    return null;
-  }
-
-  const cleanFilename = filename
-    .split("/")
-    .pop()
-    .trim()
-    .toLowerCase();
-
-  const entry = Object.entries(
-    costumeImages
-  ).find(([path]) => {
-    const pathFilename = path
-      .split("/")
-      .pop()
-      .trim()
-      .toLowerCase();
-
-    return pathFilename === cleanFilename;
-  });
-
-  return entry ? entry[1] : null;
-}
-
-// ======================================================
-// COMPONENT
-// ======================================================
 
 function CostumeDetail() {
-  const { code } = useParams();
+    const { code } = useParams();
+    const navigate = useNavigate();
 
-  const [costume, setCostume] = useState(null);
+    const [costume, setCostume] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+    // ======================================================
+    // AMBIL DATA KOSTUM
+    // ======================================================
 
-  useEffect(() => {
-    const loadCostume = async () => {
-      try {
-        setLoading(true);
-        setError("");
+    useEffect(() => {
+        const fetchCostume = async () => {
+            try {
+                setLoading(true);
+                setError("");
 
-        const data =
-          await getCostumeById(code);
+                const response = await fetch(`/kostum/${code}`, {
+                    headers: {
+                        Accept: "application/json",
+                    },
+                    cache: "no-store",
+                });
 
-        console.log(
-          "Detail kostum:",
-          data
-        );
+                const result = await response.json();
 
-        setCostume(data);
+                console.log("DETAIL KOSTUM:", result);
 
-      } catch (err) {
-        console.error(
-          "Gagal mengambil detail kostum:",
-          err
-        );
+                if (!response.ok) {
+                    throw new Error(
+                        result?.message ||
+                        "Kostum tidak ditemukan."
+                    );
+                }
 
-        setError(
-          err.message ||
-            "Detail kostum tidak dapat dimuat."
-        );
-      } finally {
-        setLoading(false);
-      }
+                const data =
+                    result?.data ||
+                    result?.kostum ||
+                    result;
+
+                if (!data || !data.id_kostum) {
+                    throw new Error(
+                        "Data kostum tidak valid."
+                    );
+                }
+
+                setCostume(data);
+            } catch (err) {
+                console.error(
+                    "ERROR DETAIL KOSTUM:",
+                    err
+                );
+
+                setError(
+                    err?.message ||
+                    "Data kostum tidak dapat dimuat."
+                );
+
+                setCostume(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCostume();
+    }, [code]);
+
+    // ======================================================
+    // FOTO KOSTUM
+    // ======================================================
+
+    const getFotoUrl = (foto) => {
+        if (!foto) {
+            return "";
+        }
+
+        const value = String(foto).trim();
+
+        if (!value) {
+            return "";
+        }
+
+        // URL lengkap
+        if (
+            value.startsWith("http://") ||
+            value.startsWith("https://")
+        ) {
+            return value;
+        }
+
+        // Sudah berupa /uploads/...
+        if (value.startsWith("/uploads/")) {
+            return value;
+        }
+
+        // Berupa uploads/...
+        if (value.startsWith("uploads/")) {
+            return `/${value}`;
+        }
+
+        // Nama file saja
+        return `/uploads/kostum/${value}`;
     };
 
-    loadCostume();
-  }, [code]);
+    // ======================================================
+    // STATUS KOSTUM
+    // ======================================================
 
-  // ======================================================
-  // LOADING
-  // ======================================================
+    const isAvailable =
+        String(costume?.status || "")
+            .toLowerCase() === "tersedia" &&
+        Number(costume?.stok || 0) > 0;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#090909] text-white flex items-center justify-center">
-        <p className="text-[#D4AF37]">
-          Memuat detail kostum...
-        </p>
-      </div>
-    );
-  }
+    // ======================================================
+    // HARGA
+    // ======================================================
 
-  // ======================================================
-  // ERROR
-  // ======================================================
+    const hargaPerHari =
+        Number(costume?.harga_sewa) || 0;
 
-  if (error || !costume) {
-    return (
-      <div className="min-h-screen bg-[#090909] text-white">
+    // ======================================================
+    // LOADING
+    // ======================================================
 
-        <Navbar />
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#090909] text-white">
+                <Navbar />
 
-        <main className="max-w-4xl mx-auto px-6 pt-40 pb-20">
-
-          <div
-            className="
-              rounded-3xl
-              border
-              border-red-500/20
-              bg-red-500/5
-              p-10
-              text-center
-            "
-          >
-
-            <h1 className="text-3xl font-bold text-red-400">
-              Kostum Tidak Ditemukan
-            </h1>
-
-            <p className="text-gray-400 mt-4">
-              {error ||
-                "Data kostum tidak tersedia."}
-            </p>
-
-            <Link
-              to="/"
-              className="
-                inline-block
-                mt-8
-                bg-[#D4AF37]
-                text-black
-                px-6
-                py-3
-                rounded-xl
-                font-semibold
-              "
-            >
-              Kembali ke Beranda
-            </Link>
-
-          </div>
-
-        </main>
-
-      </div>
-    );
-  }
-
-  // ======================================================
-  // FOTO
-  // ======================================================
-
-  const imageUrl =
-    getCostumeImage(costume.image);
-
-  return (
-    <div className="min-h-screen bg-[#090909] text-white">
-
-      <Navbar />
-
-      <main
-        className="
-          max-w-6xl
-          mx-auto
-          px-6
-          pt-32
-          pb-20
-        "
-      >
-
-        {/* ==================================================
-            BREADCRUMB
-        ================================================== */}
-
-        <div className="mb-8">
-
-          <Link
-            to={`/category/${
-              costume.collectionGroup ===
-              "Tradisional"
-                ? "traditional"
-                : costume.collectionGroup ===
-                  "Modern"
-                ? "modern"
-                : costume.collectionGroup ===
-                  "Classic"
-                ? "classic"
-                : "formal"
-            }`}
-            className="text-gray-400 hover:text-[#D4AF37] transition"
-          >
-            ← Kembali ke koleksi
-          </Link>
-
-        </div>
-
-        {/* ==================================================
-            DETAIL CARD
-        ================================================== */}
-
-        <div
-          className="
-            grid
-            lg:grid-cols-2
-            gap-10
-            rounded-3xl
-            border
-            border-[#D4AF37]/20
-            bg-[#141414]
-            overflow-hidden
-          "
-        >
-
-          {/* FOTO */}
-
-          <div className="bg-[#1D1D1D] min-h-165.5">
-
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={
-                  costume.collectionName ||
-                  "Kostum Handu Atelier"
-                }
-                className="
-                  w-full
-                  h-full
-                  min-h-165.5
-                  object-cover
-                  object-top
-                "
-              />
-            ) : (
-              <div
-                className="
-                  w-full
-                  min-h-165.5
-                  flex
-                  items-center
-                  justify-center
-                  text-gray-500
-                "
-              >
-                Foto tidak tersedia
-              </div>
-            )}
-
-          </div>
-
-          {/* INFORMASI */}
-
-          <div className="p-8 lg:p-12">
-
-            <p
-              className="
-                uppercase
-                tracking-[4px]
-                text-[#D4AF37]
-                text-sm
-              "
-            >
-              {costume.collectionGroup ||
-                "Collection"}
-            </p>
-
-            <h1
-              className="
-                text-4xl
-                md:text-5xl
-                font-bold
-                mt-4
-              "
-            >
-              {costume.collectionName ||
-                costume.costumeName}
-            </h1>
-
-            <p className="text-gray-400 mt-4 text-lg">
-              {costume.costumeType ||
-                "-"}
-            </p>
-
-            {/* KODE */}
-
-            <div className="mt-8">
-
-              <p className="text-gray-500 text-sm">
-                Kode Koleksi
-              </p>
-
-              <p className="text-[#D4AF37] font-semibold mt-1">
-                {costume.code || "-"}
-              </p>
-
-            </div>
-
-            {/* DESKRIPSI */}
-
-            <div className="mt-8">
-
-              <p className="text-gray-500 text-sm">
-                Deskripsi
-              </p>
-
-              <p className="text-gray-300 leading-7 mt-2">
-                {costume.description ||
-                  "Belum ada deskripsi."}
-              </p>
-
-            </div>
-
-            {/* HARGA */}
-
-            <div className="mt-8">
-
-              <p className="text-gray-500 text-sm">
-                Harga Sewa
-              </p>
-
-              <p
-                className="
-                  text-[#D4AF37]
-                  text-3xl
-                  font-bold
-                  mt-1
-                "
-              >
-                Rp{" "}
-                {Number(
-                  costume.price || 0
-                ).toLocaleString("id-ID")}
-              </p>
-
-            </div>
-
-            {/* DETAIL */}
-
-            <div
-              className="
-                grid
-                sm:grid-cols-2
-                gap-5
-                mt-8
-                pt-8
-                border-t
-                border-white/5
-              "
-            >
-
-              <div>
-
-                <p className="text-gray-500 text-sm">
-                  Stok
-                </p>
-
-                <p className="mt-1">
-                  {costume.stock ?? 0}
-                </p>
-
-              </div>
-
-              <div>
-
-                <p className="text-gray-500 text-sm">
-                  Status
-                </p>
-
-                <p
-                  className={
-                    costume.available
-                      ? "text-green-400 mt-1"
-                      : "text-red-400 mt-1"
-                  }
+                <main
+                    className="
+                        min-h-screen
+                        flex
+                        items-center
+                        justify-center
+                        px-6
+                    "
                 >
-                  {costume.available
-                    ? "● Tersedia"
-                    : "● Tidak tersedia"}
-                </p>
+                    <div className="text-center">
+                        <div
+                            className="
+                                w-12
+                                h-12
+                                border-4
+                                border-[#D4AF37]/30
+                                border-t-[#D4AF37]
+                                rounded-full
+                                animate-spin
+                                mx-auto
+                            "
+                        />
 
-              </div>
-
-              <div>
-
-                <p className="text-gray-500 text-sm">
-                  Ukuran
-                </p>
-
-                <p className="mt-1">
-                  {costume.size || "-"}
-                </p>
-
-              </div>
-
-              <div>
-
-                <p className="text-gray-500 text-sm">
-                  Warna
-                </p>
-
-                <p className="mt-1">
-                  {costume.color || "-"}
-                </p>
-
-              </div>
-
+                        <p className="text-gray-400 mt-5">
+                            Memuat data kostum...
+                        </p>
+                    </div>
+                </main>
             </div>
+        );
+    }
 
-            {/* BUTTON */}
+    // ======================================================
+    // KOSTUM TIDAK DITEMUKAN
+    // ======================================================
 
-            {costume.available ? (
+    if (!costume) {
+        return (
+            <div className="min-h-screen bg-[#090909] text-white">
+                <Navbar />
 
-              <Link
-                to={`/borrow/${costume.id}`}
+                <main
+                    className="
+                        min-h-screen
+                        flex
+                        items-center
+                        justify-center
+                        px-6
+                    "
+                >
+                    <div className="text-center">
+                        <p
+                            className="
+                                text-[#D4AF37]
+                                uppercase
+                                tracking-[5px]
+                                text-sm
+                            "
+                        >
+                            Handu Atelier
+                        </p>
+
+                        <h1
+                            className="
+                                text-3xl
+                                md:text-4xl
+                                font-bold
+                                mt-4
+                            "
+                        >
+                            Kostum Tidak Ditemukan
+                        </h1>
+
+                        <p className="text-gray-400 mt-4">
+                            {error ||
+                                "Data kostum tidak tersedia."}
+                        </p>
+
+                        {/* ==================================================
+                            KEMBALI KE FOTO KE-3 / SECTION COLLECTIONS
+                        ================================================== */}
+
+                        <a
+                            href="/#collections"
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                mt-7
+                                px-6
+                                py-3
+                                rounded-xl
+                                bg-[#D4AF37]
+                                text-black
+                                font-semibold
+                                hover:scale-[1.02]
+                                transition
+                            "
+                        >
+                            Kembali ke Koleksi
+                        </a>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    // ======================================================
+    // FOTO
+    // ======================================================
+
+    const imageUrl = getFotoUrl(
+        costume.foto
+    );
+
+    // ======================================================
+    // TAMPILAN UTAMA
+    // ======================================================
+
+    return (
+        <div
+            className="
+                min-h-screen
+                bg-[#090909]
+                text-white
+            "
+        >
+            <Navbar />
+
+            <main
                 className="
-                  block
-                  w-full
-                  text-center
-                  mt-10
-                  bg-[#D4AF37]
-                  text-black
-                  py-4
-                  rounded-xl
-                  font-semibold
-                  hover:scale-[1.02]
-                  transition
+                    pt-28
+                    md:pt-32
+                    pb-20
+                    px-6
                 "
-              >
-                Ajukan Peminjaman
-              </Link>
+            >
+                <div
+                    className="
+                        max-w-6xl
+                        mx-auto
+                    "
+                >
 
-            ) : (
+                    {/* ==================================================
+                        KEMBALI KE FOTO KE-3
+                    ================================================== */}
 
-              <button
-                disabled
-                className="
-                  w-full
-                  mt-10
-                  py-4
-                  rounded-xl
-                  bg-gray-700
-                  text-gray-400
-                  cursor-not-allowed
-                "
-              >
-                Kostum Tidak Tersedia
-              </button>
+                    <div className="mb-8">
+                        <a
+                            href="/#collections"
+                            className="
+                                inline-flex
+                                items-center
+                                gap-2
+                                text-[#D4AF37]
+                                hover:text-white
+                                transition
+                            "
+                        >
+                            ← Kembali ke koleksi
+                        </a>
+                    </div>
 
-            )}
+                    {/* ==================================================
+                        DETAIL CARD
+                    ================================================== */}
 
-          </div>
+                    <div
+                        className="
+                            grid
+                            grid-cols-1
+                            lg:grid-cols-2
+                            rounded-3xl
+                            overflow-hidden
+                            border
+                            border-[#D4AF37]/20
+                            bg-[#141414]
+                        "
+                    >
 
+                        {/* ==================================================
+                            FOTO
+                        ================================================== */}
+
+                        <div
+                            className="
+                                relative
+                                min-h-[500px]
+                                lg:min-h-[650px]
+                                bg-[#1D1D1D]
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+                            {imageUrl ? (
+                                <img
+                                    src={imageUrl}
+                                    alt={
+                                        costume.nama_kostum ||
+                                        "Foto kostum"
+                                    }
+                                    className="
+                                        w-full
+                                        h-full
+                                        min-h-[500px]
+                                        lg:min-h-[650px]
+                                        object-cover
+                                    "
+                                    onError={(e) => {
+                                        e.currentTarget.style.display =
+                                            "none";
+
+                                        const fallback =
+                                            e.currentTarget
+                                                .parentElement
+                                                ?.querySelector(
+                                                    ".image-fallback"
+                                                );
+
+                                        if (fallback) {
+                                            fallback.style.display =
+                                                "flex";
+                                        }
+                                    }}
+                                />
+                            ) : null}
+
+                            <div
+                                className="
+                                    image-fallback
+                                    absolute
+                                    inset-0
+                                    items-center
+                                    justify-center
+                                    text-gray-500
+                                    text-center
+                                    px-6
+                                "
+                                style={{
+                                    display: imageUrl
+                                        ? "none"
+                                        : "flex",
+                                }}
+                            >
+                                <div>
+                                    <p className="text-lg">
+                                        Foto tidak tersedia
+                                    </p>
+
+                                    <p className="text-sm mt-2 text-gray-600">
+                                        Foto kostum belum tersedia.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ==================================================
+                            INFORMASI
+                        ================================================== */}
+
+                        <div
+                            className="
+                                p-8
+                                md:p-10
+                                lg:p-12
+                                flex
+                                flex-col
+                                justify-center
+                            "
+                        >
+
+                            {/* LABEL */}
+
+                            <p
+                                className="
+                                    uppercase
+                                    tracking-[5px]
+                                    text-[#D4AF37]
+                                    text-sm
+                                "
+                            >
+                                Collection
+                            </p>
+
+                            {/* NAMA KOLEKSI */}
+
+                            <h1
+                                className="
+                                    text-4xl
+                                    md:text-5xl
+                                    font-bold
+                                    mt-4
+                                "
+                            >
+                                {costume.nama_koleksi ||
+                                    costume.nama_kostum ||
+                                    "Kostum"}
+                            </h1>
+
+                            {/* NAMA KOSTUM */}
+
+                            <p
+                                className="
+                                    text-gray-400
+                                    text-base
+                                    md:text-lg
+                                    mt-3
+                                "
+                            >
+                                {costume.nama_kostum ||
+                                    costume.nama_kategori ||
+                                    "-"}
+                            </p>
+
+                            {/* ==================================================
+                                KODE KOLEKSI
+                            ================================================== */}
+
+                            {costume.kode_koleksi && (
+                                <div className="mt-8">
+                                    <p
+                                        className="
+                                            text-gray-500
+                                            text-sm
+                                        "
+                                    >
+                                        Kode Koleksi
+                                    </p>
+
+                                    <p
+                                        className="
+                                            text-[#D4AF37]
+                                            font-semibold
+                                            mt-1
+                                        "
+                                    >
+                                        {costume.kode_koleksi}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* ==================================================
+                                DESKRIPSI
+                            ================================================== */}
+
+                            <div className="mt-7">
+                                <p
+                                    className="
+                                        text-gray-500
+                                        text-sm
+                                    "
+                                >
+                                    Deskripsi
+                                </p>
+
+                                <p
+                                    className="
+                                        text-gray-300
+                                        leading-7
+                                        mt-2
+                                    "
+                                >
+                                    {costume.deskripsi ||
+                                        costume.deskripsi_koleksi ||
+                                        "Tidak ada deskripsi kostum."}
+                                </p>
+                            </div>
+
+                            {/* ==================================================
+                                HARGA
+                            ================================================== */}
+
+                            <div
+                                className="
+                                    mt-8
+                                    pt-6
+                                    border-t
+                                    border-white/10
+                                "
+                            >
+                                <p
+                                    className="
+                                        text-gray-500
+                                        text-sm
+                                    "
+                                >
+                                    Harga Sewa
+                                </p>
+
+                                <p
+                                    className="
+                                        text-3xl
+                                        md:text-4xl
+                                        font-bold
+                                        text-[#D4AF37]
+                                        mt-2
+                                    "
+                                >
+                                    Rp{" "}
+                                    {hargaPerHari.toLocaleString(
+                                        "id-ID"
+                                    )}
+                                </p>
+                            </div>
+
+                            {/* ==================================================
+                                INFORMASI DETAIL
+                            ================================================== */}
+
+                            <div
+                                className="
+                                    grid
+                                    grid-cols-2
+                                    gap-x-8
+                                    gap-y-6
+                                    mt-7
+                                    pt-6
+                                    border-t
+                                    border-white/10
+                                "
+                            >
+
+                                {/* STOK */}
+
+                                <div>
+                                    <p
+                                        className="
+                                            text-gray-500
+                                            text-sm
+                                        "
+                                    >
+                                        Stok
+                                    </p>
+
+                                    <p className="mt-1">
+                                        {costume.stok ?? 0}
+                                    </p>
+                                </div>
+
+                                {/* STATUS */}
+
+                                <div>
+                                    <p
+                                        className="
+                                            text-gray-500
+                                            text-sm
+                                        "
+                                    >
+                                        Status
+                                    </p>
+
+                                    <p
+                                        className={`
+                                            mt-1
+                                            ${
+                                                isAvailable
+                                                    ? "text-green-400"
+                                                    : "text-red-400"
+                                            }
+                                        `}
+                                    >
+                                        <span className="mr-1">
+                                            •
+                                        </span>
+
+                                        {isAvailable
+                                            ? "Tersedia"
+                                            : "Tidak tersedia"}
+                                    </p>
+                                </div>
+
+                                {/* UKURAN */}
+
+                                <div>
+                                    <p
+                                        className="
+                                            text-gray-500
+                                            text-sm
+                                        "
+                                    >
+                                        Ukuran
+                                    </p>
+
+                                    <p className="mt-1">
+                                        {costume.ukuran ||
+                                            "-"}
+                                    </p>
+                                </div>
+
+                                {/* WARNA */}
+
+                                <div>
+                                    <p
+                                        className="
+                                            text-gray-500
+                                            text-sm
+                                        "
+                                    >
+                                        Warna
+                                    </p>
+
+                                    <p className="mt-1">
+                                        {costume.warna ||
+                                            "-"}
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            {/* ==================================================
+                                BUTTON PEMINJAMAN
+                            ================================================== */}
+
+                            <div className="mt-9">
+
+                                {isAvailable ? (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            navigate(
+                                                `/borrow/${costume.id_kostum}`
+                                            )
+                                        }
+                                        className="
+                                            w-full
+                                            px-6
+                                            py-4
+                                            rounded-xl
+                                            bg-[#D4AF37]
+                                            text-black
+                                            font-semibold
+                                            hover:bg-[#e0bd42]
+                                            hover:scale-[1.01]
+                                            transition
+                                        "
+                                    >
+                                        Ajukan Peminjaman
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        disabled
+                                        className="
+                                            w-full
+                                            px-6
+                                            py-4
+                                            rounded-xl
+                                            bg-gray-700
+                                            text-gray-400
+                                            font-semibold
+                                            cursor-not-allowed
+                                        "
+                                    >
+                                        Kostum Tidak Tersedia
+                                    </button>
+                                )}
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </main>
         </div>
-
-      </main>
-
-    </div>
-  );
+    );
 }
 
 export default CostumeDetail;

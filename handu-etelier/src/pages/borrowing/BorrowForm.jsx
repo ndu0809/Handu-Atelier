@@ -45,26 +45,38 @@ function BorrowForm() {
         setError("");
 
         const response = await fetch(`/kostum/${code}`);
-
         const result = await response.json();
 
         console.log("Response kostum:", result);
 
         if (!response.ok) {
-          throw new Error(result.message || "Kostum tidak ditemukan.");
+          throw new Error(
+            result.message || "Kostum tidak ditemukan."
+          );
         }
 
-        const data = result.data || result.kostum || result;
+        const data =
+          result.data ||
+          result.kostum ||
+          result;
 
         if (!data || !data.id_kostum) {
-          throw new Error("Data kostum tidak valid.");
+          throw new Error(
+            "Data kostum tidak valid."
+          );
         }
 
         setCostume(data);
       } catch (err) {
-        console.error("Error mengambil kostum:", err);
+        console.error(
+          "Error mengambil kostum:",
+          err
+        );
 
-        setError(err.message || "Data kostum tidak dapat dimuat.");
+        setError(
+          err.message ||
+            "Data kostum tidak dapat dimuat."
+        );
       } finally {
         setLoading(false);
       }
@@ -73,20 +85,35 @@ function BorrowForm() {
     fetchCostume();
   }, [code]);
 
+  // ======================================================
+  // AMBIL PENGATURAN PEMBAYARAN
+  // ======================================================
+
   useEffect(() => {
     const fetchPaymentSettings = async () => {
       try {
-        const response = await fetch("/api/pengaturan-pembayaran/qris-aktif");
+        const response = await fetch(
+          "/api/pengaturan-pembayaran/qris-aktif"
+        );
 
-        const result = await response.json();
+        const result =
+          await response.json();
 
         if (!response.ok) {
-          throw new Error(result.message || "Gagal mengambil data pembayaran.");
+          throw new Error(
+            result.message ||
+              "Gagal mengambil data pembayaran."
+          );
         }
 
-        setPaymentSettings(result.data || null);
+        setPaymentSettings(
+          result.data || null
+        );
       } catch (err) {
-        console.error("Error mengambil rekening pembayaran:", err);
+        console.error(
+          "Error mengambil rekening pembayaran:",
+          err
+        );
       }
     };
 
@@ -102,19 +129,34 @@ function BorrowForm() {
       try {
         setLoadingQris(true);
 
-        const response = await fetch("/api/pengaturan-pembayaran/qris-aktif");
+        const response = await fetch(
+          "/api/pengaturan-pembayaran/qris-aktif"
+        );
 
-        const result = await response.json();
+        const result =
+          await response.json();
 
-        console.log("Response QRIS:", result);
+        console.log(
+          "Response QRIS:",
+          result
+        );
 
         if (!response.ok) {
-          throw new Error(result.message || "QRIS tidak dapat dimuat.");
+          throw new Error(
+            result.message ||
+              "QRIS tidak dapat dimuat."
+          );
         }
 
-        setQris(result.data?.qris || null);
+        setQris(
+          result.data?.qris || null
+        );
       } catch (err) {
-        console.error("Error mengambil QRIS:", err);
+        console.error(
+          "Error mengambil QRIS:",
+          err
+        );
+
         setQris(null);
       } finally {
         setLoadingQris(false);
@@ -129,7 +171,10 @@ function BorrowForm() {
   // ======================================================
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const {
+      name,
+      value,
+    } = e.target;
 
     setFormData((prev) => ({
       ...prev,
@@ -145,7 +190,8 @@ function BorrowForm() {
   // ======================================================
 
   const handleBuktiChange = (e) => {
-    const file = e.target.files?.[0];
+    const file =
+      e.target.files?.[0];
 
     setError("");
     setSuccess("");
@@ -156,23 +202,38 @@ function BorrowForm() {
       return;
     }
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
 
-    if (!allowedTypes.includes(file.type)) {
+    if (
+      !allowedTypes.includes(
+        file.type
+      )
+    ) {
       setBuktiFile(null);
       setBuktiPreview("");
 
-      setError("Format bukti pembayaran harus JPG, PNG, atau WEBP.");
+      setError(
+        "Format bukti pembayaran harus JPG, PNG, atau WEBP."
+      );
 
       e.target.value = "";
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
+    if (
+      file.size >
+      2 * 1024 * 1024
+    ) {
       setBuktiFile(null);
       setBuktiPreview("");
 
-      setError("Ukuran bukti pembayaran maksimal 2 MB.");
+      setError(
+        "Ukuran bukti pembayaran maksimal 2 MB."
+      );
 
       e.target.value = "";
       return;
@@ -180,16 +241,24 @@ function BorrowForm() {
 
     setBuktiFile(file);
 
-    const reader = new FileReader();
+    const reader =
+      new FileReader();
 
     reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setBuktiPreview(reader.result);
+      if (
+        typeof reader.result ===
+        "string"
+      ) {
+        setBuktiPreview(
+          reader.result
+        );
       }
     };
 
     reader.onerror = () => {
-      setError("Gagal membaca file bukti pembayaran.");
+      setError(
+        "Gagal membaca file bukti pembayaran."
+      );
     };
 
     reader.readAsDataURL(file);
@@ -200,76 +269,130 @@ function BorrowForm() {
   // ======================================================
 
   const calculateDays = () => {
-    if (!formData.tanggal_peminjaman || !formData.tanggal_kembali) {
+    if (
+      !formData.tanggal_peminjaman ||
+      !formData.tanggal_kembali
+    ) {
       return 0;
     }
 
-    const start = new Date(`${formData.tanggal_peminjaman}T00:00:00`);
+    const start = new Date(
+      `${formData.tanggal_peminjaman}T00:00:00`
+    );
 
-    const end = new Date(`${formData.tanggal_kembali}T00:00:00`);
+    const end = new Date(
+      `${formData.tanggal_kembali}T00:00:00`
+    );
 
-    const difference = end.getTime() - start.getTime();
+    const difference =
+      end.getTime() -
+      start.getTime();
 
-    const days = Math.ceil(difference / (1000 * 60 * 60 * 24));
+    const days = Math.ceil(
+      difference /
+        (1000 * 60 * 60 * 24)
+    );
 
     return days > 0 ? days : 0;
   };
 
+  // ======================================================
+  // URL QRIS
+  // ======================================================
+
   const getQrisUrl = (value) => {
     if (!value) return "";
 
-    const qrisValue = String(value).trim();
+    const qrisValue =
+      String(value).trim();
 
     if (!qrisValue) return "";
 
-    if (qrisValue.startsWith("http://") || qrisValue.startsWith("https://")) {
+    if (
+      qrisValue.startsWith(
+        "http://"
+      ) ||
+      qrisValue.startsWith(
+        "https://"
+      )
+    ) {
       return qrisValue;
     }
 
-    if (qrisValue.startsWith("/uploads/")) {
+    if (
+      qrisValue.startsWith(
+        "/uploads/"
+      )
+    ) {
       return qrisValue;
     }
 
-    if (qrisValue.startsWith("uploads/")) {
+    if (
+      qrisValue.startsWith(
+        "uploads/"
+      )
+    ) {
       return `/${qrisValue}`;
     }
 
     return `/uploads/pembayaran/${qrisValue}`;
   };
 
-  const jumlahHari = calculateDays();
+  const jumlahHari =
+    calculateDays();
 
   // ======================================================
   // HARGA
   // ======================================================
 
-  const hargaPerHari = Number(costume?.harga_sewa) || 0;
+  const hargaPerHari =
+    Number(costume?.harga_sewa) ||
+    0;
 
-  const totalHarga = jumlahHari * hargaPerHari;
+  const totalHarga =
+    jumlahHari *
+    hargaPerHari;
 
   // ======================================================
   // PEMBAYARAN
   // ======================================================
 
-  const persentasePembayaran = Number(formData.persentase_pembayaran) || 50;
+  const persentasePembayaran =
+    Number(
+      formData.persentase_pembayaran
+    ) || 50;
 
-  const jumlahPembayaran = Math.round(
-    totalHarga * (persentasePembayaran / 100),
-  );
+  const jumlahPembayaran =
+    Math.round(
+      totalHarga *
+        (persentasePembayaran /
+          100)
+    );
 
-  const sisaPembayaran = Math.max(0, totalHarga - jumlahPembayaran);
+  const sisaPembayaran =
+    Math.max(
+      0,
+      totalHarga -
+        jumlahPembayaran
+    );
 
   const membutuhkanBukti =
-    formData.metode_pembayaran === "QRIS" ||
-    formData.metode_pembayaran === "Transfer Bank";
+    formData.metode_pembayaran ===
+      "QRIS" ||
+    formData.metode_pembayaran ===
+      "Transfer Bank";
 
   // ======================================================
   // STATUS KOSTUM
   // ======================================================
 
   const isAvailable =
-    String(costume?.status || "").toLowerCase() === "tersedia" &&
-    Number(costume?.stok || 0) > 0;
+    String(
+      costume?.status || ""
+    ).toLowerCase() ===
+      "tersedia" &&
+    Number(costume?.stok || 0) >
+      0;
 
   // ======================================================
   // SUBMIT PEMINJAMAN
@@ -285,7 +408,10 @@ function BorrowForm() {
     // 1. CEK LOGIN
     // ==================================================
 
-    const storedUser = localStorage.getItem("user");
+    const storedUser =
+      localStorage.getItem(
+        "user"
+      );
 
     if (!storedUser) {
       navigate("/login", {
@@ -298,12 +424,22 @@ function BorrowForm() {
     let user;
 
     try {
-      user = JSON.parse(storedUser);
+      user = JSON.parse(
+        storedUser
+      );
     } catch (err) {
-      console.error("Data user tidak valid:", err);
+      console.error(
+        "Data user tidak valid:",
+        err
+      );
 
-      localStorage.removeItem("user");
-      localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem(
+        "user"
+      );
+
+      localStorage.removeItem(
+        "isLoggedIn"
+      );
 
       navigate("/login", {
         replace: true,
@@ -312,10 +448,14 @@ function BorrowForm() {
       return;
     }
 
-    const idUser = user?.id_user || user?.id;
+    const idUser =
+      user?.id_user ||
+      user?.id;
 
     if (!idUser) {
-      setError("Data user tidak valid. Silakan login kembali.");
+      setError(
+        "Data user tidak valid. Silakan login kembali."
+      );
 
       return;
     }
@@ -325,13 +465,17 @@ function BorrowForm() {
     // ==================================================
 
     if (!costume) {
-      setError("Data kostum belum tersedia.");
+      setError(
+        "Data kostum belum tersedia."
+      );
 
       return;
     }
 
     if (!isAvailable) {
-      setError("Kostum sedang tidak tersedia.");
+      setError(
+        "Kostum sedang tidak tersedia."
+      );
 
       return;
     }
@@ -340,20 +484,29 @@ function BorrowForm() {
     // 3. VALIDASI TANGGAL
     // ==================================================
 
-    if (!formData.tanggal_peminjaman || !formData.tanggal_kembali) {
-      setError("Tanggal peminjaman dan tanggal kembali wajib diisi.");
+    if (
+      !formData.tanggal_peminjaman ||
+      !formData.tanggal_kembali
+    ) {
+      setError(
+        "Tanggal peminjaman dan tanggal kembali wajib diisi."
+      );
 
       return;
     }
 
     if (jumlahHari <= 0) {
-      setError("Tanggal kembali harus setelah tanggal peminjaman.");
+      setError(
+        "Tanggal kembali harus setelah tanggal peminjaman."
+      );
 
       return;
     }
 
     if (totalHarga <= 0) {
-      setError("Total harga peminjaman tidak valid.");
+      setError(
+        "Total harga peminjaman tidak valid."
+      );
 
       return;
     }
@@ -363,22 +516,39 @@ function BorrowForm() {
     // ==================================================
 
     if (
-      !["QRIS", "Transfer Bank", "Cash"].includes(formData.metode_pembayaran)
+      ![
+        "QRIS",
+        "Transfer Bank",
+        "Cash",
+      ].includes(
+        formData.metode_pembayaran
+      )
     ) {
-      setError("Metode pembayaran tidak valid.");
-
-      return;
-    }
-
-    if (![50, 100].includes(persentasePembayaran)) {
-      setError("Persentase pembayaran harus 50% atau 100%.");
-
-      return;
-    }
-
-    if (membutuhkanBukti && !buktiFile) {
       setError(
-        "Bukti pembayaran wajib diunggah untuk QRIS atau Transfer Bank.",
+        "Metode pembayaran tidak valid."
+      );
+
+      return;
+    }
+
+    if (
+      ![50, 100].includes(
+        persentasePembayaran
+      )
+    ) {
+      setError(
+        "Persentase pembayaran harus 50% atau 100%."
+      );
+
+      return;
+    }
+
+    if (
+      membutuhkanBukti &&
+      !buktiFile
+    ) {
+      setError(
+        "Bukti pembayaran wajib diunggah untuk QRIS atau Transfer Bank."
       );
 
       return;
@@ -393,46 +563,63 @@ function BorrowForm() {
 
       const dataPeminjaman = {
         id_user: idUser,
-
         disetujui_oleh: null,
-
         diproses_oleh: null,
-
-        tanggal_peminjaman: formData.tanggal_peminjaman,
-
-        tanggal_kembali: formData.tanggal_kembali,
-
-        total_harga: totalHarga,
-
+        tanggal_peminjaman:
+          formData.tanggal_peminjaman,
+        tanggal_kembali:
+          formData.tanggal_kembali,
+        total_harga:
+          totalHarga,
         status: "Menunggu",
       };
 
-      console.log("DATA PEMINJAMAN:", dataPeminjaman);
+      console.log(
+        "DATA PEMINJAMAN:",
+        dataPeminjaman
+      );
 
-      const peminjamanResponse = await fetch("/peminjaman", {
-        method: "POST",
+      const peminjamanResponse =
+        await fetch(
+          "/peminjaman",
+          {
+            method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-        body: JSON.stringify(dataPeminjaman),
-      });
+            body: JSON.stringify(
+              dataPeminjaman
+            ),
+          }
+        );
 
-      const peminjamanResult = await peminjamanResponse.json();
+      const peminjamanResult =
+        await peminjamanResponse.json();
 
-      console.log("HASIL PEMINJAMAN:", peminjamanResult);
+      console.log(
+        "HASIL PEMINJAMAN:",
+        peminjamanResult
+      );
 
-      if (!peminjamanResponse.ok) {
+      if (
+        !peminjamanResponse.ok
+      ) {
         throw new Error(
-          peminjamanResult.message || "Gagal membuat peminjaman.",
+          peminjamanResult.message ||
+            "Gagal membuat peminjaman."
         );
       }
 
-      const idPeminjaman = peminjamanResult.id_peminjaman;
+      const idPeminjaman =
+        peminjamanResult.id_peminjaman;
 
       if (!idPeminjaman) {
-        throw new Error("ID peminjaman tidak ditemukan dari backend.");
+        throw new Error(
+          "ID peminjaman tidak ditemukan dari backend."
+        );
       }
 
       // ==================================================
@@ -440,9 +627,11 @@ function BorrowForm() {
       // ==================================================
 
       const dataDetail = {
-        id_peminjaman: idPeminjaman,
+        id_peminjaman:
+          idPeminjaman,
 
-        id_kostum: costume.id_kostum,
+        id_kostum:
+          costume.id_kostum,
 
         // JUMLAH KOSTUM / UNIT
         // BUKAN JUMLAH HARI
@@ -455,26 +644,40 @@ function BorrowForm() {
         subtotal: totalHarga,
       };
 
-      console.log("DATA DETAIL PEMINJAMAN:", dataDetail);
+      console.log(
+        "DATA DETAIL PEMINJAMAN:",
+        dataDetail
+      );
 
-      const detailResponse = await fetch("/detail-peminjaman", {
-        method: "POST",
+      const detailResponse =
+        await fetch(
+          "/detail-peminjaman",
+          {
+            method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-        body: JSON.stringify(dataDetail),
-      });
+            body: JSON.stringify(
+              dataDetail
+            ),
+          }
+        );
 
-      const detailResult = await detailResponse.json();
+      const detailResult =
+        await detailResponse.json();
 
-      console.log("HASIL DETAIL PEMINJAMAN:", detailResult);
+      console.log(
+        "HASIL DETAIL PEMINJAMAN:",
+        detailResult
+      );
 
       if (!detailResponse.ok) {
         throw new Error(
           detailResult.message ||
-            "Peminjaman berhasil dibuat, tetapi detail kostum gagal disimpan.",
+            "Peminjaman berhasil dibuat, tetapi detail kostum gagal disimpan."
         );
       }
 
@@ -482,46 +685,89 @@ function BorrowForm() {
       // 7. SIMPAN PEMBAYARAN
       // ==================================================
 
-      const paymentFormData = new FormData();
+      const paymentFormData =
+        new FormData();
 
-      paymentFormData.append("id_peminjaman", String(idPeminjaman));
+      paymentFormData.append(
+        "id_peminjaman",
+        String(idPeminjaman)
+      );
 
-      paymentFormData.append("tanggal_bayar", new Date().toISOString());
+      paymentFormData.append(
+        "tanggal_bayar",
+        new Date().toISOString()
+      );
 
-      paymentFormData.append("total", String(jumlahPembayaran));
+      paymentFormData.append(
+        "total",
+        String(
+          jumlahPembayaran
+        )
+      );
 
-      paymentFormData.append("metode", formData.metode_pembayaran);
+      paymentFormData.append(
+        "metode",
+        formData.metode_pembayaran
+      );
 
       paymentFormData.append(
         "status",
-        persentasePembayaran === 100 ? "Lunas" : "Belum Bayar",
+        persentasePembayaran ===
+          100
+          ? "Lunas"
+          : "Belum Bayar"
       );
 
       if (buktiFile) {
-        paymentFormData.append("bukti_bayar", buktiFile);
+        paymentFormData.append(
+          "bukti_bayar",
+          buktiFile
+        );
       }
 
-      console.log("DATA PEMBAYARAN:", {
-        id_peminjaman: idPeminjaman,
-        total: jumlahPembayaran,
-        metode: formData.metode_pembayaran,
-        persentase: persentasePembayaran,
-        adaBukti: Boolean(buktiFile),
-      });
+      console.log(
+        "DATA PEMBAYARAN:",
+        {
+          id_peminjaman:
+            idPeminjaman,
 
-      const pembayaranResponse = await fetch("/pembayaran", {
-        method: "POST",
-        body: paymentFormData,
-      });
+          total:
+            jumlahPembayaran,
 
-      const pembayaranResult = await pembayaranResponse.json();
+          metode:
+            formData.metode_pembayaran,
 
-      console.log("HASIL PEMBAYARAN:", pembayaranResult);
+          persentase:
+            persentasePembayaran,
 
-      if (!pembayaranResponse.ok) {
+          adaBukti:
+            Boolean(buktiFile),
+        }
+      );
+
+      const pembayaranResponse =
+        await fetch(
+          "/pembayaran",
+          {
+            method: "POST",
+            body: paymentFormData,
+          }
+        );
+
+      const pembayaranResult =
+        await pembayaranResponse.json();
+
+      console.log(
+        "HASIL PEMBAYARAN:",
+        pembayaranResult
+      );
+
+      if (
+        !pembayaranResponse.ok
+      ) {
         throw new Error(
           pembayaranResult.message ||
-            "Peminjaman berhasil dibuat, tetapi pembayaran gagal disimpan.",
+            "Peminjaman berhasil dibuat, tetapi pembayaran gagal disimpan."
         );
       }
 
@@ -529,49 +775,72 @@ function BorrowForm() {
       // 8. BERHASIL
       // ==================================================
 
-      setSuccess("Peminjaman dan pembayaran berhasil diajukan!");
+      setSuccess(
+        "Peminjaman dan pembayaran berhasil diajukan!"
+      );
 
       setFormData({
         tanggal_peminjaman: "",
         tanggal_kembali: "",
-        metode_pembayaran: "QRIS",
-        persentase_pembayaran: "50",
+        metode_pembayaran:
+          "QRIS",
+        persentase_pembayaran:
+          "50",
       });
 
       setBuktiFile(null);
       setBuktiPreview("");
 
       setTimeout(() => {
-        navigate("/borrow-success", {
-          replace: true,
+        navigate(
+          "/borrow-success",
+          {
+            replace: true,
 
-          state: {
-            idPeminjaman: idPeminjaman,
+            state: {
+              idPeminjaman:
+                idPeminjaman,
 
-            idKostum: costume.id_kostum,
+              idKostum:
+                costume.id_kostum,
 
-            namaKostum: costume.nama_kostum,
+              namaKostum:
+                costume.nama_kostum,
 
-            tanggalPeminjaman: dataPeminjaman.tanggal_peminjaman,
+              tanggalPeminjaman:
+                dataPeminjaman.tanggal_peminjaman,
 
-            tanggalKembali: dataPeminjaman.tanggal_kembali,
+              tanggalKembali:
+                dataPeminjaman.tanggal_kembali,
 
-            totalHarga: totalHarga,
+              totalHarga:
+                totalHarga,
 
-            jumlahPembayaran: jumlahPembayaran,
+              jumlahPembayaran:
+                jumlahPembayaran,
 
-            sisaPembayaran: sisaPembayaran,
+              sisaPembayaran:
+                sisaPembayaran,
 
-            persentasePembayaran: persentasePembayaran,
+              persentasePembayaran:
+                persentasePembayaran,
 
-            metodePembayaran: formData.metode_pembayaran,
-          },
-        });
+              metodePembayaran:
+                formData.metode_pembayaran,
+            },
+          }
+        );
       }, 1200);
     } catch (err) {
-      console.error("ERROR PEMINJAMAN:", err);
+      console.error(
+        "ERROR PEMINJAMAN:",
+        err
+      );
 
-      setError(err.message || "Terjadi kesalahan saat mengajukan peminjaman.");
+      setError(
+        err.message ||
+          "Terjadi kesalahan saat mengajukan peminjaman."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -608,7 +877,9 @@ function BorrowForm() {
               "
             />
 
-            <p className="text-gray-400 mt-5">Memuat data kostum...</p>
+            <p className="text-gray-400 mt-5">
+              Memuat data kostum...
+            </p>
           </div>
         </div>
       </div>
@@ -634,10 +905,13 @@ function BorrowForm() {
           "
         >
           <div className="text-center">
-            <h1 className="text-3xl font-bold">Kostum tidak ditemukan.</h1>
+            <h1 className="text-3xl font-bold">
+              Kostum tidak ditemukan.
+            </h1>
 
             <p className="text-gray-400 mt-4">
-              {error || "Data kostum tidak tersedia."}
+              {error ||
+                "Data kostum tidak tersedia."}
             </p>
 
             <Link
@@ -677,7 +951,10 @@ function BorrowForm() {
         "
       >
         <div className="max-w-6xl mx-auto">
-          {/* HEADER */}
+
+          {/* ==================================================
+              HEADER
+          ================================================== */}
 
           <div className="mb-10">
             <Link
@@ -720,17 +997,33 @@ function BorrowForm() {
             </p>
           </div>
 
-          {/* GRID */}
+          {/* ==================================================
+              FORM UTAMA
+              
+              3 KOTAK:
+              
+              BARIS 1:
+              [ KOSTUM ] [ DETAIL PEMINJAMAN ]
+              
+              BARIS 2:
+              [          PEMBAYARAN          ]
+          ================================================== */}
 
-          <div
+          <form
+            onSubmit={handleSubmit}
             className="
               grid
+              grid-cols-1
               lg:grid-cols-2
               gap-8
               items-start
             "
           >
-            {/* INFORMASI KOSTUM */}
+
+            {/* ==================================================
+                KOTAK 1
+                KOSTUM YANG DIPILIH
+            ================================================== */}
 
             <div
               className="
@@ -759,25 +1052,36 @@ function BorrowForm() {
                   mt-3
                 "
               >
-                {costume.nama_koleksi || costume.nama_kostum || "Kostum"}
+                {costume.nama_koleksi ||
+                  costume.nama_kostum ||
+                  "Kostum"}
               </h2>
 
               <p className="text-gray-400 mt-2">
-                {costume.nama_kostum || costume.nama_kategori || "-"}
+                {costume.nama_kostum ||
+                  costume.nama_kategori ||
+                  "-"}
               </p>
 
-              {/* DETAIL */}
+              {/* DETAIL KOSTUM */}
 
               <div className="mt-8 space-y-5">
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-400">ID Kostum</span>
 
-                  <span>{costume.id_kostum}</span>
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">
+                    ID Kostum
+                  </span>
+
+                  <span>
+                    {costume.id_kostum}
+                  </span>
                 </div>
 
                 {costume.kode_koleksi && (
                   <div className="flex justify-between gap-4">
-                    <span className="text-gray-400">Kode Koleksi</span>
+                    <span className="text-gray-400">
+                      Kode Koleksi
+                    </span>
 
                     <span className="text-[#D4AF37]">
                       {costume.kode_koleksi}
@@ -786,32 +1090,53 @@ function BorrowForm() {
                 )}
 
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-400">Warna</span>
+                  <span className="text-gray-400">
+                    Warna
+                  </span>
 
-                  <span>{costume.warna || "-"}</span>
-                </div>
-
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-400">Ukuran</span>
-
-                  <span>{costume.ukuran || "-"}</span>
-                </div>
-
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-400">Stok</span>
-
-                  <span>{costume.stok ?? 0}</span>
-                </div>
-
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-400">Status</span>
-
-                  <span
-                    className={isAvailable ? "text-green-400" : "text-red-400"}
-                  >
-                    {isAvailable ? "Tersedia" : "Tidak tersedia"}
+                  <span>
+                    {costume.warna || "-"}
                   </span>
                 </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">
+                    Ukuran
+                  </span>
+
+                  <span>
+                    {costume.ukuran || "-"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">
+                    Stok
+                  </span>
+
+                  <span>
+                    {costume.stok ?? 0}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">
+                    Status
+                  </span>
+
+                  <span
+                    className={
+                      isAvailable
+                        ? "text-green-400"
+                        : "text-red-400"
+                    }
+                  >
+                    {isAvailable
+                      ? "Tersedia"
+                      : "Tidak tersedia"}
+                  </span>
+                </div>
+
               </div>
 
               {/* HARGA */}
@@ -824,7 +1149,9 @@ function BorrowForm() {
                   border-[#D4AF37]/20
                 "
               >
-                <p className="text-gray-400">Harga sewa per hari</p>
+                <p className="text-gray-400">
+                  Harga sewa per hari
+                </p>
 
                 <p
                   className="
@@ -834,15 +1161,20 @@ function BorrowForm() {
                     mt-2
                   "
                 >
-                  Rp {hargaPerHari.toLocaleString("id-ID")}
+                  Rp{" "}
+                  {hargaPerHari.toLocaleString(
+                    "id-ID"
+                  )}
                 </p>
               </div>
             </div>
 
-            {/* FORM */}
+            {/* ==================================================
+                KOTAK 2
+                DETAIL PEMINJAMAN
+            ================================================== */}
 
-            <form
-              onSubmit={handleSubmit}
+            <div
               className="
                 bg-[#141414]
                 border
@@ -879,9 +1211,15 @@ function BorrowForm() {
                   id="tanggal_peminjaman"
                   type="date"
                   name="tanggal_peminjaman"
-                  value={formData.tanggal_peminjaman}
+                  value={
+                    formData.tanggal_peminjaman
+                  }
                   onChange={handleChange}
-                  min={new Date().toISOString().split("T")[0]}
+                  min={
+                    new Date()
+                      .toISOString()
+                      .split("T")[0]
+                  }
                   className="
                     w-full
                     bg-[#0D0D0D]
@@ -916,11 +1254,15 @@ function BorrowForm() {
                   id="tanggal_kembali"
                   type="date"
                   name="tanggal_kembali"
-                  value={formData.tanggal_kembali}
+                  value={
+                    formData.tanggal_kembali
+                  }
                   onChange={handleChange}
                   min={
                     formData.tanggal_peminjaman ||
-                    new Date().toISOString().split("T")[0]
+                    new Date()
+                      .toISOString()
+                      .split("T")[0]
                   }
                   className="
                     w-full
@@ -950,26 +1292,45 @@ function BorrowForm() {
                   border-[#D4AF37]/20
                 "
               >
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Harga per hari</span>
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">
+                    Harga per hari
+                  </span>
 
-                  <span>Rp {hargaPerHari.toLocaleString("id-ID")}</span>
+                  <span>
+                    Rp{" "}
+                    {hargaPerHari.toLocaleString(
+                      "id-ID"
+                    )}
+                  </span>
                 </div>
 
-                <div className="flex justify-between mt-3">
-                  <span className="text-gray-400">Durasi</span>
+                <div className="flex justify-between gap-4 mt-3">
+                  <span className="text-gray-400">
+                    Durasi
+                  </span>
 
-                  <span>{jumlahHari > 0 ? `${jumlahHari} hari` : "-"}</span>
+                  <span>
+                    {jumlahHari > 0
+                      ? `${jumlahHari} hari`
+                      : "-"}
+                  </span>
                 </div>
 
-                <div className="flex justify-between mt-3">
-                  <span className="text-gray-400">Jumlah Kostum</span>
+                <div className="flex justify-between gap-4 mt-3">
+                  <span className="text-gray-400">
+                    Jumlah Kostum
+                  </span>
 
-                  <span>1 kostum</span>
+                  <span>
+                    1 kostum
+                  </span>
                 </div>
 
-                <div className="flex justify-between mt-3">
-                  <span className="text-gray-400">Total Sewa</span>
+                <div className="flex justify-between gap-4 mt-3">
+                  <span className="text-gray-400">
+                    Total Sewa
+                  </span>
 
                   <span
                     className="
@@ -978,409 +1339,586 @@ function BorrowForm() {
                       text-[#D4AF37]
                     "
                   >
-                    Rp {totalHarga.toLocaleString("id-ID")}
+                    Rp{" "}
+                    {totalHarga.toLocaleString(
+                      "id-ID"
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ==================================================
+                KOTAK 3
+                PEMBAYARAN
+                
+                lg:col-span-2 = MEMENUHI LEBAR
+                DUA KOTAK DI ATAS
+            ================================================== */}
+
+            <div
+              className="
+                lg:col-span-2
+                bg-[#141414]
+                border
+                border-[#D4AF37]/20
+                rounded-3xl
+                p-7
+              "
+            >
+              <h2
+                className="
+                  text-2xl
+                  font-bold
+                  mb-7
+                "
+              >
+                Pembayaran
+              </h2>
+
+              {/* ==================================================
+                  METODE PEMBAYARAN
+              ================================================== */}
+
+              <div className="mb-6">
+                <label
+                  className="
+                    block
+                    text-gray-300
+                    mb-3
+                  "
+                >
+                  Metode Pembayaran
+                </label>
+
+                <div
+                  className="
+                    grid
+                    grid-cols-1
+                    sm:grid-cols-3
+                    gap-4
+                  "
+                >
+
+                  {/* QRIS */}
+
+                  <label
+                    className={`
+                      cursor-pointer
+                      rounded-xl
+                      border
+                      p-5
+                      transition-all
+                      ${
+                        formData.metode_pembayaran ===
+                        "QRIS"
+                          ? "border-[#D4AF37] bg-[#D4AF37]/10"
+                          : "border-[#D4AF37]/20 bg-[#0D0D0D] hover:border-[#D4AF37]/50"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="metode_pembayaran"
+                        value="QRIS"
+                        checked={
+                          formData.metode_pembayaran ===
+                          "QRIS"
+                        }
+                        onChange={handleChange}
+                        className="
+                          accent-[#D4AF37]
+                        "
+                      />
+
+                      <div>
+                        <p className="font-semibold">
+                          QRIS
+                        </p>
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          Scan QRIS
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* TRANSFER BANK */}
+
+                  <label
+                    className={`
+                      cursor-pointer
+                      rounded-xl
+                      border
+                      p-5
+                      transition-all
+                      ${
+                        formData.metode_pembayaran ===
+                        "Transfer Bank"
+                          ? "border-[#D4AF37] bg-[#D4AF37]/10"
+                          : "border-[#D4AF37]/20 bg-[#0D0D0D] hover:border-[#D4AF37]/50"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="metode_pembayaran"
+                        value="Transfer Bank"
+                        checked={
+                          formData.metode_pembayaran ===
+                          "Transfer Bank"
+                        }
+                        onChange={handleChange}
+                        className="
+                          accent-[#D4AF37]
+                        "
+                      />
+
+                      <div>
+                        <p className="font-semibold">
+                          Transfer Bank
+                        </p>
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          Transfer rekening
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* CASH */}
+
+                  <label
+                    className={`
+                      cursor-pointer
+                      rounded-xl
+                      border
+                      p-5
+                      transition-all
+                      ${
+                        formData.metode_pembayaran ===
+                        "Cash"
+                          ? "border-[#D4AF37] bg-[#D4AF37]/10"
+                          : "border-[#D4AF37]/20 bg-[#0D0D0D] hover:border-[#D4AF37]/50"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="metode_pembayaran"
+                        value="Cash"
+                        checked={
+                          formData.metode_pembayaran ===
+                          "Cash"
+                        }
+                        onChange={handleChange}
+                        className="
+                          accent-[#D4AF37]
+                        "
+                      />
+
+                      <div>
+                        <p className="font-semibold">
+                          Cash
+                        </p>
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          Bayar langsung
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+
+                </div>
+              </div>
+
+              {/* ==================================================
+                  PERSENTASE PEMBAYARAN
+              ================================================== */}
+
+              <div className="mb-6">
+                <label
+                  htmlFor="persentase_pembayaran"
+                  className="
+                    block
+                    text-gray-300
+                    mb-2
+                  "
+                >
+                  Pembayaran
+                </label>
+
+                <select
+                  id="persentase_pembayaran"
+                  name="persentase_pembayaran"
+                  value={
+                    formData.persentase_pembayaran
+                  }
+                  onChange={handleChange}
+                  className="
+                    w-full
+                    bg-[#0D0D0D]
+                    border
+                    border-[#D4AF37]/20
+                    rounded-xl
+                    px-4
+                    py-3
+                    text-white
+                    outline-none
+                    focus:border-[#D4AF37]
+                  "
+                >
+                  <option value="50">
+                    DP 50%
+                  </option>
+
+                  <option value="100">
+                    Bayar 100%
+                  </option>
+                </select>
+              </div>
+
+              {/* ==================================================
+                  INFO PEMBAYARAN
+              ================================================== */}
+
+              <div
+                className="
+                  p-5
+                  rounded-2xl
+                  bg-[#0D0D0D]
+                  border
+                  border-[#D4AF37]/20
+                "
+              >
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">
+                    Total Sewa
+                  </span>
+
+                  <span>
+                    Rp{" "}
+                    {totalHarga.toLocaleString(
+                      "id-ID"
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4 mt-3">
+                  <span className="text-gray-400">
+                    Dibayar Sekarang
+                  </span>
+
+                  <span className="text-[#D4AF37] font-semibold">
+                    Rp{" "}
+                    {jumlahPembayaran.toLocaleString(
+                      "id-ID"
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4 mt-3">
+                  <span className="text-gray-400">
+                    Sisa Pembayaran
+                  </span>
+
+                  <span>
+                    Rp{" "}
+                    {sisaPembayaran.toLocaleString(
+                      "id-ID"
+                    )}
                   </span>
                 </div>
               </div>
 
-              {/* PEMBAYARAN */}
+              {/* ==================================================
+                  INFO QRIS
+              ================================================== */}
 
-              <div className="mt-8">
-                <h3
-                  className="
-                    text-xl
-                    font-bold
-                    mb-5
-                  "
-                >
-                  Pembayaran
-                </h3>
-
-                {/* METODE */}
-
-                <div className="mb-5">
-                  <label
-                    htmlFor="metode_pembayaran"
-                    className="
-                      block
-                      text-gray-300
-                      mb-2
-                    "
-                  >
-                    Metode Pembayaran
-                  </label>
-
-                  <select
-                    id="metode_pembayaran"
-                    name="metode_pembayaran"
-                    value={formData.metode_pembayaran}
-                    onChange={handleChange}
-                    className="
-                      w-full
-                      bg-[#0D0D0D]
-                      border
-                      border-[#D4AF37]/20
-                      rounded-xl
-                      px-4
-                      py-3
-                      text-white
-                      outline-none
-                      focus:border-[#D4AF37]
-                    "
-                  >
-                    <option value="QRIS">QRIS</option>
-
-                    <option value="Transfer Bank">Transfer Bank</option>
-
-                    <option value="Cash">Cash</option>
-                  </select>
-                </div>
-
-                {/* PERSENTASE */}
-
-                <div className="mb-5">
-                  <label
-                    htmlFor="persentase_pembayaran"
-                    className="
-                      block
-                      text-gray-300
-                      mb-2
-                    "
-                  >
-                    Pembayaran
-                  </label>
-
-                  <select
-                    id="persentase_pembayaran"
-                    name="persentase_pembayaran"
-                    value={formData.persentase_pembayaran}
-                    onChange={handleChange}
-                    className="
-                      w-full
-                      bg-[#0D0D0D]
-                      border
-                      border-[#D4AF37]/20
-                      rounded-xl
-                      px-4
-                      py-3
-                      text-white
-                      outline-none
-                      focus:border-[#D4AF37]
-                    "
-                  >
-                    <option value="50">DP 50%</option>
-
-                    <option value="100">Bayar 100%</option>
-                  </select>
-                </div>
-
-                {/* INFO PEMBAYARAN */}
-
+              {formData.metode_pembayaran ===
+                "QRIS" && (
                 <div
                   className="
-                    p-5
+                    mt-6
+                    p-6
                     rounded-2xl
-                    bg-[#0D0D0D]
+                    bg-blue-950/20
                     border
-                    border-[#D4AF37]/20
+                    border-blue-500/20
                   "
                 >
-                  <div className="flex justify-between gap-4">
-                    <span className="text-gray-400">Total Sewa</span>
+                  <div className="text-center">
 
-                    <span>Rp {totalHarga.toLocaleString("id-ID")}</span>
-                  </div>
+                    <h4 className="text-white font-semibold text-lg mb-2">
+                      Pembayaran QRIS
+                    </h4>
 
-                  <div className="flex justify-between gap-4 mt-3">
-                    <span className="text-gray-400">Dibayar Sekarang</span>
-
-                    <span className="text-[#D4AF37] font-semibold">
-                      Rp {jumlahPembayaran.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-4 mt-3">
-                    <span className="text-gray-400">Sisa Pembayaran</span>
-
-                    <span>Rp {sisaPembayaran.toLocaleString("id-ID")}</span>
-                  </div>
-                </div>
-
-                {/* INFO METODE */}
-
-                {formData.metode_pembayaran === "QRIS" && (
-                  <div
-                    className="
-      mt-5
-      p-5
-      rounded-2xl
-      bg-blue-950/20
-      border
-      border-blue-500/20
-    "
-                  >
-                    <div className="text-center">
-                      <h4 className="text-white font-semibold text-lg mb-2">
-                        Pembayaran QRIS
-                      </h4>
-
-                      <p className="text-blue-300 text-sm mb-5">
-                        Scan QRIS berikut untuk melakukan pembayaran.
-                      </p>
-
-                      {loadingQris ? (
-                        <div className="py-10 text-gray-400">
-                          Memuat QRIS...
-                        </div>
-                      ) : qris ? (
-                        <div className="flex justify-center">
-                          <div
-                            className="
-              bg-white
-              p-4
-              rounded-2xl
-              shadow-lg
-            "
-                          >
-                            <img
-                              src={getQrisUrl(qris)}
-                              alt="QRIS Pembayaran"
-                              className="
-                w-64
-                h-64
-                object-contain
-                rounded-lg
-              "
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className="
-            py-8
-            px-4
-            rounded-xl
-            bg-red-950/30
-            border
-            border-red-500/30
-            text-red-400
-            text-sm
-          "
-                        >
-                          QRIS belum tersedia. Silakan hubungi petugas.
-                        </div>
-                      )}
-
-                      {qris && (
-                        <p className="text-gray-400 text-xs mt-5">
-                          Silakan lakukan pembayaran sebesar{" "}
-                          <span className="text-[#D4AF37] font-semibold">
-                            Rp {jumlahPembayaran.toLocaleString("id-ID")}
-                          </span>
-                          , kemudian unggah bukti pembayaran.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {formData.metode_pembayaran === "Transfer Bank" && (
-                  <div
-                    className="
-      mt-5
-      p-5
-      rounded-xl
-      bg-blue-950/20
-      border
-      border-blue-500/20
-    "
-                  >
-                    <p
-                      className="
-        text-blue-300
-        text-sm
-        mb-4
-      "
-                    >
-                      Silakan transfer pembayaran ke rekening berikut, kemudian
-                      unggah bukti pembayaran.
+                    <p className="text-blue-300 text-sm mb-5">
+                      Scan QRIS berikut untuk melakukan pembayaran.
                     </p>
 
-                    <div
-                      className="
+                    {loadingQris ? (
+                      <div className="py-10 text-gray-400">
+                        Memuat QRIS...
+                      </div>
+                    ) : qris ? (
+                      <div className="flex justify-center">
+                        <div
+                          className="
+                            bg-white
+                            p-4
+                            rounded-2xl
+                            shadow-lg
+                          "
+                        >
+                          <img
+                            src={getQrisUrl(qris)}
+                            alt="QRIS Pembayaran"
+                            className="
+                              w-64
+                              h-64
+                              object-contain
+                              rounded-lg
+                            "
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="
+                          py-8
+                          px-4
+                          rounded-xl
+                          bg-red-950/30
+                          border
+                          border-red-500/30
+                          text-red-400
+                          text-sm
+                        "
+                      >
+                        QRIS belum tersedia. Silakan hubungi petugas.
+                      </div>
+                    )}
+
+                    {qris && (
+                      <p className="text-gray-400 text-xs mt-5">
+                        Silakan lakukan pembayaran sebesar{" "}
+                        <span className="text-[#D4AF37] font-semibold">
+                          Rp{" "}
+                          {jumlahPembayaran.toLocaleString(
+                            "id-ID"
+                          )}
+                        </span>
+                        , kemudian unggah bukti pembayaran.
+                      </p>
+                    )}
+
+                  </div>
+                </div>
+              )}
+
+              {/* ==================================================
+                  INFO TRANSFER BANK
+              ================================================== */}
+
+              {formData.metode_pembayaran ===
+                "Transfer Bank" && (
+                <div
+                  className="
+                    mt-6
+                    p-6
+                    rounded-2xl
+                    bg-blue-950/20
+                    border
+                    border-blue-500/20
+                  "
+                >
+                  <p
+                    className="
+                      text-blue-300
+                      text-sm
+                      mb-4
+                    "
+                  >
+                    Silakan transfer pembayaran ke rekening berikut,
+                    kemudian unggah bukti pembayaran.
+                  </p>
+
+                  <div
+                    className="
                       rounded-xl
                       bg-black/30
                       border
                       border-white/10
-                      p-4
-                      space-y-3
-                    "
-                    >
-                      {/* BANK */}
-                      <div
-                        className="
-                        flex
-                        justify-between
-                        gap-4
-                      "
-                                    >
-                        <span className="text-gray-400">Bank</span>
-
-                        <span
-                          className="
-                        text-white
-                         font-semibold
-                      "
-                        >
-                          {paymentSettings?.nama_bank || "-"}
-                        </span>
-                      </div>
-
-                      {/* NOMOR REKENING */}
-                      <div
-                        className="
-          flex
-          justify-between
-          gap-4
-        "
-                      >
-                        <span className="text-gray-400">Nomor Rekening</span>
-
-                        <span
-                          className="
-            text-[#D4AF37]
-            font-bold
-            text-lg
-            tracking-wide
-          "
-                        >
-                          {paymentSettings?.nomor_rekening || "-"}
-                        </span>
-                      </div>
-
-                      {/* NAMA PEMILIK */}
-                      <div
-                        className="
-          flex
-          justify-between
-          gap-4
-        "
-                      >
-                        <span className="text-gray-400">Atas Nama</span>
-
-                        <span
-                          className="
-            text-white
-            font-semibold
-          "
-                        >
-                          {paymentSettings?.nama_penerima || "-"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {formData.metode_pembayaran === "Cash" && (
-                  <div
-                    className="
-                      mt-5
-                      p-4
-                      rounded-xl
-                      bg-yellow-950/20
-                      border
-                      border-yellow-500/20
-                      text-yellow-300
-                      text-sm
+                      p-5
+                      space-y-4
                     "
                   >
-                    Pembayaran cash dilakukan langsung sesuai ketentuan yang
-                    diberikan oleh petugas. Bukti pembayaran tidak diperlukan.
+                    {/* BANK */}
+
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-400">
+                        Bank
+                      </span>
+
+                      <span className="text-white font-semibold">
+                        {paymentSettings?.nama_bank ||
+                          "-"}
+                      </span>
+                    </div>
+
+                    {/* NOMOR REKENING */}
+
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-400">
+                        Nomor Rekening
+                      </span>
+
+                      <span
+                        className="
+                          text-[#D4AF37]
+                          font-bold
+                          text-lg
+                          tracking-wide
+                        "
+                      >
+                        {paymentSettings?.nomor_rekening ||
+                          "-"}
+                      </span>
+                    </div>
+
+                    {/* NAMA PEMILIK */}
+
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-400">
+                        Atas Nama
+                      </span>
+
+                      <span className="text-white font-semibold">
+                        {paymentSettings?.nama_penerima ||
+                          "-"}
+                      </span>
+                    </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* UPLOAD BUKTI */}
+              {/* ==================================================
+                  INFO CASH
+              ================================================== */}
 
-                {membutuhkanBukti && (
-                  <div className="mt-6">
-                    <label
-                      htmlFor="bukti_bayar"
-                      className="
-                        block
-                        text-gray-300
-                        mb-2
-                      "
-                    >
-                      Bukti Pembayaran
-                    </label>
+              {formData.metode_pembayaran ===
+                "Cash" && (
+                <div
+                  className="
+                    mt-6
+                    p-5
+                    rounded-xl
+                    bg-yellow-950/20
+                    border
+                    border-yellow-500/20
+                    text-yellow-300
+                    text-sm
+                  "
+                >
+                  Pembayaran cash dilakukan langsung sesuai ketentuan
+                  yang diberikan oleh petugas. Bukti pembayaran tidak
+                  diperlukan.
+                </div>
+              )}
 
-                    <input
-                      id="bukti_bayar"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleBuktiChange}
-                      className="
-                        w-full
-                        bg-[#0D0D0D]
-                        border
-                        border-[#D4AF37]/20
-                        rounded-xl
-                        px-4
-                        py-3
-                        text-gray-300
-                        file:mr-4
-                        file:rounded-lg
-                        file:border-0
-                        file:px-4
-                        file:py-2
-                        file:bg-[#D4AF37]
-                        file:text-black
-                        file:font-semibold
-                      "
-                    />
+              {/* ==================================================
+                  UPLOAD BUKTI
+              ================================================== */}
 
-                    <p className="text-gray-500 text-xs mt-2">
-                      Format JPG, PNG, atau WEBP. Maksimal 2 MB.
-                    </p>
+              {membutuhkanBukti && (
+                <div className="mt-6">
 
-                    {buktiPreview && (
-                      <div className="mt-5">
-                        <p className="text-gray-400 text-sm mb-3">
-                          Preview Bukti Pembayaran
-                        </p>
+                  <label
+                    htmlFor="bukti_bayar"
+                    className="
+                      block
+                      text-gray-300
+                      mb-2
+                    "
+                  >
+                    Bukti Pembayaran
+                  </label>
 
-                        <div
+                  <input
+                    id="bukti_bayar"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleBuktiChange}
+                    className="
+                      w-full
+                      bg-[#0D0D0D]
+                      border
+                      border-[#D4AF37]/20
+                      rounded-xl
+                      px-4
+                      py-3
+                      text-gray-300
+                      file:mr-4
+                      file:rounded-lg
+                      file:border-0
+                      file:px-4
+                      file:py-2
+                      file:bg-[#D4AF37]
+                      file:text-black
+                      file:font-semibold
+                    "
+                  />
+
+                  <p className="text-gray-500 text-xs mt-2">
+                    Format JPG, PNG, atau WEBP. Maksimal 2 MB.
+                  </p>
+
+                  {buktiPreview && (
+                    <div className="mt-5">
+
+                      <p className="text-gray-400 text-sm mb-3">
+                        Preview Bukti Pembayaran
+                      </p>
+
+                      <div
+                        className="
+                          rounded-xl
+                          overflow-hidden
+                          border
+                          border-[#D4AF37]/20
+                          bg-[#0D0D0D]
+                        "
+                      >
+                        <img
+                          src={buktiPreview}
+                          alt="Preview bukti pembayaran"
                           className="
-                            rounded-xl
-                            overflow-hidden
-                            border
-                            border-[#D4AF37]/20
-                            bg-[#0D0D0D]
+                            w-full
+                            max-h-72
+                            object-contain
                           "
-                        >
-                          <img
-                            src={buktiPreview}
-                            alt="Preview bukti pembayaran"
-                            className="
-                              w-full
-                              max-h-72
-                              object-contain
-                            "
-                          />
-                        </div>
-
-                        {buktiFile && (
-                          <p className="text-gray-500 text-xs mt-2">
-                            {buktiFile.name}
-                          </p>
-                        )}
+                        />
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
 
-              {/* ERROR */}
+                      {buktiFile && (
+                        <p className="text-gray-500 text-xs mt-2">
+                          {buktiFile.name}
+                        </p>
+                      )}
+
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+              {/* ==================================================
+                  ERROR
+              ================================================== */}
 
               {error && (
                 <div
@@ -1398,7 +1936,9 @@ function BorrowForm() {
                 </div>
               )}
 
-              {/* SUCCESS */}
+              {/* ==================================================
+                  SUCCESS
+              ================================================== */}
 
               {success && (
                 <div
@@ -1416,12 +1956,17 @@ function BorrowForm() {
                 </div>
               )}
 
-              {/* BUTTON */}
+              {/* ==================================================
+                  BUTTON
+              ================================================== */}
 
               <button
                 type="submit"
                 disabled={
-                  submitting || !isAvailable || !costume || totalHarga <= 0
+                  submitting ||
+                  !isAvailable ||
+                  !costume ||
+                  totalHarga <= 0
                 }
                 className="
                   w-full
@@ -1438,10 +1983,14 @@ function BorrowForm() {
                   disabled:cursor-not-allowed
                 "
               >
-                {submitting ? "Mengirim..." : "Ajukan Peminjaman & Bayar"}
+                {submitting
+                  ? "Mengirim..."
+                  : "Ajukan Peminjaman & Bayar"}
               </button>
-            </form>
-          </div>
+
+            </div>
+
+          </form>
         </div>
       </main>
     </div>

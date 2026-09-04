@@ -28,19 +28,28 @@ function PeminjamanDetailPetugas() {
     const [data, setData] = useState(null);
 
     const [loading, setLoading] = useState(true);
-    const [updatingStatus, setUpdatingStatus] =
-        useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
+    // ==================================================
+    // MODAL KONFIRMASI
+    // ==================================================
+
+    const [confirmModal, setConfirmModal] = useState({
+        open: false,
+        newStatus: "",
+        title: "",
+        message: "",
+    });
 
     // ==================================================
     // CEK LOGIN PETUGAS
     // ==================================================
 
     useEffect(() => {
-        const storedUser =
-            localStorage.getItem("user");
+        const storedUser = localStorage.getItem("user");
 
         if (!storedUser) {
             navigate("/login", {
@@ -51,8 +60,7 @@ function PeminjamanDetailPetugas() {
         }
 
         try {
-            const parsedUser =
-                JSON.parse(storedUser);
+            const parsedUser = JSON.parse(storedUser);
 
             if (!parsedUser?.id_user) {
                 throw new Error(
@@ -61,9 +69,7 @@ function PeminjamanDetailPetugas() {
             }
 
             // Role 2 = Petugas
-            if (
-                Number(parsedUser.id_role) !== 2
-            ) {
+            if (Number(parsedUser.id_role) !== 2) {
                 navigate("/dashboard", {
                     replace: true,
                 });
@@ -79,9 +85,7 @@ function PeminjamanDetailPetugas() {
             );
 
             localStorage.removeItem("user");
-            localStorage.removeItem(
-                "isLoggedIn"
-            );
+            localStorage.removeItem("isLoggedIn");
 
             navigate("/login", {
                 replace: true,
@@ -98,21 +102,17 @@ function PeminjamanDetailPetugas() {
             setLoading(true);
             setError("");
 
-            const response =
-                await fetch(
-                    `/peminjaman/detail/${id}`
-                );
+            const response = await fetch(
+                `/peminjaman/detail/${id}`
+            );
 
-            const rawResponse =
-                await response.text();
+            const rawResponse = await response.text();
 
             let result = {};
 
             try {
                 result = rawResponse
-                    ? JSON.parse(
-                          rawResponse
-                      )
+                    ? JSON.parse(rawResponse)
                     : {};
             } catch {
                 throw new Error(
@@ -127,9 +127,7 @@ function PeminjamanDetailPetugas() {
                 );
             }
 
-            setData(
-                result.data || null
-            );
+            setData(result.data || null);
         } catch (err) {
             console.error(
                 "Detail peminjaman error:",
@@ -181,11 +179,7 @@ function PeminjamanDetailPetugas() {
 
         const date = new Date(value);
 
-        if (
-            Number.isNaN(
-                date.getTime()
-            )
-        ) {
+        if (Number.isNaN(date.getTime())) {
             return value;
         }
 
@@ -208,8 +202,7 @@ function PeminjamanDetailPetugas() {
             return "";
         }
 
-        const value =
-            String(foto).trim();
+        const value = String(foto).trim();
 
         if (!value) {
             return "";
@@ -217,27 +210,20 @@ function PeminjamanDetailPetugas() {
 
         // URL lengkap
         if (
-            value.startsWith(
-                "http://"
-            ) ||
-            value.startsWith(
-                "https://"
-            )
+            value.startsWith("http://") ||
+            value.startsWith("https://")
         ) {
             return value;
         }
 
-        // Foto baru:
-        // /uploads/kostum/xxx.webp
+        // Sudah berupa path uploads
         if (
-            value.startsWith(
-                "/uploads/"
-            )
+            value.startsWith("/uploads/")
         ) {
             return value;
         }
 
-        // Kalau database hanya menyimpan nama file
+        // Database hanya menyimpan nama file
         return `/uploads/kostum/${value}`;
     };
 
@@ -245,12 +231,9 @@ function PeminjamanDetailPetugas() {
     // STATUS CLASS
     // ==================================================
 
-    const getStatusClass = (
-        status
-    ) => {
+    const getStatusClass = (status) => {
         switch (
-            String(status || "")
-                .toLowerCase()
+            String(status || "").toLowerCase()
         ) {
             case "menunggu":
                 return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
@@ -279,12 +262,9 @@ function PeminjamanDetailPetugas() {
     // ICON STATUS
     // ==================================================
 
-    const getStatusIcon = (
-        status
-    ) => {
+    const getStatusIcon = (status) => {
         switch (
-            String(status || "")
-                .toLowerCase()
+            String(status || "").toLowerCase()
         ) {
             case "menunggu":
                 return <FaClipboardList />;
@@ -305,19 +285,39 @@ function PeminjamanDetailPetugas() {
                 return <FaUndo />;
 
             default:
-                return (
-                    <FaClipboardList />
-                );
+                return <FaClipboardList />;
         }
     };
 
     // ==================================================
-    // UPDATE STATUS
+    // STATUS TRANSITION
     // ==================================================
 
-    const updateStatus = async (
-        newStatus
-    ) => {
+    const allowedTransitions = {
+        menunggu: [
+            "Disetujui",
+            "Ditolak",
+        ],
+
+        disetujui: [
+            "Diproses",
+            "Dibatalkan",
+        ],
+
+        diproses: [
+            "Selesai",
+        ],
+
+        selesai: [],
+        ditolak: [],
+        dibatalkan: [],
+    };
+
+    // ==================================================
+    // BUKA MODAL KONFIRMASI
+    // ==================================================
+
+    const openConfirmModal = (newStatus) => {
         if (!data?.id_peminjaman) {
             return;
         }
@@ -331,40 +331,12 @@ function PeminjamanDetailPetugas() {
                 data.status || ""
             ).toLowerCase();
 
-        // ==============================================
-        // STATUS TRANSITION
-        // ==============================================
-
-        const allowedTransitions = {
-            menunggu: [
-                "Disetujui",
-                "Ditolak",
-            ],
-
-            disetujui: [
-                "Diproses",
-                "Dibatalkan",
-            ],
-
-            diproses: [
-                "Selesai",
-            ],
-
-            selesai: [],
-            ditolak: [],
-            dibatalkan: [],
-        };
-
         const allowed =
             allowedTransitions[
                 currentStatus
             ] || [];
 
-        if (
-            !allowed.includes(
-                newStatus
-            )
-        ) {
+        if (!allowed.includes(newStatus)) {
             setError(
                 `Status "${newStatus}" tidak dapat dipilih dari status "${data.status}".`
             );
@@ -372,16 +344,140 @@ function PeminjamanDetailPetugas() {
             return;
         }
 
-        // ==============================================
-        // KONFIRMASI
-        // ==============================================
+        let title = "";
+        let message = "";
 
-        const confirmation =
-            window.confirm(
-                `Ubah status peminjaman #${data.id_peminjaman} menjadi "${newStatus}"?`
+        switch (newStatus) {
+            case "Disetujui":
+                title =
+                    "Setujui Peminjaman";
+
+                message =
+                    `Apakah Anda yakin ingin menyetujui peminjaman #${data.id_peminjaman}?`;
+
+                break;
+
+            case "Ditolak":
+                title =
+                    "Tolak Peminjaman";
+
+                message =
+                    `Apakah Anda yakin ingin menolak peminjaman #${data.id_peminjaman}?`;
+
+                break;
+
+            case "Diproses":
+                title =
+                    "Proses Peminjaman";
+
+                message =
+                    `Apakah Anda yakin ingin memproses peminjaman #${data.id_peminjaman}?`;
+
+                break;
+
+            case "Dibatalkan":
+                title =
+                    "Batalkan Peminjaman";
+
+                message =
+                    `Apakah Anda yakin ingin membatalkan peminjaman #${data.id_peminjaman}?`;
+
+                break;
+
+            case "Selesai":
+                title =
+                    "Selesaikan Peminjaman";
+
+                message =
+                    `Apakah Anda yakin ingin menyelesaikan peminjaman #${data.id_peminjaman}?`;
+
+                break;
+
+            default:
+                return;
+        }
+
+        setError("");
+
+        setConfirmModal({
+            open: true,
+            newStatus,
+            title,
+            message,
+        });
+    };
+
+    // ==================================================
+    // TUTUP MODAL
+    // ==================================================
+
+    const closeConfirmModal = () => {
+        if (updatingStatus) {
+            return;
+        }
+
+        setConfirmModal({
+            open: false,
+            newStatus: "",
+            title: "",
+            message: "",
+        });
+    };
+
+    // ==================================================
+    // KONFIRMASI STATUS
+    // ==================================================
+
+    const confirmStatusChange = async () => {
+        if (
+            !confirmModal.open ||
+            !confirmModal.newStatus ||
+            updatingStatus
+        ) {
+            return;
+        }
+
+        const newStatus =
+            confirmModal.newStatus;
+
+        setConfirmModal({
+            open: false,
+            newStatus: "",
+            title: "",
+            message: "",
+        });
+
+        await updateStatus(newStatus);
+    };
+
+    // ==================================================
+    // UPDATE STATUS
+    // ==================================================
+
+    const updateStatus = async (newStatus) => {
+        if (!data?.id_peminjaman) {
+            return;
+        }
+
+        if (updatingStatus) {
+            return;
+        }
+
+        const currentStatus =
+            String(
+                data.status || ""
+            ).toLowerCase();
+
+        const allowed =
+            allowedTransitions[
+                currentStatus
+            ] || [];
+
+        if (!allowed.includes(newStatus)) {
+            setError(
+                `Status "${newStatus}" tidak dapat dipilih dari status "${data.status}".`
             );
 
-        if (!confirmation) {
             return;
         }
 
@@ -467,22 +563,22 @@ function PeminjamanDetailPetugas() {
         }
 
         const status =
-            String(data.status)
-                .toLowerCase();
+            String(
+                data.status
+            ).toLowerCase();
 
         // ==============================================
         // MENUNGGU
         // ==============================================
 
-        if (
-            status === "menunggu"
-        ) {
+        if (status === "menunggu") {
             return (
                 <div className="grid sm:grid-cols-2 gap-3">
+
                     <button
                         type="button"
                         onClick={() =>
-                            updateStatus(
+                            openConfirmModal(
                                 "Disetujui"
                             )
                         }
@@ -516,7 +612,7 @@ function PeminjamanDetailPetugas() {
                     <button
                         type="button"
                         onClick={() =>
-                            updateStatus(
+                            openConfirmModal(
                                 "Ditolak"
                             )
                         }
@@ -546,6 +642,7 @@ function PeminjamanDetailPetugas() {
                             ? "Memproses..."
                             : "Tolak Peminjaman"}
                     </button>
+
                 </div>
             );
         }
@@ -554,15 +651,14 @@ function PeminjamanDetailPetugas() {
         // DISETUJUI
         // ==============================================
 
-        if (
-            status === "disetujui"
-        ) {
+        if (status === "disetujui") {
             return (
                 <div className="grid sm:grid-cols-2 gap-3">
+
                     <button
                         type="button"
                         onClick={() =>
-                            updateStatus(
+                            openConfirmModal(
                                 "Diproses"
                             )
                         }
@@ -596,7 +692,7 @@ function PeminjamanDetailPetugas() {
                     <button
                         type="button"
                         onClick={() =>
-                            updateStatus(
+                            openConfirmModal(
                                 "Dibatalkan"
                             )
                         }
@@ -626,6 +722,7 @@ function PeminjamanDetailPetugas() {
                             ? "Memproses..."
                             : "Batalkan"}
                     </button>
+
                 </div>
             );
         }
@@ -634,9 +731,7 @@ function PeminjamanDetailPetugas() {
         // DIPROSES
         // ==============================================
 
-        if (
-            status === "diproses"
-        ) {
+        if (status === "diproses") {
             return (
                 <div
                     className="
@@ -652,7 +747,9 @@ function PeminjamanDetailPetugas() {
                 >
                     Peminjaman sedang
                     diproses.
+
                     <br />
+
                     <span className="text-[#D4AF37]">
                         Selesaikan transaksi
                         melalui menu
@@ -660,6 +757,8 @@ function PeminjamanDetailPetugas() {
                         setelah kostum
                         diterima kembali.
                     </span>
+
+                    <br />
 
                     <Link
                         to="/petugas/pengembalian"
@@ -689,9 +788,7 @@ function PeminjamanDetailPetugas() {
         // SELESAI
         // ==============================================
 
-        if (
-            status === "selesai"
-        ) {
+        if (status === "selesai") {
             return (
                 <div
                     className="
@@ -743,10 +840,7 @@ function PeminjamanDetailPetugas() {
     // LOADING
     // ==================================================
 
-    if (
-        !user ||
-        loading
-    ) {
+    if (!user || loading) {
         return (
             <div
                 className="
@@ -770,10 +864,7 @@ function PeminjamanDetailPetugas() {
     // ERROR
     // ==================================================
 
-    if (
-        error &&
-        !data
-    ) {
+    if (error && !data) {
         return (
             <div
                 className="
@@ -864,6 +955,7 @@ function PeminjamanDetailPetugas() {
                 text-white
             "
         >
+
             {/* ==================================================
                 HEADER
             ================================================== */}
@@ -890,6 +982,7 @@ function PeminjamanDetailPetugas() {
                     "
                 >
                     <div>
+
                         <p
                             className="
                                 uppercase
@@ -921,6 +1014,7 @@ function PeminjamanDetailPetugas() {
                             transaksi
                             peminjaman.
                         </p>
+
                     </div>
 
                     <Link
@@ -938,8 +1032,14 @@ function PeminjamanDetailPetugas() {
                     >
                         Kembali
                     </Link>
+
                 </div>
             </header>
+
+
+            {/* ==================================================
+                MAIN
+            ================================================== */}
 
             <main
                 className="
@@ -949,6 +1049,7 @@ function PeminjamanDetailPetugas() {
                     py-10
                 "
             >
+
                 {/* SUCCESS */}
 
                 {success && (
@@ -972,12 +1073,14 @@ function PeminjamanDetailPetugas() {
                             "
                         >
                             <FaCheck />
+
                             <span>
                                 {success}
                             </span>
                         </div>
                     </div>
                 )}
+
 
                 {/* ERROR */}
 
@@ -997,6 +1100,7 @@ function PeminjamanDetailPetugas() {
                         {error}
                     </div>
                 )}
+
 
                 {/* ==================================================
                     STATUS HEADER
@@ -1023,12 +1127,8 @@ function PeminjamanDetailPetugas() {
                         "
                     >
                         <div>
-                            <p
-                                className="
-                                    text-gray-500
-                                    text-sm
-                                "
-                            >
+
+                            <p className="text-gray-500 text-sm">
                                 ID Peminjaman
                             </p>
 
@@ -1040,10 +1140,9 @@ function PeminjamanDetailPetugas() {
                                 "
                             >
                                 #
-                                {
-                                    data.id_peminjaman
-                                }
+                                {data.id_peminjaman}
                             </h2>
+
                         </div>
 
                         <div
@@ -1066,11 +1165,12 @@ function PeminjamanDetailPetugas() {
                                 data.status
                             )}
 
-                            {data.status ||
-                                "-"}
+                            {data.status || "-"}
                         </div>
+
                     </div>
                 </section>
+
 
                 {/* ==================================================
                     DETAIL
@@ -1083,7 +1183,10 @@ function PeminjamanDetailPetugas() {
                         gap-6
                     "
                 >
-                    {/* USER */}
+
+                    {/* ==================================================
+                        USER
+                    ================================================== */}
 
                     <section
                         className="
@@ -1094,6 +1197,7 @@ function PeminjamanDetailPetugas() {
                             p-7
                         "
                     >
+
                         <div
                             className="
                                 flex
@@ -1127,22 +1231,24 @@ function PeminjamanDetailPetugas() {
                             </div>
                         </div>
 
+
                         <div
                             className="
                                 mt-8
                                 space-y-6
                             "
                         >
+
                             <div>
                                 <p className="text-gray-500 text-sm">
                                     Nama
                                 </p>
 
                                 <p className="font-semibold mt-1">
-                                    {data.nama_user ||
-                                        "-"}
+                                    {data.nama_user || "-"}
                                 </p>
                             </div>
+
 
                             <div
                                 className="
@@ -1159,11 +1265,11 @@ function PeminjamanDetailPetugas() {
                                     </p>
 
                                     <p className="mt-1 break-all">
-                                        {data.email_user ||
-                                            "-"}
+                                        {data.email_user || "-"}
                                     </p>
                                 </div>
                             </div>
+
 
                             <div
                                 className="
@@ -1180,11 +1286,11 @@ function PeminjamanDetailPetugas() {
                                     </p>
 
                                     <p className="mt-1">
-                                        {data.no_hp_user ||
-                                            "-"}
+                                        {data.no_hp_user || "-"}
                                     </p>
                                 </div>
                             </div>
+
 
                             <div>
                                 <p className="text-gray-500 text-sm">
@@ -1198,14 +1304,18 @@ function PeminjamanDetailPetugas() {
                                         leading-6
                                     "
                                 >
-                                    {data.alamat_user ||
-                                        "-"}
+                                    {data.alamat_user || "-"}
                                 </p>
                             </div>
+
                         </div>
+
                     </section>
 
-                    {/* KOSTUM */}
+
+                    {/* ==================================================
+                        KOSTUM
+                    ================================================== */}
 
                     <section
                         className="
@@ -1216,6 +1326,7 @@ function PeminjamanDetailPetugas() {
                             p-7
                         "
                     >
+
                         <div
                             className="
                                 flex
@@ -1249,6 +1360,9 @@ function PeminjamanDetailPetugas() {
                             </div>
                         </div>
 
+
+                        {/* FOTO */}
+
                         {imageUrl ? (
                             <img
                                 src={imageUrl}
@@ -1265,9 +1379,7 @@ function PeminjamanDetailPetugas() {
                                     mt-6
                                     bg-[#1D1D1D]
                                 "
-                                onError={(
-                                    e
-                                ) => {
+                                onError={(e) => {
                                     e.currentTarget.style.display =
                                         "none";
 
@@ -1278,9 +1390,7 @@ function PeminjamanDetailPetugas() {
                                                 ".kostum-image-fallback"
                                             );
 
-                                    if (
-                                        fallback
-                                    ) {
+                                    if (fallback) {
                                         fallback.style.display =
                                             "flex";
                                     }
@@ -1288,10 +1398,15 @@ function PeminjamanDetailPetugas() {
                             />
                         ) : null}
 
+
                         <div
                             className={`
                                 kostum-image-fallback
-                                ${imageUrl ? "hidden" : "flex"}
+                                ${
+                                    imageUrl
+                                        ? "hidden"
+                                        : "flex"
+                                }
                                 w-full
                                 h-64
                                 rounded-2xl
@@ -1302,6 +1417,7 @@ function PeminjamanDetailPetugas() {
                             `}
                         >
                             <div className="text-center">
+
                                 <FaImage
                                     className="
                                         mx-auto
@@ -1314,8 +1430,10 @@ function PeminjamanDetailPetugas() {
                                     Foto kostum
                                     belum tersedia
                                 </p>
+
                             </div>
                         </div>
+
 
                         <div
                             className="
@@ -1323,6 +1441,7 @@ function PeminjamanDetailPetugas() {
                                 space-y-5
                             "
                         >
+
                             <div>
                                 <p className="text-gray-500 text-sm">
                                     Nama Kostum
@@ -1335,10 +1454,10 @@ function PeminjamanDetailPetugas() {
                                         mt-1
                                     "
                                 >
-                                    {data.nama_kostum ||
-                                        "-"}
+                                    {data.nama_kostum || "-"}
                                 </p>
                             </div>
+
 
                             <div>
                                 <p className="text-gray-500 text-sm">
@@ -1352,10 +1471,10 @@ function PeminjamanDetailPetugas() {
                                         mt-1
                                     "
                                 >
-                                    {data.kode_koleksi ||
-                                        "-"}
+                                    {data.kode_koleksi || "-"}
                                 </p>
                             </div>
+
 
                             <div>
                                 <p className="text-gray-500 text-sm">
@@ -1363,10 +1482,10 @@ function PeminjamanDetailPetugas() {
                                 </p>
 
                                 <p className="mt-1">
-                                    {data.warna ||
-                                        "-"}
+                                    {data.warna || "-"}
                                 </p>
                             </div>
+
 
                             <div>
                                 <p className="text-gray-500 text-sm">
@@ -1374,10 +1493,10 @@ function PeminjamanDetailPetugas() {
                                 </p>
 
                                 <p className="mt-1">
-                                    {data.ukuran ||
-                                        "-"}
+                                    {data.ukuran || "-"}
                                 </p>
                             </div>
+
 
                             <div>
                                 <p className="text-gray-500 text-sm">
@@ -1385,14 +1504,18 @@ function PeminjamanDetailPetugas() {
                                 </p>
 
                                 <p className="mt-1">
-                                    {data.jumlah ??
-                                        0}
+                                    {data.jumlah ?? 0}
                                 </p>
                             </div>
+
                         </div>
+
                     </section>
 
-                    {/* PEMINJAMAN */}
+
+                    {/* ==================================================
+                        PEMINJAMAN
+                    ================================================== */}
 
                     <section
                         className="
@@ -1403,6 +1526,7 @@ function PeminjamanDetailPetugas() {
                             p-7
                         "
                     >
+
                         <div
                             className="
                                 flex
@@ -1436,12 +1560,14 @@ function PeminjamanDetailPetugas() {
                             </div>
                         </div>
 
+
                         <div
                             className="
                                 mt-8
                                 space-y-6
                             "
                         >
+
                             <div>
                                 <p className="text-gray-500 text-sm">
                                     ID Peminjaman
@@ -1454,12 +1580,10 @@ function PeminjamanDetailPetugas() {
                                         mt-1
                                     "
                                 >
-                                    #
-                                    {
-                                        data.id_peminjaman
-                                    }
+                                    #{data.id_peminjaman}
                                 </p>
                             </div>
+
 
                             <div>
                                 <p className="text-gray-500 text-sm">
@@ -1487,10 +1611,10 @@ function PeminjamanDetailPetugas() {
                                         data.status
                                     )}
 
-                                    {data.status ||
-                                        "-"}
+                                    {data.status || "-"}
                                 </span>
                             </div>
+
 
                             <div
                                 className="
@@ -1515,6 +1639,7 @@ function PeminjamanDetailPetugas() {
                                 </div>
                             </div>
 
+
                             <div
                                 className="
                                     flex
@@ -1538,6 +1663,7 @@ function PeminjamanDetailPetugas() {
                                 </div>
                             </div>
 
+
                             <div>
                                 <p className="text-gray-500 text-sm">
                                     Harga
@@ -1556,6 +1682,7 @@ function PeminjamanDetailPetugas() {
                                 </p>
                             </div>
 
+
                             <div>
                                 <p className="text-gray-500 text-sm">
                                     Subtotal
@@ -1573,7 +1700,9 @@ function PeminjamanDetailPetugas() {
                                     )}
                                 </p>
                             </div>
+
                         </div>
+
 
                         <div
                             className="
@@ -1600,8 +1729,11 @@ function PeminjamanDetailPetugas() {
                                 )}
                             </p>
                         </div>
+
                     </section>
+
                 </div>
+
 
                 {/* ==================================================
                     AKSI STATUS
@@ -1617,11 +1749,9 @@ function PeminjamanDetailPetugas() {
                         p-7
                     "
                 >
-                    <div
-                        className="
-                            mb-6
-                        "
-                    >
+
+                    <div className="mb-6">
+
                         <p
                             className="
                                 text-[#D4AF37]
@@ -1647,14 +1777,20 @@ function PeminjamanDetailPetugas() {
                             Perbarui status transaksi
                             sesuai proses peminjaman.
                         </p>
+
                     </div>
 
                     {renderStatusActions()}
+
                 </section>
 
-                {/* BACK */}
+
+                {/* ==================================================
+                    BACK
+                ================================================== */}
 
                 <div className="mt-7">
+
                     <Link
                         to="/petugas/peminjaman"
                         className="
@@ -1667,11 +1803,287 @@ function PeminjamanDetailPetugas() {
                         "
                     >
                         <FaArrowLeft />
+
                         Kembali ke Daftar
                         Peminjaman
                     </Link>
+
                 </div>
+
             </main>
+
+
+            {/* ==================================================
+                MODAL KONFIRMASI
+            ================================================== */}
+
+            {confirmModal.open && (
+                <div
+                    className="
+                        fixed
+                        inset-0
+                        z-[9999]
+                        flex
+                        items-center
+                        justify-center
+                        p-5
+                        bg-black/70
+                        backdrop-blur-sm
+                    "
+                    onClick={closeConfirmModal}
+                >
+
+                    <div
+                        className="
+                            w-full
+                            max-w-md
+                            rounded-3xl
+                            bg-[#141414]
+                            border
+                            border-[#D4AF37]/20
+                            shadow-2xl
+                            shadow-black/50
+                            p-7
+                        "
+                        onClick={(e) =>
+                            e.stopPropagation()
+                        }
+                    >
+
+                        {/* ICON */}
+
+                        <div
+                            className={`
+                                w-14
+                                h-14
+                                rounded-2xl
+                                flex
+                                items-center
+                                justify-center
+                                mb-5
+                                text-xl
+
+                                ${
+                                    confirmModal.newStatus ===
+                                        "Ditolak" ||
+                                    confirmModal.newStatus ===
+                                        "Dibatalkan"
+                                        ? `
+                                            bg-red-500/10
+                                            border
+                                            border-red-500/20
+                                            text-red-400
+                                        `
+                                        : `
+                                            bg-[#D4AF37]/10
+                                            border
+                                            border-[#D4AF37]/20
+                                            text-[#D4AF37]
+                                        `
+                                }
+                            `}
+                        >
+                            {confirmModal.newStatus ===
+                                "Ditolak" ||
+                            confirmModal.newStatus ===
+                                "Dibatalkan" ? (
+                                <FaTimes />
+                            ) : (
+                                <FaCog />
+                            )}
+                        </div>
+
+
+                        {/* TITLE */}
+
+                        <h2
+                            className="
+                                text-2xl
+                                font-bold
+                                text-white
+                            "
+                        >
+                            {confirmModal.title}
+                        </h2>
+
+
+                        {/* MESSAGE */}
+
+                        <p
+                            className="
+                                text-gray-400
+                                mt-3
+                                leading-6
+                            "
+                        >
+                            {confirmModal.message}
+                        </p>
+
+
+                        {/* DETAIL */}
+
+                        <div
+                            className="
+                                mt-5
+                                rounded-2xl
+                                bg-[#1D1D1D]
+                                border
+                                border-white/5
+                                p-4
+                            "
+                        >
+
+                            <p
+                                className="
+                                    text-xs
+                                    uppercase
+                                    tracking-[2px]
+                                    text-gray-500
+                                "
+                            >
+                                Detail Peminjaman
+                            </p>
+
+                            <div className="mt-3">
+
+                                <p
+                                    className="
+                                        text-white
+                                        font-semibold
+                                    "
+                                >
+                                    Peminjaman #
+                                    {data?.id_peminjaman}
+                                </p>
+
+                                <p
+                                    className="
+                                        text-gray-500
+                                        text-sm
+                                        mt-1
+                                    "
+                                >
+                                    {data?.nama_user ||
+                                        "Pelanggan"}
+                                </p>
+
+                                <p
+                                    className="
+                                        text-[#D4AF37]
+                                        text-sm
+                                        mt-1
+                                    "
+                                >
+                                    {data?.nama_kostum ||
+                                        "Kostum"}
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* BUTTON */}
+
+                        <div
+                            className="
+                                grid
+                                grid-cols-2
+                                gap-3
+                                mt-7
+                            "
+                        >
+
+                            {/* BATAL */}
+
+                            <button
+                                type="button"
+                                onClick={
+                                    closeConfirmModal
+                                }
+                                disabled={
+                                    updatingStatus
+                                }
+                                className="
+                                    px-5
+                                    py-3
+                                    rounded-xl
+                                    border
+                                    border-white/10
+                                    text-gray-400
+                                    font-semibold
+                                    hover:bg-white/5
+                                    hover:text-white
+                                    transition
+                                    disabled:opacity-50
+                                    disabled:cursor-not-allowed
+                                "
+                            >
+                                Batal
+                            </button>
+
+
+                            {/* KONFIRMASI */}
+
+                            <button
+                                type="button"
+                                onClick={
+                                    confirmStatusChange
+                                }
+                                disabled={
+                                    updatingStatus
+                                }
+                                className={`
+                                    px-5
+                                    py-3
+                                    rounded-xl
+                                    font-semibold
+                                    transition
+                                    disabled:opacity-50
+                                    disabled:cursor-not-allowed
+
+                                    ${
+                                        confirmModal.newStatus ===
+                                            "Ditolak" ||
+                                        confirmModal.newStatus ===
+                                            "Dibatalkan"
+                                            ? `
+                                                bg-red-500
+                                                text-white
+                                                hover:bg-red-400
+                                            `
+                                            : `
+                                                bg-[#D4AF37]
+                                                text-black
+                                                hover:bg-[#e2bd43]
+                                            `
+                                    }
+                                `}
+                            >
+                                {updatingStatus
+                                    ? "Memproses..."
+                                    : confirmModal.newStatus ===
+                                      "Dibatalkan"
+                                        ? "Ya, Batalkan"
+                                        : confirmModal.newStatus ===
+                                          "Ditolak"
+                                            ? "Ya, Tolak"
+                                            : confirmModal.newStatus ===
+                                              "Diproses"
+                                                ? "Ya, Proses"
+                                                : confirmModal.newStatus ===
+                                                  "Disetujui"
+                                                    ? "Ya, Setujui"
+                                                    : "Konfirmasi"}
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            )}
+
         </div>
     );
 }

@@ -11,6 +11,13 @@ import BorrowForm from "./pages/borrowing/BorrowForm";
 import BorrowSuccess from "./pages/borrowing/BorrowSuccess";
 import CollectionsPage from "./pages/category/CollectionsPage";
 
+// HowToRent berada di components/home
+import HowToRent from "./components/home/HowToRent";
+
+// Navbar & Footer untuk halaman Cara Penyewaan
+import Navbar from "./components/layout/Navbar";
+import Footer from "./components/layout/Footer";
+
 // ======================================================
 // AUTH USER
 // ======================================================
@@ -154,8 +161,8 @@ function App() {
         <Routes>
 
             {/* ==================================================
-                PUBLIC
-            ================================================== */}
+                        PUBLIC
+                ================================================== */}
 
             <Route
                 path="/"
@@ -182,14 +189,41 @@ function App() {
                 element={<BorrowSuccess />}
             />
 
+            {/* ===============================
+                HALAMAN SEMUA KOLEKSI
+            =============================== */}
+
             <Route
                 path="/collections"
                 element={<CollectionsPage />}
             />
 
+            {/* ===============================
+                HALAMAN CARA PENYEWAAN
+            =============================== */}
+
+            <Route
+                path="/how-to-rent"
+                element={
+                    <div
+                        className="
+                            min-h-screen
+                            bg-[#090909]
+                            text-white
+                        "
+                    >
+                        <Navbar />
+
+                        <HowToRent />
+
+                        <Footer />
+                    </div>
+                }
+            />
+
             {/* ==================================================
-                GUEST ONLY
-            ================================================== */}
+                        GUEST ONLY
+                ================================================== */}
 
             <Route element={<GuestRoute />}>
 
@@ -206,14 +240,14 @@ function App() {
             </Route>
 
             {/* ==================================================
-                USER + PETUGAS
-            ================================================== */}
+                        USER + PETUGAS
+                ================================================== */}
 
             <Route element={<ProtectedRoute />}>
 
                 {/* ==================================================
-                    USER
-                ================================================== */}
+                            USER
+                    ================================================== */}
 
                 <Route
                     path="/dashboard"
@@ -246,8 +280,8 @@ function App() {
                 />
 
                 {/* ==================================================
-                    PETUGAS
-                ================================================== */}
+                            PETUGAS
+                    ================================================== */}
 
                 <Route
                     path="/petugas/dashboard"
@@ -302,9 +336,9 @@ function App() {
             </Route>
 
             {/* ==================================================
-                ADMIN LOGIN LAMA
-                ARAHKAN KE LOGIN UTAMA
-            ================================================== */}
+                        ADMIN LOGIN LAMA
+                        ARAHKAN KE LOGIN UTAMA
+                ================================================== */}
 
             <Route
                 path="/admin/login"
@@ -317,8 +351,8 @@ function App() {
             />
 
             {/* ==================================================
-                ADMIN
-            ================================================== */}
+                        ADMIN
+                ================================================== */}
 
             <Route
                 path="/admin/dashboard"
@@ -411,8 +445,8 @@ function App() {
             />
 
             {/* ==================================================
-                FALLBACK ADMIN
-            ================================================== */}
+                        FALLBACK ADMIN
+                ================================================== */}
 
             <Route
                 path="/admin"
@@ -425,8 +459,8 @@ function App() {
             />
 
             {/* ==================================================
-                GLOBAL FALLBACK
-            ================================================== */}
+                        GLOBAL FALLBACK
+                ================================================== */}
 
             <Route
                 path="*"

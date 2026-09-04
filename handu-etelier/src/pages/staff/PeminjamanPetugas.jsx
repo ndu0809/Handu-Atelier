@@ -392,6 +392,10 @@ function PeminjamanPetugas() {
     });
   };
 
+  // ==================================================
+  // TUTUP MODAL
+  // ==================================================
+
   const closeConfirmModal = () => {
     if (updatingId !== null) {
       return;
@@ -406,6 +410,10 @@ function PeminjamanPetugas() {
     });
   };
 
+  // ==================================================
+  // KONFIRMASI AKHIR
+  // ==================================================
+
   const confirmStatusChange = async () => {
     if (
       !confirmModal.item ||
@@ -416,6 +424,7 @@ function PeminjamanPetugas() {
 
     const id =
       confirmModal.item.id_peminjaman;
+
     const status =
       confirmModal.newStatus;
 
@@ -912,6 +921,7 @@ function PeminjamanPetugas() {
               `}
             >
               <div className="flex items-start gap-3">
+
                 <div
                   className={`
                     mt-0.5
@@ -928,17 +938,25 @@ function PeminjamanPetugas() {
                     }
                   `}
                 >
-                  {success ? <FaCheck /> : <FaTimes />}
+                  {success ? (
+                    <FaCheck />
+                  ) : (
+                    <FaTimes />
+                  )}
                 </div>
 
                 <div className="flex-1">
+
                   <p className="font-semibold text-white">
-                    {success ? "Berhasil" : "Gagal"}
+                    {success
+                      ? "Berhasil"
+                      : "Gagal"}
                   </p>
 
                   <p className="text-sm mt-1 text-gray-400">
                     {success || error}
                   </p>
+
                 </div>
 
                 <button
@@ -956,6 +974,7 @@ function PeminjamanPetugas() {
                 >
                   <FaTimes />
                 </button>
+
               </div>
             </div>
           </div>
@@ -1075,6 +1094,7 @@ function PeminjamanPetugas() {
             </select>
 
           </div>
+
         </section>
 
         {/* ==================================================
@@ -1523,11 +1543,12 @@ function PeminjamanPetugas() {
             items-center
             justify-center
             p-5
-            bg-black/70
+            bg-black/75
             backdrop-blur-sm
           "
           onClick={closeConfirmModal}
         >
+
           <div
             className="
               w-full
@@ -1537,36 +1558,94 @@ function PeminjamanPetugas() {
               border-[#D4AF37]/20
               bg-[#141414]
               shadow-2xl
+              shadow-black/50
               p-7
             "
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
+
+            {/* ==================================================
+                ICON MODAL
+            ================================================== */}
+
             <div
-              className="
+              className={`
                 w-14
                 h-14
                 rounded-2xl
-                bg-[#D4AF37]/10
-                border
-                border-[#D4AF37]/20
-                text-[#D4AF37]
                 flex
                 items-center
                 justify-center
                 text-xl
                 mb-5
-              "
+                ${
+                  confirmModal.newStatus ===
+                    "Ditolak" ||
+                  confirmModal.newStatus ===
+                    "Dibatalkan"
+                    ? `
+                      bg-red-500/10
+                      border
+                      border-red-500/20
+                      text-red-400
+                    `
+                    : `
+                      bg-[#D4AF37]/10
+                      border
+                      border-[#D4AF37]/20
+                      text-[#D4AF37]
+                    `
+                }
+              `}
             >
-              <FaCog />
+
+              {confirmModal.newStatus ===
+                "Ditolak" ||
+              confirmModal.newStatus ===
+                "Dibatalkan" ? (
+                <FaTimes />
+              ) : (
+                <FaCog />
+              )}
+
             </div>
 
-            <h2 className="text-2xl font-bold text-white">
+
+            {/* ==================================================
+                TITLE
+            ================================================== */}
+
+            <h2
+              className="
+                text-2xl
+                font-bold
+                text-white
+              "
+            >
               {confirmModal.title}
             </h2>
 
-            <p className="text-gray-400 mt-3 leading-6">
+
+            {/* ==================================================
+                MESSAGE
+            ================================================== */}
+
+            <p
+              className="
+                text-gray-400
+                mt-3
+                leading-6
+              "
+            >
               {confirmModal.message}
             </p>
+
+
+            {/* ==================================================
+                DETAIL PEMINJAMAN
+            ================================================== */}
 
             {confirmModal.item && (
               <div
@@ -1579,25 +1658,88 @@ function PeminjamanPetugas() {
                   p-4
                 "
               >
-                <p className="text-xs text-gray-500 uppercase tracking-wider">
-                  Detail
+
+                <p
+                  className="
+                    text-xs
+                    text-gray-500
+                    uppercase
+                    tracking-wider
+                  "
+                >
+                  Detail Peminjaman
                 </p>
 
-                <p className="text-white font-semibold mt-2">
-                  {confirmModal.item.nama_kostum || "Kostum"}
+                <p
+                  className="
+                    text-white
+                    font-semibold
+                    mt-2
+                  "
+                >
+                  {
+                    confirmModal.item
+                      .nama_kostum ||
+                    "Kostum"
+                  }
                 </p>
 
-                <p className="text-gray-500 text-sm mt-1">
-                  Peminjaman #{confirmModal.item.id_peminjaman}
+                <p
+                  className="
+                    text-gray-500
+                    text-sm
+                    mt-1
+                  "
+                >
+                  Peminjaman #
+                  {
+                    confirmModal.item
+                      .id_peminjaman
+                  }
                 </p>
+
+                {confirmModal.item.nama_user && (
+                  <p
+                    className="
+                      text-gray-500
+                      text-sm
+                      mt-1
+                    "
+                  >
+                    Pelanggan:{" "}
+                    {
+                      confirmModal.item
+                        .nama_user
+                    }
+                  </p>
+                )}
+
               </div>
             )}
 
-            <div className="flex gap-3 mt-7">
+
+            {/* ==================================================
+                BUTTON
+            ================================================== */}
+
+            <div
+              className="
+                flex
+                gap-3
+                mt-7
+              "
+            >
+
+              {/* BATAL */}
+
               <button
                 type="button"
-                disabled={updatingId !== null}
-                onClick={closeConfirmModal}
+                disabled={
+                  updatingId !== null
+                }
+                onClick={
+                  closeConfirmModal
+                }
                 className="
                   flex-1
                   px-5
@@ -1606,19 +1748,28 @@ function PeminjamanPetugas() {
                   border
                   border-white/10
                   text-gray-400
+                  font-medium
                   hover:text-white
                   hover:bg-white/5
                   transition
                   disabled:opacity-50
+                  disabled:cursor-not-allowed
                 "
               >
                 Batal
               </button>
 
+
+              {/* KONFIRMASI */}
+
               <button
                 type="button"
-                disabled={updatingId !== null}
-                onClick={confirmStatusChange}
+                disabled={
+                  updatingId !== null
+                }
+                onClick={
+                  confirmStatusChange
+                }
                 className={`
                   flex-1
                   px-5
@@ -1626,8 +1777,14 @@ function PeminjamanPetugas() {
                   rounded-xl
                   font-semibold
                   transition
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
+
                   ${
-                    confirmModal.newStatus === "Ditolak"
+                    confirmModal.newStatus ===
+                      "Ditolak" ||
+                    confirmModal.newStatus ===
+                      "Dibatalkan"
                       ? `
                         bg-red-500
                         text-white
@@ -1636,20 +1793,34 @@ function PeminjamanPetugas() {
                       : `
                         bg-[#D4AF37]
                         text-black
-                        hover:brightness-110
+                        hover:bg-[#e2bd43]
                       `
                   }
-                  disabled:opacity-50
                 `}
               >
+
                 {updatingId !== null
                   ? "Memproses..."
-                  : confirmModal.newStatus === "Ditolak"
-                    ? "Tolak Peminjaman"
-                    : "Konfirmasi"}
+                  : confirmModal
+                        .newStatus ===
+                      "Ditolak"
+                    ? "Ya, Tolak"
+                    : confirmModal
+                          .newStatus ===
+                        "Dibatalkan"
+                      ? "Ya, Batalkan"
+                      : confirmModal
+                            .newStatus ===
+                          "Diproses"
+                        ? "Ya, Proses"
+                        : "Ya, Setujui"}
+
               </button>
+
             </div>
+
           </div>
+
         </div>
       )}
 

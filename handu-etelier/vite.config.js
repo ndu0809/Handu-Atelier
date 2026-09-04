@@ -7,7 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 // ========================================
 
 const TUNNEL_URL =
-  "https://transparency-petite-outlet-compared.trycloudflare.com";
+  "https://northeast-spencer-bacon-builder.trycloudflare.com";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

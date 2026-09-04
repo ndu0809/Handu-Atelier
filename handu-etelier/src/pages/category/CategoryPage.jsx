@@ -9,6 +9,13 @@ import {
     useParams
 } from "react-router-dom";
 
+import {
+    FaArrowLeft,
+    FaExclamationTriangle,
+    FaSearch,
+    FaTshirt
+} from "react-icons/fa";
+
 import CostumeCard
     from "../../components/common/CostumeCard";
 
@@ -18,7 +25,49 @@ import {
 
 
 // ======================================================
-// CATEGORY PAGE
+// SLUG
+// ======================================================
+
+function makeSlug(value) {
+
+    return String(value || "")
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+        .replace(
+            /[^a-z0-9]+/g,
+            "-"
+        )
+        .replace(
+            /^-+|-+$/g,
+            "");
+}
+
+
+// ======================================================
+// NORMALISASI
+// ======================================================
+
+function normalizeText(value) {
+
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        );
+
+}
+
+
+// ======================================================
+// COMPONENT
 // ======================================================
 
 function CategoryPage() {
@@ -28,34 +77,45 @@ function CategoryPage() {
     } = useParams();
 
 
-    // ======================================================
+    // ==================================================
     // STATE
-    // ======================================================
+    // ==================================================
 
     const [
         costumes,
         setCostumes
     ] = useState([]);
 
+
+    const [
+        collections,
+        setCollections
+    ] = useState([]);
+
+
     const [
         loading,
         setLoading
     ] = useState(true);
+
 
     const [
         error,
         setError
     ] = useState("");
 
+
     const [
         search,
         setSearch
     ] = useState("");
 
+
     const [
         availability,
         setAvailability
     ] = useState("Semua");
+
 
     const [
         sortBy,
@@ -63,140 +123,30 @@ function CategoryPage() {
     ] = useState("default");
 
 
-    // ======================================================
-    // NORMALISASI SLUG
-    // ======================================================
+    // ==================================================
+    // SLUG SAAT INI
+    // ==================================================
 
     const currentSlug =
-        String(
-            slug || ""
-        )
-            .trim()
-            .toLowerCase();
+        makeSlug(slug);
 
 
-    // ======================================================
-    // KODE KOLEKSI LAMA
+    // ==================================================
+    // LOAD DATA
     //
-    // TIDAK DIHAPUS.
+    // AMBIL:
+    // 1. KOLEKSI
+    // 2. SEMUA KOSTUM
     //
-    // Digunakan sebagai fallback untuk data lama yang
-    // belum mempunyai informasi kategori yang lengkap.
-    // ======================================================
-
-    const categoryCodes = {
-
-        traditional: [
-            "KST-001",
-            "KST-002",
-            "KST-003",
-            "KST-004",
-            "KST-021",
-            "KST-022",
-            "KST-023",
-            "KST-025",
-            "KST-026",
-            "KST-027",
-            "KST-028",
-            "KST-029",
-            "KST-030",
-            "KST-031",
-            "KST-032"
-        ],
-
-        modern: [
-            "KST-007",
-            "KST-008",
-            "KST-014",
-            "KST-018",
-            "KST-019",
-            "KST-020",
-            "KST-034",
-            "KST-035"
-        ],
-
-        classic: [
-            "KST-006",
-            "KST-010",
-            "KST-011",
-            "KST-012",
-            "KST-013",
-            "KST-016"
-        ],
-
-        formal: [
-            "KST-005",
-            "KST-009",
-            "KST-015",
-            "KST-017",
-            "KST-024",
-            "KST-033"
-        ]
-
-    };
-
-
-    // ======================================================
-    // INFORMASI KATEGORI
-    // ======================================================
-
-    const categoryInfo =
-        useMemo(() => {
-
-            const categories = {
-
-                traditional: {
-                    title: "Tradisional",
-                    description:
-                        "Koleksi pakaian adat dan busana tradisional pilihan Handu Atelier."
-                },
-
-                modern: {
-                    title: "Modern",
-                    description:
-                        "Koleksi kostum modern dan elegan untuk berbagai acara spesial."
-                },
-
-                classic: {
-                    title: "Classic",
-                    description:
-                        "Koleksi klasik dengan sentuhan vintage dan elegan."
-                },
-
-                formal: {
-                    title: "Formal",
-                    description:
-                        "Koleksi formal untuk acara resmi dan momen spesial."
-                }
-
-            };
-
-
-            return (
-                categories[
-                    currentSlug
-                ] || {
-                    title: "Koleksi",
-                    description:
-                        "Koleksi kostum Handu Atelier."
-                }
-            );
-
-        }, [
-            currentSlug
-        ]);
-
-
-    // ======================================================
-    // LOAD DATA KOSTUM
-    // ======================================================
+    // KEDUANYA DARI DATABASE
+    // ==================================================
 
     useEffect(() => {
 
         let cancelled = false;
 
 
-        const loadCostumes =
+        const loadData =
             async () => {
 
                 try {
@@ -205,23 +155,85 @@ function CategoryPage() {
                     setError("");
 
 
-                    const data =
+                    // ==========================================
+                    // AMBIL KOLEKSI
+                    // ==========================================
+
+                    const collectionResponse =
+                        await fetch(
+                            `/api/koleksi?_=${Date.now()}`,
+                            {
+                                method: "GET",
+                                cache: "no-store",
+                                headers: {
+                                    Accept:
+                                        "application/json",
+                                },
+                            }
+                        );
+
+
+                    if (
+                        !collectionResponse.ok
+                    ) {
+
+                        throw new Error(
+                            `Gagal mengambil data koleksi (${collectionResponse.status})`
+                        );
+
+                    }
+
+
+                    const collectionResult =
+                        await collectionResponse.json();
+
+
+                    let collectionData = [];
+
+
+                    if (
+                        Array.isArray(
+                            collectionResult
+                        )
+                    ) {
+
+                        collectionData =
+                            collectionResult;
+
+                    }
+                    else if (
+                        Array.isArray(
+                            collectionResult?.data
+                        )
+                    ) {
+
+                        collectionData =
+                            collectionResult.data;
+
+                    }
+                    else if (
+                        Array.isArray(
+                            collectionResult?.koleksi
+                        )
+                    ) {
+
+                        collectionData =
+                            collectionResult.koleksi;
+
+                    }
+
+
+                    // ==========================================
+                    // AMBIL KOSTUM
+                    // ==========================================
+
+                    const costumeData =
                         await getCostumes();
-
-
-                    console.log(
-                        "========================================"
-                    );
-
-                    console.log(
-                        "CATEGORY PAGE - SEMUA DATA KOSTUM:",
-                        data
-                    );
 
 
                     if (
                         !Array.isArray(
-                            data
+                            costumeData
                         )
                     ) {
 
@@ -232,18 +244,20 @@ function CategoryPage() {
                     }
 
 
-                    if (
-                        !cancelled
-                    ) {
+                    if (!cancelled) {
+
+                        setCollections(
+                            collectionData
+                        );
 
                         setCostumes(
-                            data
+                            costumeData
                         );
 
                     }
 
-
-                } catch (err) {
+                }
+                catch (err) {
 
                     console.error(
                         "CATEGORY PAGE ERROR:",
@@ -251,31 +265,24 @@ function CategoryPage() {
                     );
 
 
-                    if (
-                        !cancelled
-                    ) {
+                    if (!cancelled) {
 
                         setError(
                             err?.message ||
-                            "Gagal mengambil data kostum."
+                            "Gagal mengambil data koleksi dan kostum."
                         );
 
-
-                        setCostumes(
-                            []
-                        );
+                        setCollections([]);
+                        setCostumes([]);
 
                     }
 
-                } finally {
+                }
+                finally {
 
-                    if (
-                        !cancelled
-                    ) {
+                    if (!cancelled) {
 
-                        setLoading(
-                            false
-                        );
+                        setLoading(false);
 
                     }
 
@@ -284,7 +291,7 @@ function CategoryPage() {
             };
 
 
-        loadCostumes();
+        loadData();
 
 
         return () => {
@@ -296,348 +303,171 @@ function CategoryPage() {
     }, []);
 
 
-    // ======================================================
-    // NORMALISASI TEXT
-    // ======================================================
+    // ==================================================
+    // CARI KOLEKSI BERDASARKAN SLUG
+    // ==================================================
 
-    const normalizeText =
-        (value) => {
-
-            return String(
-                value || ""
-            )
-                .trim()
-                .toLowerCase();
-
-        };
-
-
-    // ======================================================
-    // NORMALISASI KATEGORI
-    // ======================================================
-
-    const normalizeCategory =
-        (value) => {
-
-            return String(
-                value || ""
-            )
-                .trim()
-                .toLowerCase()
-                .replace(
-                    /[\s_-]+/g,
-                    ""
-                );
-
-        };
-
-
-    // ======================================================
-    // ALIAS KATEGORI
-    //
-    // Supaya:
-    //
-    // classic
-    // klasik
-    //
-    // dianggap kategori yang sama.
-    //
-    // Begitu juga:
-    //
-    // traditional
-    // tradisional
-    //
-    // ======================================================
-
-    const categoryAliases = {
-
-        traditional: [
-            "traditional",
-            "tradisional"
-        ],
-
-        modern: [
-            "modern"
-        ],
-
-        classic: [
-            "classic",
-            "klasik"
-        ],
-
-        formal: [
-            "formal"
-        ]
-
-    };
-
-
-    // ======================================================
-    // FILTER BERDASARKAN DATABASE
-    // ======================================================
-
-    const categoryCostumes =
+    const currentCollection =
         useMemo(() => {
 
-            // ----------------------------------------------
-            // KODE LAMA
-            // ----------------------------------------------
-
-            const fallbackCodes =
-                categoryCodes[
-                    currentSlug
-                ] || [];
+            if (!currentSlug) {
+                return null;
+            }
 
 
-            // ----------------------------------------------
-            // ALIAS KATEGORI SAAT INI
-            // ----------------------------------------------
+            return collections.find(
+                (collection) => {
 
-            const aliases =
-                (
-                    categoryAliases[
-                        currentSlug
-                    ] || [
-                        currentSlug
-                    ]
-                )
-                    .map(
-                        normalizeCategory
-                    );
-
-
-            console.log(
-                "========================================"
-            );
-
-            console.log(
-                "CATEGORY PAGE - SLUG:",
-                currentSlug
-            );
-
-            console.log(
-                "CATEGORY PAGE - ALIAS:",
-                aliases
-            );
-
-            console.log(
-                "CATEGORY PAGE - FALLBACK:",
-                fallbackCodes
-            );
-
-
-            // ----------------------------------------------
-            // FILTER
-            // ----------------------------------------------
-
-            const result =
-                costumes.filter(
-                    (item) => {
-
-                        // ==================================
-                        // KATEGORI DATABASE
-                        // ==================================
-
-                        const categoryName =
-                            normalizeCategory(
-                                item?.categoryName ||
-                                item?.nama_kategori ||
-                                item?.kategori ||
-                                item?.namaKategori ||
-                                ""
-                            );
-
-
-                        // ==================================
-                        // KELOMPOK KOLEKSI
-                        // ==================================
-
-                        const collectionGroup =
-                            normalizeCategory(
-                                item?.collectionGroup ||
-                                item?.kelompok_koleksi ||
-                                ""
-                            );
-
-
-                        // ==================================
-                        // NAMA KOLEKSI
-                        // ==================================
-
-                        const collectionName =
-                            normalizeCategory(
-                                item?.collectionName ||
-                                item?.nama_koleksi ||
-                                ""
-                            );
-
-
-                        // ==================================
-                        // KODE KOSTUM
-                        // ==================================
-
-                        const code =
-                            String(
-                                item?.code ||
-                                item?.kode_koleksi ||
-                                ""
-                            )
-                                .trim()
-                                .toUpperCase();
-
-
-                        // ==================================
-                        // DEBUG ITEM
-                        // ==================================
-
-                        console.log(
-                            "CATEGORY CHECK:",
-                            {
-                                id:
-                                    item?.id ||
-                                    item?.id_kostum,
-
-                                code,
-
-                                categoryName,
-
-                                collectionGroup,
-
-                                collectionName,
-
-                                id_kategori:
-                                    item?.id_kategori,
-
-                                currentSlug,
-
-                                cocokKategori:
-                                    aliases.includes(
-                                        categoryName
-                                    ),
-
-                                cocokKelompok:
-                                    aliases.includes(
-                                        collectionGroup
-                                    ),
-
-                                cocokNamaKoleksi:
-                                    aliases.includes(
-                                        collectionName
-                                    ),
-
-                                cocokKode:
-                                    fallbackCodes.includes(
-                                        code
-                                    )
-                            }
+                    const collectionSlug =
+                        makeSlug(
+                            collection?.nama_koleksi
                         );
 
 
-                        // ==================================
-                        // PRIORITAS 1
-                        // NAMA KATEGORI DATABASE
-                        // ==================================
+                    return (
+                        collectionSlug ===
+                        currentSlug
+                    );
 
-                        if (
-                            categoryName &&
-                            aliases.includes(
-                                categoryName
-                            )
-                        ) {
-
-                            return true;
-
-                        }
-
-
-                        // ==================================
-                        // PRIORITAS 2
-                        // KELOMPOK KOLEKSI
-                        // ==================================
-
-                        if (
-                            collectionGroup &&
-                            aliases.includes(
-                                collectionGroup
-                            )
-                        ) {
-
-                            return true;
-
-                        }
-
-
-                        // ==================================
-                        // PRIORITAS 3
-                        // NAMA KOLEKSI
-                        // ==================================
-
-                        if (
-                            collectionName &&
-                            aliases.includes(
-                                collectionName
-                            )
-                        ) {
-
-                            return true;
-
-                        }
-
-
-                        // ==================================
-                        // PRIORITAS 4
-                        // KODE KOSTUM LAMA
-                        // ==================================
-
-                        if (
-                            fallbackCodes.includes(
-                                code
-                            )
-                        ) {
-
-                            return true;
-
-                        }
-
-
-                        // ==================================
-                        // TIDAK COCOK
-                        // ==================================
-
-                        return false;
-
-                    }
-                );
-
-
-            console.log(
-                "CATEGORY PAGE - HASIL FILTER:",
-                result
-            );
-
-
-            console.log(
-                "CATEGORY PAGE - JUMLAH:",
-                result.length
-            );
-
-
-            console.log(
-                "========================================"
-            );
-
-
-            return result;
+                }
+            ) || null;
 
         }, [
-            costumes,
+            collections,
             currentSlug
         ]);
 
 
-    // ======================================================
+    // ==================================================
+    // INFORMASI JUDUL
+    // ==================================================
+
+    const categoryTitle =
+        currentCollection?.nama_koleksi ||
+        String(slug || "Koleksi")
+            .replace(/-/g, " ")
+            .replace(
+                /\b\w/g,
+                (char) =>
+                    char.toUpperCase()
+            );
+
+
+    // ==================================================
+    // DESKRIPSI
+    // ==================================================
+
+    const categoryDescription =
+        currentCollection?.deskripsi ||
+        "Temukan koleksi kostum Handu Atelier yang tersedia.";
+
+
+    // ==================================================
+    // FILTER BERDASARKAN KOLEKSI DATABASE
+    //
+    // PRIORITAS:
+    //
+    // 1. id_koleksi
+    // 2. nama_koleksi
+    //
+    // TIDAK ADA LAGI FILTER
+    // BERDASARKAN KODE KST-001 DST.
+    // ==================================================
+
+    const categoryCostumes =
+        useMemo(() => {
+
+            if (!currentSlug) {
+
+                return costumes;
+
+            }
+
+
+            // ==========================================
+            // ID KOLEKSI DARI DATABASE
+            // ==========================================
+
+            const collectionId =
+                currentCollection?.id_koleksi;
+
+
+            return costumes.filter(
+                (item) => {
+
+                    // ======================================
+                    // PRIORITAS 1
+                    // ID KOLEKSI
+                    // ======================================
+
+                    if (
+                        collectionId !==
+                        undefined &&
+                        collectionId !==
+                        null
+                    ) {
+
+                        const itemCollectionId =
+                            item?.id_koleksi ??
+                            item?.collectionId;
+
+
+                        if (
+                            itemCollectionId !==
+                            undefined &&
+                            itemCollectionId !==
+                            null
+                        ) {
+
+                            return String(
+                                itemCollectionId
+                            ) === String(
+                                collectionId
+                            );
+
+                        }
+
+                    }
+
+
+                    // ======================================
+                    // PRIORITAS 2
+                    // NAMA KOLEKSI
+                    // ======================================
+
+                    const itemCollectionName =
+                        makeSlug(
+                            item?.collectionName ||
+                            item?.nama_koleksi ||
+                            ""
+                        );
+
+
+                    if (
+                        itemCollectionName ===
+                        currentSlug
+                    ) {
+
+                        return true;
+
+                    }
+
+
+                    return false;
+
+                }
+            );
+
+        }, [
+            costumes,
+            currentCollection,
+            currentSlug
+        ]);
+
+
+    // ==================================================
     // SEARCH + FILTER
-    // ======================================================
+    // ==================================================
 
     const filteredCostumes =
         useMemo(() => {
@@ -656,9 +486,7 @@ function CategoryPage() {
                         // SEARCH
                         // ==================================
 
-                        if (
-                            keyword
-                        ) {
+                        if (keyword) {
 
                             const searchable = [
 
@@ -680,7 +508,15 @@ function CategoryPage() {
 
                                 item?.code,
 
-                                item?.kode_koleksi
+                                item?.kode_koleksi,
+
+                                item?.color,
+
+                                item?.warna,
+
+                                item?.size,
+
+                                item?.ukuran
 
                             ]
                                 .map(
@@ -741,7 +577,7 @@ function CategoryPage() {
 
 
             // ==============================================
-            // COPY ARRAY
+            // COPY
             // ==============================================
 
             result = [
@@ -750,7 +586,7 @@ function CategoryPage() {
 
 
             // ==============================================
-            // SORT NAMA A-Z
+            // NAMA A-Z
             // ==============================================
 
             if (
@@ -782,9 +618,7 @@ function CategoryPage() {
                         return String(
                             nameA
                         ).localeCompare(
-                            String(
-                                nameB
-                            ),
+                            String(nameB),
                             "id"
                         );
 
@@ -795,7 +629,7 @@ function CategoryPage() {
 
 
             // ==============================================
-            // SORT NAMA Z-A
+            // NAMA Z-A
             // ==============================================
 
             if (
@@ -827,9 +661,7 @@ function CategoryPage() {
                         return String(
                             nameB
                         ).localeCompare(
-                            String(
-                                nameA
-                            ),
+                            String(nameA),
                             "id"
                         );
 
@@ -840,7 +672,7 @@ function CategoryPage() {
 
 
             // ==============================================
-            // SORT HARGA TERMURAH
+            // HARGA TERMURAH
             // ==============================================
 
             if (
@@ -869,7 +701,7 @@ function CategoryPage() {
 
 
             // ==============================================
-            // SORT HARGA TERMAHAL
+            // HARGA TERMAHAL
             // ==============================================
 
             if (
@@ -907,60 +739,95 @@ function CategoryPage() {
         ]);
 
 
-    // ======================================================
-    // DEBUG
-    // ======================================================
+    // ==================================================
+    // FORMAT RUPIAH
+    // ==================================================
 
-    useEffect(() => {
+    const formatRupiah =
+        (value) => {
 
-        console.log(
-            "========================================"
-        );
+            return new Intl.NumberFormat(
+                "id-ID",
+                {
+                    style: "currency",
+                    currency: "IDR",
+                    maximumFractionDigits: 0,
+                }
+            ).format(
+                Number(value) || 0
+            );
 
-        console.log(
-            "CATEGORY:",
-            currentSlug
-        );
-
-        console.log(
-            "JUMLAH SEMUA KOSTUM:",
-            costumes.length
-        );
-
-        console.log(
-            "JUMLAH KOSTUM CATEGORY:",
-            categoryCostumes.length
-        );
-
-        console.log(
-            "JUMLAH KOSTUM SETELAH FILTER:",
-            filteredCostumes.length
-        );
-
-        console.log(
-            "DATA CATEGORY:",
-            categoryCostumes
-        );
-
-        console.log(
-            "========================================"
-        );
-
-    }, [
-        currentSlug,
-        costumes,
-        categoryCostumes,
-        filteredCostumes
-    ]);
+        };
 
 
-    // ======================================================
+    // ==================================================
+    // IMAGE URL
+    // ==================================================
+
+    const getImageUrl =
+        (image) => {
+
+            if (!image) {
+                return "";
+            }
+
+
+            const value =
+                String(image).trim();
+
+
+            if (!value) {
+                return "";
+            }
+
+
+            if (
+                value.startsWith(
+                    "http://"
+                ) ||
+                value.startsWith(
+                    "https://"
+                )
+            ) {
+
+                return value;
+
+            }
+
+
+            if (
+                value.startsWith(
+                    "/uploads/"
+                )
+            ) {
+
+                return value;
+
+            }
+
+
+            if (
+                value.startsWith(
+                    "uploads/"
+                )
+            ) {
+
+                return `/${value}`;
+
+            }
+
+
+            // Foto database kostum
+            return `/uploads/kostum/${value}`;
+
+        };
+
+
+    // ==================================================
     // LOADING
-    // ======================================================
+    // ==================================================
 
-    if (
-        loading
-    ) {
+    if (loading) {
 
         return (
 
@@ -990,13 +857,11 @@ function CategoryPage() {
     }
 
 
-    // ======================================================
+    // ==================================================
     // ERROR
-    // ======================================================
+    // ==================================================
 
-    if (
-        error
-    ) {
+    if (error) {
 
         return (
 
@@ -1025,11 +890,21 @@ function CategoryPage() {
                     "
                 >
 
+                    <FaExclamationTriangle
+                        className="
+                            mx-auto
+                            text-4xl
+                            text-red-400
+                        "
+                    />
+
+
                     <h1
                         className="
                             text-2xl
                             font-bold
                             text-red-400
+                            mt-5
                         "
                     >
                         Koleksi Tidak
@@ -1048,9 +923,11 @@ function CategoryPage() {
 
 
                     <Link
-                        to="/"
+                        to="/#collections"
                         className="
                             inline-flex
+                            items-center
+                            gap-2
                             mt-7
                             px-6
                             py-3
@@ -1060,7 +937,8 @@ function CategoryPage() {
                             font-semibold
                         "
                     >
-                        Kembali ke Beranda
+                        <FaArrowLeft />
+                        Kembali
                     </Link>
 
                 </div>
@@ -1072,9 +950,9 @@ function CategoryPage() {
     }
 
 
-    // ======================================================
+    // ==================================================
     // RENDER
-    // ======================================================
+    // ==================================================
 
     return (
 
@@ -1083,115 +961,134 @@ function CategoryPage() {
                 min-h-screen
                 bg-[#090909]
                 text-white
+                pt-36
+                px-6
+                pb-20
             "
         >
 
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
-            <header
+            <div
                 className="
-                    pt-28
-                    pb-10
-                    px-6
+                    max-w-7xl
+                    mx-auto
                 "
             >
 
+                {/* ==================================================
+                    HEADER
+                ================================================== */}
+
                 <div
                     className="
-                        max-w-6xl
-                        mx-auto
+                        flex
+                        flex-col
+                        md:flex-row
+                        md:items-end
+                        md:justify-between
+                        gap-6
                     "
                 >
 
-                    <p
-                        className="
-                            uppercase
-                            tracking-[5px]
-                            text-[#D4AF37]
-                            text-xs
-                            text-center
-                        "
-                    >
-                        Handu Atelier
-                    </p>
+                    <div>
 
-
-                    <h1
-                        className="
-                            text-4xl
-                            md:text-5xl
-                            font-bold
-                            text-center
-                            mt-4
-                        "
-                    >
-                        {
-                            categoryInfo.title
-                        }
-                    </h1>
-
-
-                    <p
-                        className="
-                            text-gray-400
-                            text-center
-                            mt-4
-                            max-w-3xl
-                            mx-auto
-                        "
-                    >
-                        {
-                            categoryInfo.description
-                        }
-                    </p>
-
-
-                    <p
-                        className="
-                            text-gray-500
-                            text-sm
-                            text-center
-                            mt-3
-                        "
-                    >
-                        Menampilkan{" "}
-
-                        <span
+                        <p
                             className="
                                 text-[#D4AF37]
-                                font-semibold
+                                uppercase
+                                tracking-[5px]
+                                text-sm
                             "
                         >
-                            {
-                                categoryCostumes.length
-                            }
-                        </span>{" "}
+                            Koleksi
+                        </p>
 
-                        koleksi
-                    </p>
+
+                        <h1
+                            className="
+                                text-4xl
+                                md:text-5xl
+                                font-bold
+                                mt-4
+                                capitalize
+                            "
+                        >
+                            {categoryTitle}
+                        </h1>
+
+
+                        <p
+                            className="
+                                text-gray-400
+                                mt-4
+                                max-w-2xl
+                            "
+                        >
+                            {categoryDescription}
+                        </p>
+
+
+                        <p
+                            className="
+                                text-gray-500
+                                text-sm
+                                mt-3
+                            "
+                        >
+                            Menampilkan{" "}
+
+                            <span
+                                className="
+                                    text-[#D4AF37]
+                                    font-semibold
+                                "
+                            >
+                                {
+                                    categoryCostumes.length
+                                }
+                            </span>{" "}
+
+                            kostum
+                        </p>
+
+                    </div>
+
+
+                    <Link
+                        to="/#collections"
+                        className="
+                            inline-flex
+                            items-center
+                            gap-2
+                            px-5
+                            py-3
+                            rounded-xl
+                            border
+                            border-white/10
+                            text-gray-400
+                            hover:text-[#D4AF37]
+                            hover:border-[#D4AF37]/30
+                            transition
+                        "
+                    >
+                        <FaArrowLeft />
+                        Kembali
+                    </Link>
 
                 </div>
 
-            </header>
 
-
-            {/* ==================================================
-                FILTER
-            ================================================== */}
-
-            <section
-                className="
-                    px-6
-                    pb-10
-                "
-            >
+                {/* ==================================================
+                    FILTER
+                ================================================== */}
 
                 <div
                     className="
-                        max-w-6xl
-                        mx-auto
+                        mt-10
+                        rounded-3xl
+                        bg-[#141414]
+                        border
+                        border-white/5
+                        p-5
                     "
                 >
 
@@ -1207,48 +1104,62 @@ function CategoryPage() {
 
                         {/* SEARCH */}
 
-                        <input
-                            type="text"
-                            value={
-                                search
-                            }
-                            onChange={(
-                                event
-                            ) =>
-                                setSearch(
-                                    event.target.value
-                                )
-                            }
-                            placeholder="
-                                Cari nama kategori...
-                            "
+                        <div
                             className="
+                                relative
                                 w-full
-                                lg:max-w-md
-                                bg-[#111111]
-                                border
-                                border-[#D4AF37]/20
-                                rounded-xl
-                                px-5
-                                py-3
-                                text-white
-                                outline-none
-                                focus:border-[#D4AF37]
                             "
-                        />
+                        >
+
+                            <FaSearch
+                                className="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    text-gray-500
+                                "
+                            />
+
+
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) =>
+                                    setSearch(
+                                        e.target.value
+                                    )
+                                }
+                                placeholder="
+                                    Cari nama kostum,
+                                    koleksi, kode,
+                                    atau warna...
+                                "
+                                className="
+                                    w-full
+                                    pl-11
+                                    pr-4
+                                    py-3.5
+                                    rounded-xl
+                                    bg-[#1D1D1D]
+                                    border
+                                    border-white/10
+                                    text-white
+                                    outline-none
+                                    focus:border-[#D4AF37]
+                                "
+                            />
+
+                        </div>
 
 
                         {/* SORT */}
 
                         <select
-                            value={
-                                sortBy
-                            }
-                            onChange={(
-                                event
-                            ) =>
+                            value={sortBy}
+                            onChange={(e) =>
                                 setSortBy(
-                                    event.target.value
+                                    e.target.value
                                 )
                             }
                             className="
@@ -1404,180 +1315,164 @@ function CategoryPage() {
 
                 </div>
 
-            </section>
+
+                {/* ==================================================
+                    EMPTY
+                ================================================== */}
+
+                {filteredCostumes.length === 0 && (
+
+                    <div
+                        className="
+                            mt-8
+                            rounded-3xl
+                            border
+                            border-[#D4AF37]/20
+                            bg-[#141414]
+                            p-12
+                            text-center
+                        "
+                    >
+
+                        <FaTshirt
+                            className="
+                                mx-auto
+                                text-5xl
+                                text-[#D4AF37]
+                            "
+                        />
 
 
-            {/* ==================================================
-                LIST KOSTUM
-            ================================================== */}
-
-            <main
-                className="
-                    px-6
-                    pb-20
-                "
-            >
-
-                <div
-                    className="
-                        max-w-6xl
-                        mx-auto
-                    "
-                >
-
-                    {
-                        filteredCostumes.length >
-                        0 ? (
-
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-1
-                                    sm:grid-cols-2
-                                    lg:grid-cols-3
-                                    xl:grid-cols-4
-                                    gap-6
-                                "
-                            >
-
-                                {
-                                    filteredCostumes.map(
-                                        (
-                                            item,
-                                            index
-                                        ) => (
-
-                                            <CostumeCard
-
-                                                key={
-                                                    item.id ||
-                                                    item.id_kostum ||
-                                                    index
-                                                }
+                        <h2
+                            className="
+                                text-2xl
+                                font-bold
+                                text-[#D4AF37]
+                                mt-5
+                            "
+                        >
+                            Kostum Tidak Ditemukan
+                        </h2>
 
 
-                                                code={
-                                                    item.id ||
-                                                    item.id_kostum
-                                                }
+                        <p
+                            className="
+                                text-gray-500
+                                mt-3
+                            "
+                        >
+                            Belum ada kostum dalam
+                            koleksi ini atau tidak
+                            ada hasil pencarian yang
+                            sesuai.
+                        </p>
+
+                    </div>
+
+                )}
 
 
-                                                collectionCode={
-                                                    item.code ||
-                                                    item.kode_koleksi ||
-                                                    ""
-                                                }
+                {/* ==================================================
+                    COSTUME GRID
+                ================================================== */}
 
+                {filteredCostumes.length > 0 && (
 
-                                                image={
-                                                    item.image ||
-                                                    item.foto
-                                                }
+                    <div
+                        className="
+                            grid
+                            grid-cols-1
+                            sm:grid-cols-2
+                            lg:grid-cols-3
+                            xl:grid-cols-4
+                            gap-6
+                            mt-8
+                        "
+                    >
 
+                        {filteredCostumes.map(
+                            (
+                                item,
+                                index
+                            ) => (
 
-                                                collectionName={
-                                                    item.collectionName ||
-                                                    item.costumeName ||
-                                                    item.nama_kostum ||
-                                                    "Kostum"
-                                                }
+                                <CostumeCard
+                                    key={
+                                        item.id ||
+                                        item.id_kostum ||
+                                        index
+                                    }
 
+                                    code={
+                                        item.id ||
+                                        item.id_kostum
+                                    }
 
-                                                costumeType={
-                                                    item.costumeType ||
-                                                    item.nama_kategori ||
-                                                    item.kelompok_koleksi ||
-                                                    "Kostum"
-                                                }
+                                    collectionCode={
+                                        item.code ||
+                                        item.kode_koleksi ||
+                                        ""
+                                    }
 
+                                    image={
+                                        item.image ||
+                                        item.foto
+                                    }
 
-                                                price={
-                                                    item.price ||
-                                                    item.harga_sewa ||
-                                                    0
-                                                }
+                                    collectionName={
+                                        item.collectionName ||
+                                        item.nama_koleksi ||
+                                        item.costumeName ||
+                                        item.nama_kostum ||
+                                        "Kostum"
+                                    }
 
+                                    costumeType={
+                                        item.costumeType ||
+                                        item.nama_kategori ||
+                                        item.kelompok_koleksi ||
+                                        "Kostum"
+                                    }
 
-                                                available={
-                                                    Boolean(
-                                                        item.available
-                                                    )
-                                                }
+                                    price={
+                                        item.price ||
+                                        item.harga_sewa ||
+                                        0
+                                    }
 
-
-                                                stock={
-                                                    item.stock ??
-                                                    item.stok ??
-                                                    0
-                                                }
-
-
-                                                size={
-                                                    item.size ||
-                                                    item.ukuran ||
-                                                    ""
-                                                }
-
-
-                                                premium={
-                                                    Boolean(
-                                                        item.featured
-                                                    )
-                                                }
-
-                                            />
-
+                                    available={
+                                        Boolean(
+                                            item.available
                                         )
-                                    )
-                                }
+                                    }
 
-                            </div>
+                                    stock={
+                                        item.stock ??
+                                        item.stok ??
+                                        0
+                                    }
 
-                        ) : (
+                                    size={
+                                        item.size ||
+                                        item.ukuran ||
+                                        ""
+                                    }
 
-                            <div
-                                className="
-                                    rounded-3xl
-                                    border
-                                    border-[#D4AF37]/20
-                                    bg-[#141414]
-                                    p-12
-                                    text-center
-                                "
-                            >
+                                    premium={
+                                        Boolean(
+                                            item.featured
+                                        )
+                                    }
+                                />
 
-                                <h2
-                                    className="
-                                        text-2xl
-                                        font-bold
-                                        text-[#D4AF37]
-                                    "
-                                >
-                                    Koleksi Tidak
-                                    Ditemukan
-                                </h2>
+                            )
+                        )}
 
+                    </div>
 
-                                <p
-                                    className="
-                                        text-gray-500
-                                        mt-3
-                                    "
-                                >
-                                    Belum ada kostum
-                                    dalam kategori ini
-                                    yang sesuai dengan
-                                    pencarian.
-                                </p>
+                )}
 
-                            </div>
-
-                        )
-                    }
-
-                </div>
-
-            </main>
+            </div>
 
         </div>
 

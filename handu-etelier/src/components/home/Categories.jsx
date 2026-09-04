@@ -9,7 +9,8 @@ import {
 
 
 // ======================================================
-// LOAD SEMUA GAMBAR KATEGORI LAMA
+// LOAD GAMBAR KATEGORI LAMA
+// HANYA DIGUNAKAN SEBAGAI FALLBACK
 // ======================================================
 
 const categoryImages = import.meta.glob(
@@ -47,7 +48,7 @@ function normalizeName(value) {
 
 
 // ======================================================
-// SLUG
+// BUAT SLUG
 // ======================================================
 
 function makeSlug(value) {
@@ -75,7 +76,7 @@ function makeSlug(value) {
 
 
 // ======================================================
-// CARI GAMBAR KATEGORI LAMA
+// CARI GAMBAR LOKAL LAMA
 // ======================================================
 
 function findCategoryImage(slug) {
@@ -121,9 +122,7 @@ function findCategoryImage(slug) {
             path,
             imageUrl
         ]
-        of Object.entries(
-            categoryImages
-        )
+        of Object.entries(categoryImages)
     ) {
 
         const filename =
@@ -174,9 +173,7 @@ function getDatabaseImageUrl(foto) {
 
 
     const value =
-        String(
-            foto
-        ).trim();
+        String(foto).trim();
 
 
     if (!value) {
@@ -186,12 +183,8 @@ function getDatabaseImageUrl(foto) {
 
     // URL lengkap
     if (
-        value.startsWith(
-            "http://"
-        ) ||
-        value.startsWith(
-            "https://"
-        )
+        value.startsWith("http://") ||
+        value.startsWith("https://")
     ) {
 
         return value;
@@ -201,9 +194,7 @@ function getDatabaseImageUrl(foto) {
 
     // /uploads/...
     if (
-        value.startsWith(
-            "/uploads/"
-        )
+        value.startsWith("/uploads/")
     ) {
 
         return value;
@@ -213,9 +204,7 @@ function getDatabaseImageUrl(foto) {
 
     // uploads/...
     if (
-        value.startsWith(
-            "uploads/"
-        )
+        value.startsWith("uploads/")
     ) {
 
         return `/${value}`;
@@ -230,7 +219,8 @@ function getDatabaseImageUrl(foto) {
 
 
 // ======================================================
-// DESKRIPSI DEFAULT UNTUK KOLEKSI LAMA
+// DESKRIPSI DEFAULT
+// HANYA UNTUK KOLEKSI LAMA
 // ======================================================
 
 const defaultDescriptions = {
@@ -246,6 +236,28 @@ const defaultDescriptions = {
 
     formal:
         "Koleksi formal dengan potongan elegan dan profesional untuk acara resmi, gala, pertemuan hingga acara spesial.",
+
+};
+
+
+// ======================================================
+// SUBTITLE DEFAULT
+// HANYA UNTUK KOLEKSI LAMA
+// ======================================================
+
+const defaultSubtitles = {
+
+    traditional:
+        "Warisan Budaya",
+
+    modern:
+        "Modern Elegance",
+
+    classic:
+        "Timeless Beauty",
+
+    formal:
+        "Formal Attire",
 
 };
 
@@ -275,13 +287,12 @@ function Categories() {
 
 
     // ==================================================
-    // LOAD DARI BACKEND
+    // LOAD KOLEKSI DARI DATABASE
     // ==================================================
 
     useEffect(() => {
 
-        let cancelled =
-            false;
+        let cancelled = false;
 
 
         const loadCollections =
@@ -289,26 +300,16 @@ function Categories() {
 
                 try {
 
-                    setLoading(
-                        true
-                    );
-
+                    setLoading(true);
                     setError("");
 
-
-                    // ==================================================
-                    // AMBIL DATA KOLEKSI DARI BACKEND
-                    // ==================================================
 
                     const response =
                         await fetch(
                             `/api/koleksi?_=${Date.now()}`,
                             {
                                 method: "GET",
-
-                                cache:
-                                    "no-store",
-
+                                cache: "no-store",
                                 headers: {
                                     Accept:
                                         "application/json",
@@ -317,13 +318,7 @@ function Categories() {
                         );
 
 
-                    // ==================================================
-                    // CEK RESPONSE
-                    // ==================================================
-
-                    if (
-                        !response.ok
-                    ) {
+                    if (!response.ok) {
 
                         throw new Error(
                             `Gagal mengambil koleksi (${response.status})`
@@ -336,62 +331,37 @@ function Categories() {
                         await response.json();
 
 
-                    console.log(
-                        "CATEGORIES - RESPONSE KOLEKSI:",
-                        result
-                    );
-
-
-                    // ==================================================
-                    // AMBIL ARRAY DATA
-                    // ==================================================
-
                     let data = [];
 
 
                     if (
-                        Array.isArray(
-                            result
-                        )
+                        Array.isArray(result)
                     ) {
 
-                        data =
-                            result;
+                        data = result;
 
                     }
-
                     else if (
                         Array.isArray(
                             result?.data
                         )
                     ) {
 
-                        data =
-                            result.data;
+                        data = result.data;
 
                     }
-
                     else if (
                         Array.isArray(
                             result?.koleksi
                         )
                     ) {
 
-                        data =
-                            result.koleksi;
+                        data = result.koleksi;
 
                     }
 
 
-                    console.log(
-                        "CATEGORIES - TOTAL:",
-                        data.length
-                    );
-
-
-                    if (
-                        !cancelled
-                    ) {
+                    if (!cancelled) {
 
                         setCollections(
                             data
@@ -399,41 +369,32 @@ function Categories() {
 
                     }
 
-                } catch (
-                    err
-                ) {
+                }
+                catch (err) {
 
                     console.error(
-                        "CATEGORIES - ERROR:",
+                        "CATEGORIES ERROR:",
                         err
                     );
 
 
-                    if (
-                        !cancelled
-                    ) {
+                    if (!cancelled) {
 
                         setError(
-                            err.message ||
+                            err?.message ||
                             "Gagal mengambil data koleksi."
                         );
 
-
-                        setCollections(
-                            []
-                        );
+                        setCollections([]);
 
                     }
 
-                } finally {
+                }
+                finally {
 
-                    if (
-                        !cancelled
-                    ) {
+                    if (!cancelled) {
 
-                        setLoading(
-                            false
-                        );
+                        setLoading(false);
 
                     }
 
@@ -447,8 +408,7 @@ function Categories() {
 
         return () => {
 
-            cancelled =
-                true;
+            cancelled = true;
 
         };
 
@@ -456,7 +416,7 @@ function Categories() {
 
 
     // ==================================================
-    // FILTER KOLEKSI AKTIF
+    // KOLEKSI AKTIF
     // ==================================================
 
     const activeCollections =
@@ -472,11 +432,9 @@ function Categories() {
                         .toLowerCase();
 
 
-                // Jika status kosong,
+                // Jika database tidak mengisi status,
                 // tetap tampilkan.
-                if (
-                    !status
-                ) {
+                if (!status) {
 
                     return true;
 
@@ -499,6 +457,7 @@ function Categories() {
     return (
 
         <section
+            id="collections"
             className="
                 py-20
                 px-6
@@ -514,9 +473,9 @@ function Categories() {
                 "
             >
 
-                {/* ================================================
+                {/* ==================================================
                     HEADER
-                ================================================ */}
+                ================================================== */}
 
                 <div
                     className="
@@ -568,412 +527,390 @@ function Categories() {
                 </div>
 
 
-                {/* ================================================
+                {/* ==================================================
                     LOADING
-                ================================================ */}
+                ================================================== */}
 
-                {
-                    loading && (
+                {loading && (
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            justify-center
+                            py-20
+                        "
+                    >
 
                         <div
                             className="
-                                flex
-                                items-center
-                                justify-center
-                                py-20
+                                w-10
+                                h-10
+                                rounded-full
+                                border-2
+                                border-[#D4AF37]/20
+                                border-t-[#D4AF37]
+                                animate-spin
                             "
-                        >
+                        />
 
-                            <div
-                                className="
-                                    w-10
-                                    h-10
-                                    rounded-full
-                                    border-2
-                                    border-[#D4AF37]/20
-                                    border-t-[#D4AF37]
-                                    animate-spin
-                                "
-                            />
+                    </div>
 
-                        </div>
-
-                    )
-                }
+                )}
 
 
-                {/* ================================================
+                {/* ==================================================
                     ERROR
-                ================================================ */}
+                ================================================== */}
 
-                {
-                    !loading &&
-                    error && (
+                {!loading && error && (
 
-                        <div
+                    <div
+                        className="
+                            text-center
+                            py-16
+                        "
+                    >
+
+                        <p
                             className="
-                                text-center
-                                py-16
+                                text-red-400
+                                text-sm
                             "
                         >
+                            {error}
+                        </p>
 
-                            <p
-                                className="
-                                    text-red-400
-                                    text-sm
-                                "
-                            >
-                                {error}
-                            </p>
+                    </div>
 
-                        </div>
-
-                    )
-                }
+                )}
 
 
-                {/* ================================================
-                    CATEGORY GRID
-                ================================================ */}
+                {/* ==================================================
+                    COLLECTION GRID
+                ================================================== */}
 
-                {
-                    !loading &&
+                {!loading &&
                     !error &&
-                    activeCollections.length >
-                        0 && (
+                    activeCollections.length > 0 && (
 
-                        <div
-                            className="
-                                grid
-                                grid-cols-1
-                                sm:grid-cols-2
-                                lg:grid-cols-4
-                                gap-6
-                            "
-                        >
+                    <div
+                        className="
+                            grid
+                            grid-cols-1
+                            sm:grid-cols-2
+                            lg:grid-cols-4
+                            gap-6
+                        "
+                    >
 
-                            {
-                                activeCollections.map(
-                                    (
-                                        collection,
-                                        index
-                                    ) => {
+                        {activeCollections.map(
+                            (
+                                collection,
+                                index
+                            ) => {
 
-                                        // ==========================================
-                                        // NAMA
-                                        // ==========================================
-
-                                        const name =
-                                            collection.nama_koleksi ||
-                                            "Koleksi";
+                                const name =
+                                    collection.nama_koleksi ||
+                                    "Koleksi";
 
 
-                                        // ==========================================
-                                        // SLUG
-                                        // ==========================================
-
-                                        const slug =
-                                            makeSlug(
-                                                name
-                                            );
+                                const slug =
+                                    makeSlug(name);
 
 
-                                        // ==========================================
-                                        // CARI DATA LAMA
-                                        // ==========================================
+                                // ==========================================
+                                // KOLEKSI LAMA
+                                // ==========================================
 
-                                        const knownCategory =
-                                            [
-                                                "traditional",
-                                                "modern",
-                                                "classic",
-                                                "formal",
-                                            ].find(
-                                                (item) =>
-                                                    item ===
-                                                    slug
-                                            );
-
-
-                                        // ==========================================
-                                        // FOTO
-                                        // ==========================================
-
-                                        const databaseImage =
-                                            getDatabaseImageUrl(
-                                                collection.foto
-                                            );
+                                const knownCategory =
+                                    [
+                                        "traditional",
+                                        "modern",
+                                        "classic",
+                                        "formal",
+                                    ].find(
+                                        (item) =>
+                                            item === slug
+                                    );
 
 
-                                        const localImage =
+                                // ==========================================
+                                // FOTO DATABASE
+                                // ==========================================
+
+                                const databaseImage =
+                                    getDatabaseImageUrl(
+                                        collection.foto
+                                    );
+
+
+                                // ==========================================
+                                // FOTO LOKAL FALLBACK
+                                // ==========================================
+
+                                const localImage =
+                                    knownCategory
+                                        ? findCategoryImage(
                                             knownCategory
-                                                ? findCategoryImage(
-                                                    knownCategory
-                                                )
-                                                : null;
+                                        )
+                                        : null;
 
 
-                                        const imageUrl =
-                                            databaseImage ||
-                                            localImage;
+                                const imageUrl =
+                                    databaseImage ||
+                                    localImage;
 
 
-                                        // ==========================================
-                                        // DESKRIPSI
-                                        // ==========================================
+                                // ==========================================
+                                // DESKRIPSI
+                                // ==========================================
 
-                                        const description =
-                                            collection.deskripsi ||
-                                            (
+                                const description =
+                                    collection.deskripsi ||
+                                    (
+                                        knownCategory
+                                            ? defaultDescriptions[
                                                 knownCategory
-                                                    ? defaultDescriptions[
-                                                        knownCategory
-                                                    ]
-                                                    : "Temukan berbagai pilihan kostum dari koleksi Handu Atelier."
-                                            );
+                                            ]
+                                            : "Temukan berbagai pilihan kostum dari koleksi Handu Atelier."
+                                    );
 
 
-                                        // ==========================================
-                                        // JUMLAH KOSTUM
-                                        // ==========================================
+                                // ==========================================
+                                // SUBTITLE
+                                // ==========================================
 
-                                        const count =
-                                            Number(
-                                                collection.jumlah_kostum
-                                            ) ||
-                                            0;
+                                const subtitle =
+                                    defaultSubtitles[
+                                        knownCategory
+                                    ] ||
+                                    "Handu Atelier Collection";
 
 
-                                        return (
+                                // ==========================================
+                                // JUMLAH KOSTUM DATABASE
+                                // ==========================================
+
+                                const count =
+                                    Number(
+                                        collection.jumlah_kostum
+                                    ) || 0;
+
+
+                                return (
+
+                                    <div
+                                        key={
+                                            collection.id_koleksi ??
+                                            index
+                                        }
+                                        className="
+                                            group
+                                            overflow-hidden
+                                            rounded-3xl
+                                            bg-[#141414]
+                                            border
+                                            border-[#D4AF37]/20
+                                            hover:border-[#D4AF37]/60
+                                            transition-all
+                                            duration-300
+                                            hover:-translate-y-2
+                                        "
+                                    >
+
+                                        {/* ======================================
+                                            IMAGE
+                                        ====================================== */}
+
+                                        <div
+                                            className="
+                                                relative
+                                                h-64
+                                                overflow-hidden
+                                                bg-[#1D1D1D]
+                                            "
+                                        >
+
+                                            {imageUrl ? (
+
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={name}
+                                                    className="
+                                                        w-full
+                                                        h-full
+                                                        object-cover
+                                                        transition-transform
+                                                        duration-500
+                                                        group-hover:scale-105
+                                                    "
+                                                    onError={(e) => {
+
+                                                        e.currentTarget.style.display =
+                                                            "none";
+
+                                                        const fallback =
+                                                            e.currentTarget
+                                                                .parentElement
+                                                                ?.querySelector(
+                                                                    ".category-image-fallback"
+                                                                );
+
+                                                        if (fallback) {
+
+                                                            fallback.style.display =
+                                                                "flex";
+
+                                                        }
+
+                                                    }}
+                                                />
+
+                                            ) : null}
+
 
                                             <div
-                                                key={
-                                                    collection.id_koleksi ??
-                                                    index
-                                                }
                                                 className="
-                                                    group
-                                                    overflow-hidden
-                                                    rounded-3xl
-                                                    bg-[#141414]
-                                                    border
-                                                    border-[#D4AF37]/20
-                                                    hover:border-[#D4AF37]/60
-                                                    transition-all
-                                                    duration-300
-                                                    hover:-translate-y-2
+                                                    category-image-fallback
+                                                    absolute
+                                                    inset-0
+                                                    flex
+                                                    items-center
+                                                    justify-center
+                                                    text-gray-500
+                                                    text-sm
                                                 "
+                                                style={{
+                                                    display:
+                                                        imageUrl
+                                                            ? "none"
+                                                            : "flex"
+                                                }}
                                             >
-
-                                                {/* ======================================
-                                                    IMAGE
-                                                ====================================== */}
-
-                                                <div
-                                                    className="
-                                                        relative
-                                                        h-64
-                                                        overflow-hidden
-                                                        bg-[#1D1D1D]
-                                                    "
-                                                >
-
-                                                    {
-                                                        imageUrl ? (
-
-                                                            <img
-                                                                src={
-                                                                    imageUrl
-                                                                }
-                                                                alt={
-                                                                    name
-                                                                }
-                                                                className="
-                                                                    w-full
-                                                                    h-full
-                                                                    object-cover
-                                                                    transition-transform
-                                                                    duration-500
-                                                                    group-hover:scale-105
-                                                                "
-                                                                onError={
-                                                                    (
-                                                                        e
-                                                                    ) => {
-
-                                                                        e.currentTarget.style.display =
-                                                                            "none";
-
-
-                                                                        const fallback =
-                                                                            e.currentTarget
-                                                                                .parentElement
-                                                                                ?.querySelector(
-                                                                                    ".category-image-fallback"
-                                                                                );
-
-
-                                                                        if (
-                                                                            fallback
-                                                                        ) {
-
-                                                                            fallback.style.display =
-                                                                                "flex";
-
-                                                                        }
-
-                                                                    }
-                                                                }
-                                                            />
-
-                                                        ) : null
-                                                    }
-
-
-                                                    {/* ======================================
-                                                        FALLBACK
-                                                    ====================================== */}
-
-                                                    <div
-                                                        className="
-                                                            category-image-fallback
-                                                            absolute
-                                                            inset-0
-                                                            flex
-                                                            items-center
-                                                            justify-center
-                                                            text-gray-500
-                                                            text-sm
-                                                        "
-                                                        style={{
-                                                            display:
-                                                                imageUrl
-                                                                    ? "none"
-                                                                    : "flex"
-                                                        }}
-                                                    >
-                                                        Foto kategori
-                                                        tidak tersedia
-                                                    </div>
-
-                                                </div>
-
-
-                                                {/* ======================================
-                                                    CONTENT
-                                                ====================================== */}
-
-                                                <div
-                                                    className="
-                                                        p-6
-                                                    "
-                                                >
-
-                                                    <h3
-                                                        className="
-                                                            text-2xl
-                                                            font-bold
-                                                            text-white
-                                                        "
-                                                    >
-                                                        {
-                                                            name
-                                                        }
-                                                    </h3>
-
-
-                                                    <p
-                                                        className="
-                                                            text-[#D4AF37]
-                                                            text-sm
-                                                            font-semibold
-                                                            mt-2
-                                                        "
-                                                    >
-                                                        {
-                                                            count
-                                                        }{" "}
-                                                        Kostum
-                                                    </p>
-
-
-                                                    <p
-                                                        className="
-                                                            text-gray-400
-                                                            text-sm
-                                                            leading-6
-                                                            mt-4
-                                                            min-h-24
-                                                        "
-                                                    >
-                                                        {
-                                                            description
-                                                        }
-                                                    </p>
-
-
-                                                    {/* ======================================
-                                                        BUTTON
-                                                    ====================================== */}
-
-                                                    <Link
-                                                        to={
-                                                            `/category/${slug}`
-                                                        }
-                                                        className="
-                                                            block
-                                                            text-center
-                                                            mt-6
-                                                            bg-[#D4AF37]
-                                                            text-black
-                                                            font-semibold
-                                                            py-3
-                                                            rounded-xl
-                                                            hover:scale-[1.02]
-                                                            transition
-                                                        "
-                                                    >
-                                                        Lihat Koleksi
-                                                    </Link>
-
-                                                </div>
-
+                                                Foto kategori
+                                                tidak tersedia
                                             </div>
 
-                                        );
+                                        </div>
 
-                                    }
-                                )
+
+                                        {/* ======================================
+                                            CONTENT
+                                        ====================================== */}
+
+                                        <div
+                                            className="
+                                                p-6
+                                            "
+                                        >
+
+                                            <p
+                                                className="
+                                                    text-[#D4AF37]
+                                                    text-xs
+                                                    uppercase
+                                                    tracking-[4px]
+                                                "
+                                            >
+                                                {subtitle}
+                                            </p>
+
+
+                                            <h3
+                                                className="
+                                                    text-2xl
+                                                    font-bold
+                                                    text-white
+                                                    mt-2
+                                                "
+                                            >
+                                                {name}
+                                            </h3>
+
+
+                                            <p
+                                                className="
+                                                    text-[#D4AF37]
+                                                    text-sm
+                                                    font-semibold
+                                                    mt-2
+                                                "
+                                            >
+                                                {count} Kostum
+                                            </p>
+
+
+                                            <p
+                                                className="
+                                                    text-gray-400
+                                                    text-sm
+                                                    leading-6
+                                                    mt-4
+                                                    min-h-24
+                                                "
+                                            >
+                                                {description}
+                                            </p>
+
+
+                                            {/* ======================================
+                                                BUTTON
+                                            ====================================== */}
+
+                                            <Link
+                                                to={
+                                                    `/category/${slug}`
+                                                }
+                                                className="
+                                                    block
+                                                    text-center
+                                                    mt-6
+                                                    bg-[#D4AF37]
+                                                    text-black
+                                                    font-semibold
+                                                    py-3
+                                                    rounded-xl
+                                                    hover:scale-[1.02]
+                                                    transition
+                                                "
+                                            >
+                                                Lihat Koleksi
+                                            </Link>
+
+                                        </div>
+
+                                    </div>
+
+                                );
+
                             }
+                        )}
 
-                        </div>
+                    </div>
 
-                    )
-                }
+                )}
 
 
-                {/* ================================================
+                {/* ==================================================
                     EMPTY
-                ================================================ */}
+                ================================================== */}
 
-                {
-                    !loading &&
+                {!loading &&
                     !error &&
-                    activeCollections.length ===
-                        0 && (
+                    activeCollections.length === 0 && (
 
-                        <div
-                            className="
-                                text-center
-                                py-16
-                                text-gray-500
-                            "
-                        >
-                            Belum ada koleksi.
-                        </div>
+                    <div
+                        className="
+                            text-center
+                            py-16
+                            text-gray-500
+                        "
+                    >
+                        Belum ada koleksi.
+                    </div>
 
-                    )
-                }
+                )}
 
             </div>
 
