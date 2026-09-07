@@ -7,7 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 // ========================================
 
 const TUNNEL_URL =
-  "https://northeast-spencer-bacon-builder.trycloudflare.com";
+  "https://active-environments-dover-martin.trycloudflare.com";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

@@ -4,7 +4,9 @@ import {
 } from "react";
 
 import {
-    Link
+    Link,
+    useLocation,
+    useNavigate
 } from "react-router-dom";
 
 import {
@@ -36,7 +38,6 @@ const categoryImages =
 // ======================================================
 
 function makeSlug(value) {
-
     return String(value || "")
         .toLowerCase()
         .trim()
@@ -52,7 +53,6 @@ function makeSlug(value) {
         .replace(
             /^-+|-+$/g,
             "");
-
 }
 
 
@@ -272,6 +272,13 @@ const legacyMeta = {
 
 function CollectionsPage() {
 
+    const navigate =
+        useNavigate();
+
+    const location =
+        useLocation();
+
+
     const [
         collections,
         setCollections
@@ -291,6 +298,142 @@ function CollectionsPage() {
 
 
     // ==================================================
+    // MENENTUKAN ASAL DASHBOARD
+    // ==================================================
+
+    const getDashboardPath = () => {
+
+        // ------------------------------------------------
+        // PRIORITAS 1:
+        // STATE YANG DIKIRIM DARI MENU
+        // ------------------------------------------------
+
+        const from =
+            location.state?.from;
+
+
+        if (from === "petugas") {
+
+            return "/petugas/dashboard";
+
+        }
+
+
+        if (from === "pelanggan") {
+
+            return "/dashboard";
+
+        }
+
+
+        if (from === "admin") {
+
+            return "/admin/dashboard";
+
+        }
+
+
+        // ------------------------------------------------
+        // PRIORITAS 2:
+        // CEK ROLE DARI LOCAL STORAGE
+        //
+        // Ini hanya sebagai fallback.
+        // Tidak mempengaruhi pengambilan koleksi.
+        // ------------------------------------------------
+
+        try {
+
+            const storedUser =
+                localStorage.getItem("user");
+
+
+            if (storedUser) {
+
+                const user =
+                    JSON.parse(
+                        storedUser
+                    );
+
+
+                const role =
+                    user?.id_role ??
+                    user?.role_id ??
+                    user?.idRole ??
+                    user?.role;
+
+
+                const numericRole =
+                    Number(role);
+
+
+                // ADMIN
+                if (
+                    numericRole === 1
+                ) {
+
+                    return "/admin/dashboard";
+
+                }
+
+
+                // PETUGAS
+                if (
+                    numericRole === 2
+                ) {
+
+                    return "/petugas/dashboard";
+
+                }
+
+
+                // PELANGGAN
+                if (
+                    numericRole > 0
+                ) {
+
+                    return "/dashboard";
+
+                }
+
+            }
+
+        } catch (err) {
+
+            console.error(
+                "Gagal membaca data user:",
+                err
+            );
+
+        }
+
+
+        // ------------------------------------------------
+        // FALLBACK TERAKHIR
+        // ------------------------------------------------
+
+        return "/dashboard";
+
+    };
+
+
+    // ==================================================
+    // TOMBOL KEMBALI
+    // ==================================================
+
+    const handleBack = () => {
+
+        const dashboardPath =
+            getDashboardPath();
+
+
+        navigate(
+            dashboardPath
+        );
+
+    };
+
+
+    // ==================================================
     // LOAD DATABASE
     // ==================================================
 
@@ -305,6 +448,7 @@ function CollectionsPage() {
                 try {
 
                     setLoading(true);
+
                     setError("");
 
 
@@ -348,6 +492,7 @@ function CollectionsPage() {
                             result;
 
                     }
+
                     else if (
                         Array.isArray(
                             result?.data
@@ -358,6 +503,7 @@ function CollectionsPage() {
                             result.data;
 
                     }
+
                     else if (
                         Array.isArray(
                             result?.koleksi
@@ -379,6 +525,7 @@ function CollectionsPage() {
                     }
 
                 }
+
                 catch (err) {
 
                     console.error(
@@ -399,6 +546,7 @@ function CollectionsPage() {
                     }
 
                 }
+
                 finally {
 
                     if (!cancelled) {
@@ -536,8 +684,13 @@ function CollectionsPage() {
                     </div>
 
 
-                    <Link
-                        to="/#collections"
+                    {/* ==================================================
+                        TOMBOL KEMBALI
+                    ================================================== */}
+
+                    <button
+                        type="button"
+                        onClick={handleBack}
                         className="
                             inline-flex
                             items-center
@@ -554,9 +707,12 @@ function CollectionsPage() {
                             w-fit
                         "
                     >
+
                         <FaArrowLeft />
+
                         Kembali
-                    </Link>
+
+                    </button>
 
                 </div>
 
@@ -576,7 +732,9 @@ function CollectionsPage() {
                 "
             >
 
-                {/* INTRO */}
+                {/* ==================================================
+                    INTRO
+                ================================================== */}
 
                 <section
                     className="
@@ -626,7 +784,9 @@ function CollectionsPage() {
                 </section>
 
 
-                {/* LOADING */}
+                {/* ==================================================
+                    LOADING
+                ================================================== */}
 
                 {loading && (
 
@@ -656,7 +816,9 @@ function CollectionsPage() {
                 )}
 
 
-                {/* ERROR */}
+                {/* ==================================================
+                    ERROR
+                ================================================== */}
 
                 {!loading && error && (
 
@@ -695,10 +857,18 @@ function CollectionsPage() {
                                 index
                             ) => {
 
+                                // ------------------------------------
+                                // NAMA KOLEKSI DARI DATABASE
+                                // ------------------------------------
+
                                 const title =
                                     collection.nama_koleksi ||
                                     "Koleksi";
 
+
+                                // ------------------------------------
+                                // SLUG
+                                // ------------------------------------
 
                                 const slug =
                                     makeSlug(
@@ -706,16 +876,32 @@ function CollectionsPage() {
                                     );
 
 
+                                // ------------------------------------
+                                // META FALLBACK
+                                // ------------------------------------
+
                                 const meta =
                                     legacyMeta[
                                         slug
                                     ] || {};
 
 
+                                // ------------------------------------
+                                // ICON
+                                // ------------------------------------
+
                                 const Icon =
                                     meta.icon ||
                                     FaTshirt;
 
+
+                                // ------------------------------------
+                                // FOTO
+                                //
+                                // PRIORITAS:
+                                // 1. FOTO DATABASE
+                                // 2. GAMBAR LOKAL FALLBACK
+                                // ------------------------------------
 
                                 const imageUrl =
                                     getDatabaseImageUrl(
@@ -730,11 +916,19 @@ function CollectionsPage() {
                                     );
 
 
+                                // ------------------------------------
+                                // DESKRIPSI
+                                // ------------------------------------
+
                                 const description =
                                     collection.deskripsi ||
                                     meta.description ||
                                     "Temukan berbagai pilihan kostum dari koleksi ini.";
 
+
+                                // ------------------------------------
+                                // SUBTITLE
+                                // ------------------------------------
 
                                 const subtitle =
                                     meta.subtitle ||
@@ -763,7 +957,9 @@ function CollectionsPage() {
                                         "
                                     >
 
-                                        {/* IMAGE */}
+                                        {/* ==================================================
+                                            IMAGE
+                                        ================================================== */}
 
                                         {imageUrl && (
 
@@ -793,7 +989,9 @@ function CollectionsPage() {
                                         )}
 
 
-                                        {/* OVERLAY */}
+                                        {/* ==================================================
+                                            OVERLAY
+                                        ================================================== */}
 
                                         <div
                                             className="
@@ -807,7 +1005,9 @@ function CollectionsPage() {
                                         />
 
 
-                                        {/* CONTENT */}
+                                        {/* ==================================================
+                                            CONTENT
+                                        ================================================== */}
 
                                         <div
                                             className="
@@ -823,7 +1023,9 @@ function CollectionsPage() {
                                             "
                                         >
 
-                                            {/* ICON */}
+                                            {/* ==================================================
+                                                ICON
+                                            ================================================== */}
 
                                             <div
                                                 className="
@@ -845,6 +1047,10 @@ function CollectionsPage() {
                                             </div>
 
 
+                                            {/* ==================================================
+                                                SUBTITLE
+                                            ================================================== */}
+
                                             <p
                                                 className="
                                                     text-[#D4AF37]
@@ -856,6 +1062,10 @@ function CollectionsPage() {
                                                 {subtitle}
                                             </p>
 
+
+                                            {/* ==================================================
+                                                TITLE
+                                            ================================================== */}
 
                                             <h3
                                                 className="
@@ -869,6 +1079,10 @@ function CollectionsPage() {
                                             </h3>
 
 
+                                            {/* ==================================================
+                                                DESCRIPTION
+                                            ================================================== */}
+
                                             <p
                                                 className="
                                                     text-gray-400
@@ -881,7 +1095,9 @@ function CollectionsPage() {
                                             </p>
 
 
-                                            {/* COUNT */}
+                                            {/* ==================================================
+                                                COUNT
+                                            ================================================== */}
 
                                             <p
                                                 className="
@@ -898,7 +1114,9 @@ function CollectionsPage() {
                                             </p>
 
 
-                                            {/* BUTTON */}
+                                            {/* ==================================================
+                                                BUTTON
+                                            ================================================== */}
 
                                             <div
                                                 className="
@@ -943,7 +1161,9 @@ function CollectionsPage() {
                 )}
 
 
-                {/* EMPTY */}
+                {/* ==================================================
+                    EMPTY
+                ================================================== */}
 
                 {!loading &&
                     !error &&

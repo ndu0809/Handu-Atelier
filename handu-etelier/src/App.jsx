@@ -83,11 +83,17 @@ import AdminLayout from "./components/admin/AdminLayout";
 // ADMIN ROUTE WRAPPER
 // ======================================================
 
-const AdminPage = ({ children, activePage }) => {
+const AdminPage = ({
+    children,
+    activePage
+}) => {
+
     const navigate = useNavigate();
 
     const handleNavigate = (page) => {
+
         switch (page) {
+
             case "dashboard":
                 navigate("/admin/dashboard");
                 break;
@@ -128,12 +134,8 @@ const AdminPage = ({ children, activePage }) => {
                 navigate("/admin/pengaturan");
                 break;
 
-            case "laporan-peminjaman":
-                navigate("/admin/peminjaman");
-                break;
-
-            case "laporan-pengembalian":
-                navigate("/admin/peminjaman");
+            case "profil":
+                navigate("/admin/pengaturan");
                 break;
 
             default:
@@ -141,6 +143,7 @@ const AdminPage = ({ children, activePage }) => {
                 break;
         }
     };
+
 
     return (
         <AdminLayout
@@ -152,17 +155,20 @@ const AdminPage = ({ children, activePage }) => {
     );
 };
 
+
 // ======================================================
 // APP
 // ======================================================
 
 function App() {
+
     return (
+
         <Routes>
 
             {/* ==================================================
                         PUBLIC
-                ================================================== */}
+            ================================================== */}
 
             <Route
                 path="/"
@@ -189,6 +195,7 @@ function App() {
                 element={<BorrowSuccess />}
             />
 
+
             {/* ===============================
                 HALAMAN SEMUA KOLEKSI
             =============================== */}
@@ -197,6 +204,7 @@ function App() {
                 path="/collections"
                 element={<CollectionsPage />}
             />
+
 
             {/* ===============================
                 HALAMAN CARA PENYEWAAN
@@ -212,18 +220,21 @@ function App() {
                             text-white
                         "
                     >
+
                         <Navbar />
 
                         <HowToRent />
 
                         <Footer />
+
                     </div>
                 }
             />
 
+
             {/* ==================================================
                         GUEST ONLY
-                ================================================== */}
+            ================================================== */}
 
             <Route element={<GuestRoute />}>
 
@@ -239,15 +250,16 @@ function App() {
 
             </Route>
 
+
             {/* ==================================================
                         USER + PETUGAS
-                ================================================== */}
+            ================================================== */}
 
             <Route element={<ProtectedRoute />}>
 
                 {/* ==================================================
                             USER
-                    ================================================== */}
+                ================================================== */}
 
                 <Route
                     path="/dashboard"
@@ -279,9 +291,10 @@ function App() {
                     element={<BorrowingDetail />}
                 />
 
+
                 {/* ==================================================
                             PETUGAS
-                    ================================================== */}
+                ================================================== */}
 
                 <Route
                     path="/petugas/dashboard"
@@ -335,10 +348,11 @@ function App() {
 
             </Route>
 
+
             {/* ==================================================
                         ADMIN LOGIN LAMA
                         ARAHKAN KE LOGIN UTAMA
-                ================================================== */}
+            ================================================== */}
 
             <Route
                 path="/admin/login"
@@ -350,9 +364,10 @@ function App() {
                 }
             />
 
+
             {/* ==================================================
                         ADMIN
-                ================================================== */}
+            ================================================== */}
 
             <Route
                 path="/admin/dashboard"
@@ -444,9 +459,10 @@ function App() {
                 }
             />
 
+
             {/* ==================================================
                         FALLBACK ADMIN
-                ================================================== */}
+            ================================================== */}
 
             <Route
                 path="/admin"
@@ -458,9 +474,10 @@ function App() {
                 }
             />
 
+
             {/* ==================================================
                         GLOBAL FALLBACK
-                ================================================== */}
+            ================================================== */}
 
             <Route
                 path="*"

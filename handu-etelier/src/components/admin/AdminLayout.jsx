@@ -15,8 +15,6 @@ import {
     FaClipboardList,
     FaBell,
     FaCog,
-    FaChartLine,
-    FaUndoAlt,
     FaSignOutAlt,
     FaBars,
     FaCalendarAlt,
@@ -184,29 +182,6 @@ function AdminLayout({
             label: "Notifikasi",
             icon: FaBell,
             path: "/admin/notifikasi",
-        },
-
-    ];
-
-
-    // ======================================================
-    // MENU LAPORAN
-    // ======================================================
-
-    const menuLaporan = [
-
-        {
-            id: "laporan-peminjaman",
-            label: "Laporan Peminjaman",
-            icon: FaChartLine,
-            path: "/admin/peminjaman",
-        },
-
-        {
-            id: "laporan-pengembalian",
-            label: "Laporan Pengembalian",
-            icon: FaUndoAlt,
-            path: "/admin/peminjaman",
         },
 
     ];
@@ -612,48 +587,6 @@ function AdminLayout({
 
 
                     {/* ==================================================
-                        LAPORAN
-                    ================================================== */}
-
-                    <div
-                        className="
-                            mt-8
-                            pt-6
-                            border-t
-                            border-white/5
-                        "
-                    >
-
-                        <p
-                            className="
-                                text-[9px]
-                                uppercase
-                                tracking-[3px]
-                                text-gray-600
-                                px-4
-                                mb-4
-                            "
-                        >
-                            Laporan
-                        </p>
-
-
-                        <nav
-                            className="
-                                space-y-1
-                            "
-                        >
-
-                            {menuLaporan.map(
-                                renderMenuItem
-                            )}
-
-                        </nav>
-
-                    </div>
-
-
-                    {/* ==================================================
                         PENGATURAN
                     ================================================== */}
 
@@ -921,7 +854,9 @@ function AdminLayout({
                         "
                     >
 
-                        {/* MOBILE MENU */}
+                        {/* ==================================================
+                            MOBILE MENU
+                        ================================================== */}
 
                         <button
                             type="button"
@@ -956,7 +891,9 @@ function AdminLayout({
                         </button>
 
 
-                        {/* TITLE */}
+                        {/* ==================================================
+                            TITLE
+                        ================================================== */}
 
                         <div>
 
@@ -1290,14 +1227,6 @@ function AdminLayout({
 
                 {/* ==================================================
                     CONTENT
-
-                    PERBAIKAN UTAMA ADA DI SINI
-
-                    Sebelumnya:
-                    {children}
-
-                    Sekarang:
-                    padding kiri/kanan + atas/bawah
                 ================================================== */}
 
                 <div
