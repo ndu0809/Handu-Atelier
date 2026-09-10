@@ -18,6 +18,10 @@ import {
     FaCog,
     FaUndo,
     FaImage,
+    FaMoneyBillWave,
+    FaReceipt,
+    FaExternalLinkAlt,
+    FaCreditCard,
 } from "react-icons/fa";
 
 function PeminjamanDetailPetugas() {
@@ -26,6 +30,7 @@ function PeminjamanDetailPetugas() {
 
     const [user, setUser] = useState(null);
     const [data, setData] = useState(null);
+    const [payment, setPayment] = useState(null);
 
     const [loading, setLoading] = useState(true);
     const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -68,7 +73,7 @@ function PeminjamanDetailPetugas() {
                 );
             }
 
-            // Role 2 = Petugas
+            // ROLE 2 = PETUGAS
             if (Number(parsedUser.id_role) !== 2) {
                 navigate("/dashboard", {
                     replace: true,
@@ -102,11 +107,19 @@ function PeminjamanDetailPetugas() {
             setLoading(true);
             setError("");
 
+            // ==================================================
+            // 1. AMBIL DETAIL PEMINJAMAN
+            // ==================================================
+
             const response = await fetch(
-                `/peminjaman/detail/${id}`
+                `/peminjaman/detail/${id}?_=${Date.now()}`,
+                {
+                    cache: "no-store",
+                }
             );
 
-            const rawResponse = await response.text();
+            const rawResponse =
+                await response.text();
 
             let result = {};
 
@@ -127,7 +140,125 @@ function PeminjamanDetailPetugas() {
                 );
             }
 
-            setData(result.data || null);
+            const detailData =
+                result.data || null;
+
+            if (!detailData) {
+                throw new Error(
+                    "Data peminjaman tidak ditemukan."
+                );
+            }
+
+            setData(detailData);
+
+            // ==================================================
+            // 2. AMBIL DATA PEMBAYARAN
+            // ==================================================
+
+            try {
+                const paymentResponse =
+                    await fetch(
+                        `/pembayaran?_=${Date.now()}`,
+                        {
+                            cache: "no-store",
+                        }
+                    );
+
+                const paymentRaw =
+                    await paymentResponse.text();
+
+                let paymentResult = {};
+
+                try {
+                    paymentResult =
+                        paymentRaw
+                            ? JSON.parse(
+                                  paymentRaw
+                              )
+                            : {};
+                } catch {
+                    paymentResult = {};
+                }
+
+                if (paymentResponse.ok) {
+                    const paymentRows =
+                        Array.isArray(
+                            paymentResult
+                        )
+                            ? paymentResult
+                            : Array.isArray(
+                                  paymentResult.data
+                              )
+                            ? paymentResult.data
+                            : Array.isArray(
+                                  paymentResult.pembayaran
+                              )
+                            ? paymentResult.pembayaran
+                            : [];
+
+                    // Cari pembayaran berdasarkan ID PEMINJAMAN
+                    const matchedPayments =
+                        paymentRows.filter(
+                            (item) =>
+                                Number(
+                                    item.id_peminjaman
+                                ) ===
+                                Number(id)
+                        );
+
+                    if (
+                        matchedPayments.length >
+                        0
+                    ) {
+                        /*
+                         * Jika terdapat lebih dari satu
+                         * data pembayaran, jumlahkan seluruh
+                         * pembayaran yang terkait peminjaman.
+                         *
+                         * Data terakhir dipakai untuk:
+                         * - metode
+                         * - status
+                         * - tanggal
+                         * - bukti
+                         */
+
+                        const latestPayment =
+                            matchedPayments[
+                                matchedPayments.length -
+                                    1
+                            ];
+
+                        const totalDibayar =
+                            matchedPayments.reduce(
+                                (
+                                    total,
+                                    item
+                                ) =>
+                                    total +
+                                    (Number(
+                                        item.total
+                                    ) || 0),
+                                0
+                            );
+
+                        setPayment({
+                            ...latestPayment,
+                            total: totalDibayar,
+                        });
+                    } else {
+                        setPayment(null);
+                    }
+                } else {
+                    setPayment(null);
+                }
+            } catch (paymentError) {
+                console.error(
+                    "Load pembayaran:",
+                    paymentError
+                );
+
+                setPayment(null);
+            }
         } catch (err) {
             console.error(
                 "Detail peminjaman error:",
@@ -138,6 +269,8 @@ function PeminjamanDetailPetugas() {
                 err.message ||
                     "Gagal mengambil detail peminjaman."
             );
+
+            setData(null);
         } finally {
             setLoading(false);
         }
@@ -179,7 +312,11 @@ function PeminjamanDetailPetugas() {
 
         const date = new Date(value);
 
-        if (Number.isNaN(date.getTime())) {
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
             return value;
         }
 
@@ -194,7 +331,7 @@ function PeminjamanDetailPetugas() {
     };
 
     // ==================================================
-    // URL FOTO
+    // URL FOTO KOSTUM
     // ==================================================
 
     const getImageUrl = (foto) => {
@@ -202,38 +339,197 @@ function PeminjamanDetailPetugas() {
             return "";
         }
 
-        const value = String(foto).trim();
+        const value =
+            String(foto).trim();
 
         if (!value) {
             return "";
         }
 
-        // URL lengkap
         if (
-            value.startsWith("http://") ||
-            value.startsWith("https://")
+            value.startsWith(
+                "http://"
+            ) ||
+            value.startsWith(
+                "https://"
+            )
         ) {
             return value;
         }
 
-        // Sudah berupa path uploads
         if (
-            value.startsWith("/uploads/")
+            value.startsWith(
+                "/uploads/"
+            )
         ) {
             return value;
         }
 
-        // Database hanya menyimpan nama file
+        if (
+            value.startsWith(
+                "uploads/"
+            )
+        ) {
+            return `/${value}`;
+        }
+
         return `/uploads/kostum/${value}`;
     };
+
+    // ==================================================
+    // URL BUKTI PEMBAYARAN
+    // ==================================================
+
+    const getPaymentProofUrl = (
+        bukti
+    ) => {
+        if (!bukti) {
+            return "";
+        }
+
+        const value =
+            String(bukti).trim();
+
+        if (!value) {
+            return "";
+        }
+
+        if (
+            value.startsWith(
+                "http://"
+            ) ||
+            value.startsWith(
+                "https://"
+            )
+        ) {
+            return value;
+        }
+
+        if (
+            value.startsWith(
+                "/uploads/"
+            )
+        ) {
+            return value;
+        }
+
+        if (
+            value.startsWith(
+                "uploads/"
+            )
+        ) {
+            return `/${value}`;
+        }
+
+        return `/uploads/pembayaran/${value}`;
+    };
+
+    // ==================================================
+    // STATUS PEMBAYARAN
+    // ==================================================
+
+    const getPaymentInfo = () => {
+        const totalPeminjaman =
+            Number(
+                data?.total_harga
+            ) || 0;
+
+        const totalDibayar =
+            Number(
+                payment?.total
+            ) || 0;
+
+        const sisaPembayaran =
+            Math.max(
+                0,
+                totalPeminjaman -
+                    totalDibayar
+            );
+
+        // Tidak ada data pembayaran
+        if (!payment) {
+            return {
+                label: "Belum Dibayar",
+                description:
+                    "Belum ada pembayaran yang tercatat.",
+                totalDibayar: 0,
+                sisaPembayaran:
+                    totalPeminjaman,
+                percentage: 0,
+                className:
+                    "bg-red-500/10 text-red-400 border-red-500/20",
+            };
+        }
+
+        // Jika pembayaran sudah sama / lebih dari total
+        if (
+            totalDibayar >=
+                totalPeminjaman &&
+            totalPeminjaman > 0
+        ) {
+            return {
+                label: "Lunas",
+                description:
+                    "Pembayaran telah lunas 100%.",
+                totalDibayar,
+                sisaPembayaran: 0,
+                percentage: 100,
+                className:
+                    "bg-green-500/10 text-green-400 border-green-500/20",
+            };
+        }
+
+        // Jika pembayaran lebih dari 0 tetapi belum lunas
+        if (totalDibayar > 0) {
+            const percentage =
+                totalPeminjaman > 0
+                    ? Math.round(
+                          (totalDibayar /
+                              totalPeminjaman) *
+                              100
+                      )
+                    : 0;
+
+            return {
+                label:
+                    `DP / Sebagian Dibayar (${percentage}%)`,
+                description:
+                    "Pembayaran baru sebagian dan masih terdapat sisa pembayaran.",
+                totalDibayar,
+                sisaPembayaran,
+                percentage,
+                className:
+                    "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+            };
+        }
+
+        return {
+            label: "Belum Dibayar",
+            description:
+                "Belum ada pembayaran yang tercatat.",
+            totalDibayar: 0,
+            sisaPembayaran:
+                totalPeminjaman,
+            percentage: 0,
+            className:
+                "bg-red-500/10 text-red-400 border-red-500/20",
+        };
+    };
+
+    const paymentInfo =
+        getPaymentInfo();
 
     // ==================================================
     // STATUS CLASS
     // ==================================================
 
-    const getStatusClass = (status) => {
+    const getStatusClass = (
+        status
+    ) => {
         switch (
-            String(status || "").toLowerCase()
+            String(
+                status || ""
+            ).toLowerCase()
         ) {
             case "menunggu":
                 return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
@@ -262,12 +558,18 @@ function PeminjamanDetailPetugas() {
     // ICON STATUS
     // ==================================================
 
-    const getStatusIcon = (status) => {
+    const getStatusIcon = (
+        status
+    ) => {
         switch (
-            String(status || "").toLowerCase()
+            String(
+                status || ""
+            ).toLowerCase()
         ) {
             case "menunggu":
-                return <FaClipboardList />;
+                return (
+                    <FaClipboardList />
+                );
 
             case "disetujui":
                 return <FaCheck />;
@@ -285,7 +587,9 @@ function PeminjamanDetailPetugas() {
                 return <FaUndo />;
 
             default:
-                return <FaClipboardList />;
+                return (
+                    <FaClipboardList />
+                );
         }
     };
 
@@ -317,7 +621,9 @@ function PeminjamanDetailPetugas() {
     // BUKA MODAL KONFIRMASI
     // ==================================================
 
-    const openConfirmModal = (newStatus) => {
+    const openConfirmModal = (
+        newStatus
+    ) => {
         if (!data?.id_peminjaman) {
             return;
         }
@@ -336,7 +642,11 @@ function PeminjamanDetailPetugas() {
                 currentStatus
             ] || [];
 
-        if (!allowed.includes(newStatus)) {
+        if (
+            !allowed.includes(
+                newStatus
+            )
+        ) {
             setError(
                 `Status "${newStatus}" tidak dapat dipilih dari status "${data.status}".`
             );
@@ -428,33 +738,38 @@ function PeminjamanDetailPetugas() {
     // KONFIRMASI STATUS
     // ==================================================
 
-    const confirmStatusChange = async () => {
-        if (
-            !confirmModal.open ||
-            !confirmModal.newStatus ||
-            updatingStatus
-        ) {
-            return;
-        }
+    const confirmStatusChange =
+        async () => {
+            if (
+                !confirmModal.open ||
+                !confirmModal.newStatus ||
+                updatingStatus
+            ) {
+                return;
+            }
 
-        const newStatus =
-            confirmModal.newStatus;
+            const newStatus =
+                confirmModal.newStatus;
 
-        setConfirmModal({
-            open: false,
-            newStatus: "",
-            title: "",
-            message: "",
-        });
+            setConfirmModal({
+                open: false,
+                newStatus: "",
+                title: "",
+                message: "",
+            });
 
-        await updateStatus(newStatus);
-    };
+            await updateStatus(
+                newStatus
+            );
+        };
 
     // ==================================================
     // UPDATE STATUS
     // ==================================================
 
-    const updateStatus = async (newStatus) => {
+    const updateStatus = async (
+        newStatus
+    ) => {
         if (!data?.id_peminjaman) {
             return;
         }
@@ -473,7 +788,11 @@ function PeminjamanDetailPetugas() {
                 currentStatus
             ] || [];
 
-        if (!allowed.includes(newStatus)) {
+        if (
+            !allowed.includes(
+                newStatus
+            )
+        ) {
             setError(
                 `Status "${newStatus}" tidak dapat dipilih dari status "${data.status}".`
             );
@@ -557,284 +876,297 @@ function PeminjamanDetailPetugas() {
     // TOMBOL AKSI STATUS
     // ==================================================
 
-    const renderStatusActions = () => {
-        if (!data?.status) {
-            return null;
-        }
+    const renderStatusActions =
+        () => {
+            if (!data?.status) {
+                return null;
+            }
 
-        const status =
-            String(
-                data.status
-            ).toLowerCase();
+            const status =
+                String(
+                    data.status
+                ).toLowerCase();
 
-        // ==============================================
-        // MENUNGGU
-        // ==============================================
+            // ==============================================
+            // MENUNGGU
+            // ==============================================
 
-        if (status === "menunggu") {
-            return (
-                <div className="grid sm:grid-cols-2 gap-3">
+            if (
+                status ===
+                "menunggu"
+            ) {
+                return (
+                    <div className="grid sm:grid-cols-2 gap-3">
 
-                    <button
-                        type="button"
-                        onClick={() =>
-                            openConfirmModal(
-                                "Disetujui"
-                            )
-                        }
-                        disabled={
-                            updatingStatus
-                        }
+                        <button
+                            type="button"
+                            onClick={() =>
+                                openConfirmModal(
+                                    "Disetujui"
+                                )
+                            }
+                            disabled={
+                                updatingStatus
+                            }
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                px-5
+                                py-3
+                                rounded-xl
+                                bg-green-500
+                                text-black
+                                font-semibold
+                                hover:bg-green-400
+                                transition
+                                disabled:opacity-50
+                                disabled:cursor-not-allowed
+                            "
+                        >
+                            <FaCheck />
+
+                            {updatingStatus
+                                ? "Memproses..."
+                                : "Setujui Peminjaman"}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                openConfirmModal(
+                                    "Ditolak"
+                                )
+                            }
+                            disabled={
+                                updatingStatus
+                            }
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                px-5
+                                py-3
+                                rounded-xl
+                                border
+                                border-red-500/30
+                                text-red-400
+                                hover:bg-red-500/10
+                                transition
+                                disabled:opacity-50
+                                disabled:cursor-not-allowed
+                            "
+                        >
+                            <FaTimes />
+
+                            {updatingStatus
+                                ? "Memproses..."
+                                : "Tolak Peminjaman"}
+                        </button>
+
+                    </div>
+                );
+            }
+
+            // ==============================================
+            // DISETUJUI
+            // ==============================================
+
+            if (
+                status ===
+                "disetujui"
+            ) {
+                return (
+                    <div className="grid sm:grid-cols-2 gap-3">
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                openConfirmModal(
+                                    "Diproses"
+                                )
+                            }
+                            disabled={
+                                updatingStatus
+                            }
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                px-5
+                                py-3
+                                rounded-xl
+                                bg-[#D4AF37]
+                                text-black
+                                font-semibold
+                                hover:brightness-110
+                                transition
+                                disabled:opacity-50
+                                disabled:cursor-not-allowed
+                            "
+                        >
+                            <FaCog />
+
+                            {updatingStatus
+                                ? "Memproses..."
+                                : "Proses Peminjaman"}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                openConfirmModal(
+                                    "Dibatalkan"
+                                )
+                            }
+                            disabled={
+                                updatingStatus
+                            }
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                px-5
+                                py-3
+                                rounded-xl
+                                border
+                                border-gray-500/30
+                                text-gray-400
+                                hover:bg-white/5
+                                transition
+                                disabled:opacity-50
+                                disabled:cursor-not-allowed
+                            "
+                        >
+                            <FaUndo />
+
+                            {updatingStatus
+                                ? "Memproses..."
+                                : "Batalkan"}
+                        </button>
+
+                    </div>
+                );
+            }
+
+            // ==============================================
+            // DIPROSES
+            // ==============================================
+
+            if (
+                status ===
+                "diproses"
+            ) {
+                return (
+                    <div
                         className="
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-2
-                            px-5
-                            py-3
-                            rounded-xl
-                            bg-green-500
-                            text-black
-                            font-semibold
-                            hover:bg-green-400
-                            transition
-                            disabled:opacity-50
-                            disabled:cursor-not-allowed
-                        "
-                    >
-                        <FaCheck />
-
-                        {updatingStatus
-                            ? "Memproses..."
-                            : "Setujui Peminjaman"}
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            openConfirmModal(
-                                "Ditolak"
-                            )
-                        }
-                        disabled={
-                            updatingStatus
-                        }
-                        className="
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-2
-                            px-5
-                            py-3
                             rounded-xl
                             border
-                            border-red-500/30
-                            text-red-400
-                            hover:bg-red-500/10
-                            transition
-                            disabled:opacity-50
-                            disabled:cursor-not-allowed
-                        "
-                    >
-                        <FaTimes />
-
-                        {updatingStatus
-                            ? "Memproses..."
-                            : "Tolak Peminjaman"}
-                    </button>
-
-                </div>
-            );
-        }
-
-        // ==============================================
-        // DISETUJUI
-        // ==============================================
-
-        if (status === "disetujui") {
-            return (
-                <div className="grid sm:grid-cols-2 gap-3">
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            openConfirmModal(
-                                "Diproses"
-                            )
-                        }
-                        disabled={
-                            updatingStatus
-                        }
-                        className="
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-2
+                            border-[#D4AF37]/20
+                            bg-[#D4AF37]/5
                             px-5
-                            py-3
-                            rounded-xl
-                            bg-[#D4AF37]
-                            text-black
-                            font-semibold
-                            hover:brightness-110
-                            transition
-                            disabled:opacity-50
-                            disabled:cursor-not-allowed
-                        "
-                    >
-                        <FaCog />
-
-                        {updatingStatus
-                            ? "Memproses..."
-                            : "Proses Peminjaman"}
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            openConfirmModal(
-                                "Dibatalkan"
-                            )
-                        }
-                        disabled={
-                            updatingStatus
-                        }
-                        className="
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-2
-                            px-5
-                            py-3
-                            rounded-xl
-                            border
-                            border-gray-500/30
+                            py-4
+                            text-sm
                             text-gray-400
-                            hover:bg-white/5
-                            transition
-                            disabled:opacity-50
-                            disabled:cursor-not-allowed
                         "
                     >
-                        <FaUndo />
+                        Peminjaman sedang
+                        diproses.
 
-                        {updatingStatus
-                            ? "Memproses..."
-                            : "Batalkan"}
-                    </button>
+                        <br />
 
-                </div>
-            );
-        }
+                        <span className="text-[#D4AF37]">
+                            Selesaikan transaksi
+                            melalui menu
+                            Pengembalian
+                            setelah kostum
+                            diterima kembali.
+                        </span>
 
-        // ==============================================
-        // DIPROSES
-        // ==============================================
+                        <br />
 
-        if (status === "diproses") {
-            return (
-                <div
-                    className="
-                        rounded-xl
-                        border
-                        border-[#D4AF37]/20
-                        bg-[#D4AF37]/5
-                        px-5
-                        py-4
-                        text-sm
-                        text-gray-400
-                    "
-                >
-                    Peminjaman sedang
-                    diproses.
+                        <Link
+                            to="/petugas/pengembalian"
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                mt-4
+                                px-4
+                                py-2
+                                rounded-lg
+                                bg-[#D4AF37]
+                                text-black
+                                font-semibold
+                                text-xs
+                            "
+                        >
+                            <FaUndo />
+                            Buka Pengembalian
+                        </Link>
+                    </div>
+                );
+            }
 
-                    <br />
+            // ==============================================
+            // SELESAI
+            // ==============================================
 
-                    <span className="text-[#D4AF37]">
-                        Selesaikan transaksi
-                        melalui menu
-                        Pengembalian
-                        setelah kostum
-                        diterima kembali.
-                    </span>
-
-                    <br />
-
-                    <Link
-                        to="/petugas/pengembalian"
+            if (
+                status ===
+                "selesai"
+            ) {
+                return (
+                    <div
                         className="
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-2
-                            mt-4
-                            px-4
-                            py-2
-                            rounded-lg
-                            bg-[#D4AF37]
-                            text-black
-                            font-semibold
-                            text-xs
+                            rounded-xl
+                            border
+                            border-green-500/20
+                            bg-green-500/5
+                            px-5
+                            py-4
+                            text-sm
+                            text-green-400
                         "
                     >
-                        <FaUndo />
-                        Buka Pengembalian
-                    </Link>
-                </div>
-            );
-        }
+                        Transaksi telah
+                        selesai.
+                    </div>
+                );
+            }
 
-        // ==============================================
-        // SELESAI
-        // ==============================================
+            // ==============================================
+            // DITOLAK / DIBATALKAN
+            // ==============================================
 
-        if (status === "selesai") {
             return (
                 <div
                     className="
                         rounded-xl
                         border
-                        border-green-500/20
-                        bg-green-500/5
+                        border-white/5
+                        bg-white/[0.02]
                         px-5
                         py-4
                         text-sm
-                        text-green-400
+                        text-gray-500
                     "
                 >
-                    Transaksi telah
-                    selesai.
+                    Tidak ada tindakan
+                    status yang tersedia
+                    untuk status{" "}
+                    <span className="text-white">
+                        {data.status}
+                    </span>
+                    .
                 </div>
             );
-        }
-
-        // ==============================================
-        // DITOLAK / DIBATALKAN
-        // ==============================================
-
-        return (
-            <div
-                className="
-                    rounded-xl
-                    border
-                    border-white/5
-                    bg-white/[0.02]
-                    px-5
-                    py-4
-                    text-sm
-                    text-gray-500
-                "
-            >
-                Tidak ada tindakan
-                status yang tersedia
-                untuk status{" "}
-                <span className="text-white">
-                    {data.status}
-                </span>
-                .
-            </div>
-        );
-    };
+        };
 
     // ==================================================
     // LOADING
@@ -935,12 +1267,21 @@ function PeminjamanDetailPetugas() {
     }
 
     // ==================================================
-    // FOTO
+    // FOTO KOSTUM
     // ==================================================
 
     const imageUrl =
         getImageUrl(
             data?.foto
+        );
+
+    // ==================================================
+    // BUKTI PEMBAYARAN
+    // ==================================================
+
+    const paymentProofUrl =
+        getPaymentProofUrl(
+            payment?.bukti_bayar
         );
 
     // ==================================================
@@ -981,6 +1322,7 @@ function PeminjamanDetailPetugas() {
                         gap-5
                     "
                 >
+
                     <div>
 
                         <p
@@ -1036,7 +1378,6 @@ function PeminjamanDetailPetugas() {
                 </div>
             </header>
 
-
             {/* ==================================================
                 MAIN
             ================================================== */}
@@ -1081,7 +1422,6 @@ function PeminjamanDetailPetugas() {
                     </div>
                 )}
 
-
                 {/* ERROR */}
 
                 {error && data && (
@@ -1100,7 +1440,6 @@ function PeminjamanDetailPetugas() {
                         {error}
                     </div>
                 )}
-
 
                 {/* ==================================================
                     STATUS HEADER
@@ -1126,6 +1465,7 @@ function PeminjamanDetailPetugas() {
                             gap-6
                         "
                     >
+
                         <div>
 
                             <p className="text-gray-500 text-sm">
@@ -1140,7 +1480,9 @@ function PeminjamanDetailPetugas() {
                                 "
                             >
                                 #
-                                {data.id_peminjaman}
+                                {
+                                    data.id_peminjaman
+                                }
                             </h2>
 
                         </div>
@@ -1165,15 +1507,15 @@ function PeminjamanDetailPetugas() {
                                 data.status
                             )}
 
-                            {data.status || "-"}
+                            {data.status ||
+                                "-"}
                         </div>
 
                     </div>
                 </section>
 
-
                 {/* ==================================================
-                    DETAIL
+                    DETAIL USER + KOSTUM + PEMINJAMAN
                 ================================================== */}
 
                 <div
@@ -1205,6 +1547,7 @@ function PeminjamanDetailPetugas() {
                                 gap-3
                             "
                         >
+
                             <div
                                 className="
                                     w-11
@@ -1221,6 +1564,7 @@ function PeminjamanDetailPetugas() {
                             </div>
 
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Informasi
                                 </p>
@@ -1228,9 +1572,10 @@ function PeminjamanDetailPetugas() {
                                 <h2 className="text-xl font-bold">
                                     Data User
                                 </h2>
-                            </div>
-                        </div>
 
+                            </div>
+
+                        </div>
 
                         <div
                             className="
@@ -1240,15 +1585,17 @@ function PeminjamanDetailPetugas() {
                         >
 
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Nama
                                 </p>
 
                                 <p className="font-semibold mt-1">
-                                    {data.nama_user || "-"}
+                                    {data.nama_user ||
+                                        "-"}
                                 </p>
-                            </div>
 
+                            </div>
 
                             <div
                                 className="
@@ -1257,19 +1604,23 @@ function PeminjamanDetailPetugas() {
                                     gap-3
                                 "
                             >
+
                                 <FaEnvelope className="text-gray-500 mt-1" />
 
                                 <div>
+
                                     <p className="text-gray-500 text-sm">
                                         Email
                                     </p>
 
                                     <p className="mt-1 break-all">
-                                        {data.email_user || "-"}
+                                        {data.email_user ||
+                                            "-"}
                                     </p>
-                                </div>
-                            </div>
 
+                                </div>
+
+                            </div>
 
                             <div
                                 className="
@@ -1278,21 +1629,26 @@ function PeminjamanDetailPetugas() {
                                     gap-3
                                 "
                             >
+
                                 <FaPhone className="text-gray-500 mt-1" />
 
                                 <div>
+
                                     <p className="text-gray-500 text-sm">
                                         No. HP
                                     </p>
 
                                     <p className="mt-1">
-                                        {data.no_hp_user || "-"}
+                                        {data.no_hp_user ||
+                                            "-"}
                                     </p>
+
                                 </div>
+
                             </div>
 
-
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Alamat
                                 </p>
@@ -1304,14 +1660,15 @@ function PeminjamanDetailPetugas() {
                                         leading-6
                                     "
                                 >
-                                    {data.alamat_user || "-"}
+                                    {data.alamat_user ||
+                                        "-"}
                                 </p>
+
                             </div>
 
                         </div>
 
                     </section>
-
 
                     {/* ==================================================
                         KOSTUM
@@ -1334,6 +1691,7 @@ function PeminjamanDetailPetugas() {
                                 gap-3
                             "
                         >
+
                             <div
                                 className="
                                     w-11
@@ -1350,6 +1708,7 @@ function PeminjamanDetailPetugas() {
                             </div>
 
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Item
                                 </p>
@@ -1357,11 +1716,12 @@ function PeminjamanDetailPetugas() {
                                 <h2 className="text-xl font-bold">
                                     Kostum
                                 </h2>
+
                             </div>
+
                         </div>
 
-
-                        {/* FOTO */}
+                        {/* FOTO KOSTUM */}
 
                         {imageUrl ? (
                             <img
@@ -1390,14 +1750,15 @@ function PeminjamanDetailPetugas() {
                                                 ".kostum-image-fallback"
                                             );
 
-                                    if (fallback) {
+                                    if (
+                                        fallback
+                                    ) {
                                         fallback.style.display =
                                             "flex";
                                     }
                                 }}
                             />
                         ) : null}
-
 
                         <div
                             className={`
@@ -1416,6 +1777,7 @@ function PeminjamanDetailPetugas() {
                                 justify-center
                             `}
                         >
+
                             <div className="text-center">
 
                                 <FaImage
@@ -1432,8 +1794,8 @@ function PeminjamanDetailPetugas() {
                                 </p>
 
                             </div>
-                        </div>
 
+                        </div>
 
                         <div
                             className="
@@ -1443,6 +1805,7 @@ function PeminjamanDetailPetugas() {
                         >
 
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Nama Kostum
                                 </p>
@@ -1454,12 +1817,14 @@ function PeminjamanDetailPetugas() {
                                         mt-1
                                     "
                                 >
-                                    {data.nama_kostum || "-"}
+                                    {data.nama_kostum ||
+                                        "-"}
                                 </p>
+
                             </div>
 
-
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Kode Koleksi
                                 </p>
@@ -1471,47 +1836,54 @@ function PeminjamanDetailPetugas() {
                                         mt-1
                                     "
                                 >
-                                    {data.kode_koleksi || "-"}
+                                    {data.kode_koleksi ||
+                                        "-"}
                                 </p>
+
                             </div>
 
-
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Warna
                                 </p>
 
                                 <p className="mt-1">
-                                    {data.warna || "-"}
+                                    {data.warna ||
+                                        "-"}
                                 </p>
+
                             </div>
 
-
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Ukuran
                                 </p>
 
                                 <p className="mt-1">
-                                    {data.ukuran || "-"}
+                                    {data.ukuran ||
+                                        "-"}
                                 </p>
+
                             </div>
 
-
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Jumlah
                                 </p>
 
                                 <p className="mt-1">
-                                    {data.jumlah ?? 0}
+                                    {data.jumlah ??
+                                        0}
                                 </p>
+
                             </div>
 
                         </div>
 
                     </section>
-
 
                     {/* ==================================================
                         PEMINJAMAN
@@ -1534,6 +1906,7 @@ function PeminjamanDetailPetugas() {
                                 gap-3
                             "
                         >
+
                             <div
                                 className="
                                     w-11
@@ -1550,6 +1923,7 @@ function PeminjamanDetailPetugas() {
                             </div>
 
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Transaksi
                                 </p>
@@ -1557,9 +1931,10 @@ function PeminjamanDetailPetugas() {
                                 <h2 className="text-xl font-bold">
                                     Peminjaman
                                 </h2>
-                            </div>
-                        </div>
 
+                            </div>
+
+                        </div>
 
                         <div
                             className="
@@ -1569,6 +1944,7 @@ function PeminjamanDetailPetugas() {
                         >
 
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     ID Peminjaman
                                 </p>
@@ -1580,12 +1956,16 @@ function PeminjamanDetailPetugas() {
                                         mt-1
                                     "
                                 >
-                                    #{data.id_peminjaman}
+                                    #
+                                    {
+                                        data.id_peminjaman
+                                    }
                                 </p>
+
                             </div>
 
-
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Status
                                 </p>
@@ -1611,10 +1991,11 @@ function PeminjamanDetailPetugas() {
                                         data.status
                                     )}
 
-                                    {data.status || "-"}
+                                    {data.status ||
+                                        "-"}
                                 </span>
-                            </div>
 
+                            </div>
 
                             <div
                                 className="
@@ -1623,9 +2004,11 @@ function PeminjamanDetailPetugas() {
                                     gap-3
                                 "
                             >
+
                                 <FaCalendarAlt className="text-gray-500 mt-1" />
 
                                 <div>
+
                                     <p className="text-gray-500 text-sm">
                                         Tanggal
                                         Peminjaman
@@ -1636,9 +2019,10 @@ function PeminjamanDetailPetugas() {
                                             data.tanggal_peminjaman
                                         )}
                                     </p>
-                                </div>
-                            </div>
 
+                                </div>
+
+                            </div>
 
                             <div
                                 className="
@@ -1647,9 +2031,11 @@ function PeminjamanDetailPetugas() {
                                     gap-3
                                 "
                             >
+
                                 <FaCalendarAlt className="text-gray-500 mt-1" />
 
                                 <div>
+
                                     <p className="text-gray-500 text-sm">
                                         Tanggal
                                         Kembali
@@ -1660,11 +2046,13 @@ function PeminjamanDetailPetugas() {
                                             data.tanggal_kembali
                                         )}
                                     </p>
+
                                 </div>
+
                             </div>
 
-
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Harga
                                 </p>
@@ -1680,10 +2068,11 @@ function PeminjamanDetailPetugas() {
                                         data.harga
                                     )}
                                 </p>
+
                             </div>
 
-
                             <div>
+
                                 <p className="text-gray-500 text-sm">
                                     Subtotal
                                 </p>
@@ -1699,10 +2088,10 @@ function PeminjamanDetailPetugas() {
                                         data.subtotal
                                     )}
                                 </p>
+
                             </div>
 
                         </div>
-
 
                         <div
                             className="
@@ -1712,6 +2101,7 @@ function PeminjamanDetailPetugas() {
                                 border-white/5
                             "
                         >
+
                             <p className="text-gray-500 text-sm">
                                 Total Peminjaman
                             </p>
@@ -1728,12 +2118,550 @@ function PeminjamanDetailPetugas() {
                                     data.total_harga
                                 )}
                             </p>
+
                         </div>
 
                     </section>
 
                 </div>
 
+                {/* ==================================================
+                    PEMBAYARAN
+                ================================================== */}
+
+                <section
+                    className="
+                        mt-7
+                        rounded-3xl
+                        bg-[#141414]
+                        border
+                        border-[#D4AF37]/15
+                        p-7
+                    "
+                >
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            gap-3
+                        "
+                    >
+
+                        <div
+                            className="
+                                w-11
+                                h-11
+                                rounded-xl
+                                bg-[#D4AF37]/10
+                                text-[#D4AF37]
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+                            <FaMoneyBillWave />
+                        </div>
+
+                        <div>
+
+                            <p className="text-gray-500 text-sm">
+                                Transaksi
+                            </p>
+
+                            <h2 className="text-xl font-bold">
+                                Informasi Pembayaran
+                            </h2>
+
+                        </div>
+
+                    </div>
+
+                    {/* ==================================================
+                        STATUS PEMBAYARAN
+                    ================================================== */}
+
+                    <div
+                        className="
+                            mt-7
+                            rounded-2xl
+                            border
+                            p-5
+                            ${paymentInfo.className}
+                        "
+                    >
+                        <div
+                            className="
+                                flex
+                                flex-col
+                                md:flex-row
+                                md:items-center
+                                md:justify-between
+                                gap-4
+                            "
+                        >
+
+                            <div>
+
+                                <p className="text-gray-500 text-sm">
+                                    Status Pembayaran
+                                </p>
+
+                                <div
+                                    className={`
+                                        inline-flex
+                                        items-center
+                                        gap-2
+                                        mt-2
+                                        px-4
+                                        py-2
+                                        rounded-full
+                                        border
+                                        text-sm
+                                        font-semibold
+                                        ${paymentInfo.className}
+                                    `}
+                                >
+                                    {paymentInfo.percentage ===
+                                    100 ? (
+                                        <FaCheck />
+                                    ) : paymentInfo.percentage >
+                                      0 ? (
+                                        <FaMoneyBillWave />
+                                    ) : (
+                                        <FaTimes />
+                                    )}
+
+                                    {paymentInfo.label}
+                                </div>
+
+                                <p className="text-gray-500 text-sm mt-3">
+                                    {paymentInfo.description}
+                                </p>
+
+                            </div>
+
+                            <div className="text-left md:text-right">
+
+                                <p className="text-gray-500 text-sm">
+                                    Persentase
+                                </p>
+
+                                <p className="text-3xl font-bold text-[#D4AF37] mt-1">
+                                    {
+                                        paymentInfo.percentage
+                                    }
+                                    %
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                        {/* PROGRESS */}
+
+                        <div className="mt-5">
+
+                            <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+
+                                <div
+                                    className="
+                                        h-full
+                                        bg-[#D4AF37]
+                                        rounded-full
+                                        transition-all
+                                    "
+                                    style={{
+                                        width: `${Math.min(
+                                            paymentInfo.percentage,
+                                            100
+                                        )}%`,
+                                    }}
+                                />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {/* ==================================================
+                        RINGKASAN NOMINAL
+                    ================================================== */}
+
+                    <div
+                        className="
+                            mt-6
+                            grid
+                            md:grid-cols-3
+                            gap-4
+                        "
+                    >
+
+                        <div
+                            className="
+                                rounded-2xl
+                                bg-[#1D1D1D]
+                                border
+                                border-white/5
+                                p-5
+                            "
+                        >
+
+                            <p className="text-gray-500 text-sm">
+                                Total Peminjaman
+                            </p>
+
+                            <p className="text-xl font-bold text-white mt-2">
+                                {formatRupiah(
+                                    data.total_harga
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div
+                            className="
+                                rounded-2xl
+                                bg-[#1D1D1D]
+                                border
+                                border-green-500/10
+                                p-5
+                            "
+                        >
+
+                            <p className="text-gray-500 text-sm">
+                                Sudah Dibayar
+                            </p>
+
+                            <p className="text-xl font-bold text-green-400 mt-2">
+                                {formatRupiah(
+                                    paymentInfo.totalDibayar
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div
+                            className="
+                                rounded-2xl
+                                bg-[#1D1D1D]
+                                border
+                                border-yellow-500/10
+                                p-5
+                            "
+                        >
+
+                            <p className="text-gray-500 text-sm">
+                                Sisa Pembayaran
+                            </p>
+
+                            <p className="text-xl font-bold text-yellow-400 mt-2">
+                                {formatRupiah(
+                                    paymentInfo.sisaPembayaran
+                                )}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    {/* ==================================================
+                        DETAIL PEMBAYARAN
+                    ================================================== */}
+
+                    <div
+                        className="
+                            mt-6
+                            grid
+                            md:grid-cols-2
+                            gap-6
+                        "
+                    >
+
+                        <div
+                            className="
+                                rounded-2xl
+                                bg-[#1D1D1D]
+                                border
+                                border-white/5
+                                p-5
+                            "
+                        >
+
+                            <div
+                                className="
+                                    flex
+                                    items-center
+                                    gap-3
+                                    mb-5
+                                "
+                            >
+
+                                <FaCreditCard className="text-[#D4AF37]" />
+
+                                <h3 className="font-semibold">
+                                    Detail Transaksi
+                                </h3>
+
+                            </div>
+
+                            <div className="space-y-5">
+
+                                <div>
+
+                                    <p className="text-gray-500 text-sm">
+                                        Metode Pembayaran
+                                    </p>
+
+                                    <p className="text-white font-semibold mt-1">
+                                        {payment?.metode ||
+                                            "-"}
+                                    </p>
+
+                                </div>
+
+                                <div>
+
+                                    <p className="text-gray-500 text-sm">
+                                        Nominal Pembayaran
+                                    </p>
+
+                                    <p className="text-[#D4AF37] font-semibold mt-1">
+                                        {formatRupiah(
+                                            paymentInfo.totalDibayar
+                                        )}
+                                    </p>
+
+                                </div>
+
+                                <div>
+
+                                    <p className="text-gray-500 text-sm">
+                                        Tanggal Pembayaran
+                                    </p>
+
+                                    <p className="text-white mt-1">
+                                        {payment?.tanggal_bayar
+                                            ? formatTanggal(
+                                                  payment.tanggal_bayar
+                                              )
+                                            : "-"}
+                                    </p>
+
+                                </div>
+
+                                <div>
+
+                                    <p className="text-gray-500 text-sm">
+                                        Status Data Pembayaran
+                                    </p>
+
+                                    <p className="text-white mt-1">
+                                        {payment?.status ||
+                                            "-"}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        {/* ==================================================
+                            BUKTI PEMBAYARAN
+                        ================================================== */}
+
+                        <div
+                            className="
+                                rounded-2xl
+                                bg-[#1D1D1D]
+                                border
+                                border-white/5
+                                p-5
+                            "
+                        >
+
+                            <div
+                                className="
+                                    flex
+                                    items-center
+                                    gap-3
+                                    mb-5
+                                "
+                            >
+
+                                <FaReceipt className="text-[#D4AF37]" />
+
+                                <h3 className="font-semibold">
+                                    Bukti Pembayaran
+                                </h3>
+
+                            </div>
+
+                            {paymentProofUrl ? (
+                                <div>
+
+                                    <div
+                                        className="
+                                            rounded-2xl
+                                            overflow-hidden
+                                            border
+                                            border-white/10
+                                            bg-[#141414]
+                                        "
+                                    >
+
+                                        <img
+                                            src={
+                                                paymentProofUrl
+                                            }
+                                            alt="Bukti pembayaran"
+                                            className="
+                                                w-full
+                                                max-h-[420px]
+                                                object-contain
+                                                bg-[#0d0d0d]
+                                            "
+                                            onError={(
+                                                e
+                                            ) => {
+                                                e.currentTarget.style.display =
+                                                    "none";
+
+                                                const parent =
+                                                    e.currentTarget
+                                                        .parentElement;
+
+                                                const fallback =
+                                                    parent?.querySelector(
+                                                        ".payment-proof-error"
+                                                    );
+
+                                                if (
+                                                    fallback
+                                                ) {
+                                                    fallback.style.display =
+                                                        "flex";
+                                                }
+                                            }}
+                                        />
+
+                                        <div
+                                            className="
+                                                payment-proof-error
+                                                hidden
+                                                min-h-[220px]
+                                                items-center
+                                                justify-center
+                                                text-center
+                                                p-6
+                                            "
+                                        >
+
+                                            <div>
+
+                                                <FaImage
+                                                    className="
+                                                        mx-auto
+                                                        text-4xl
+                                                        text-gray-600
+                                                    "
+                                                />
+
+                                                <p className="text-gray-500 text-sm mt-3">
+                                                    Bukti pembayaran
+                                                    tidak dapat
+                                                    ditampilkan.
+                                                </p>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <a
+                                        href={
+                                            paymentProofUrl
+                                        }
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="
+                                            inline-flex
+                                            items-center
+                                            justify-center
+                                            gap-2
+                                            w-full
+                                            mt-4
+                                            px-5
+                                            py-3
+                                            rounded-xl
+                                            bg-[#D4AF37]
+                                            text-black
+                                            font-semibold
+                                            hover:brightness-110
+                                            transition
+                                        "
+                                    >
+                                        <FaExternalLinkAlt />
+
+                                        Lihat Bukti
+                                        Pembayaran
+                                    </a>
+
+                                </div>
+                            ) : (
+                                <div
+                                    className="
+                                        min-h-[220px]
+                                        rounded-2xl
+                                        border
+                                        border-white/5
+                                        bg-[#141414]
+                                        flex
+                                        items-center
+                                        justify-center
+                                        text-center
+                                        p-6
+                                    "
+                                >
+
+                                    <div>
+
+                                        <FaImage
+                                            className="
+                                                mx-auto
+                                                text-4xl
+                                                text-gray-600
+                                            "
+                                        />
+
+                                        <p className="text-gray-500 text-sm mt-3">
+                                            Belum ada bukti
+                                            pembayaran yang
+                                            tercatat.
+                                        </p>
+
+                                        {payment?.metode ===
+                                            "Cash" && (
+                                            <p className="text-gray-600 text-xs mt-2">
+                                                Pembayaran Cash
+                                                tidak memerlukan
+                                                unggahan bukti.
+                                            </p>
+                                        )}
+
+                                    </div>
+
+                                </div>
+                            )}
+
+                        </div>
+
+                    </div>
+
+                </section>
 
                 {/* ==================================================
                     AKSI STATUS
@@ -1784,7 +2712,6 @@ function PeminjamanDetailPetugas() {
 
                 </section>
 
-
                 {/* ==================================================
                     BACK
                 ================================================== */}
@@ -1812,7 +2739,6 @@ function PeminjamanDetailPetugas() {
 
             </main>
 
-
             {/* ==================================================
                 MODAL KONFIRMASI
             ================================================== */}
@@ -1830,7 +2756,9 @@ function PeminjamanDetailPetugas() {
                         bg-black/70
                         backdrop-blur-sm
                     "
-                    onClick={closeConfirmModal}
+                    onClick={
+                        closeConfirmModal
+                    }
                 >
 
                     <div
@@ -1862,7 +2790,6 @@ function PeminjamanDetailPetugas() {
                                 justify-center
                                 mb-5
                                 text-xl
-
                                 ${
                                     confirmModal.newStatus ===
                                         "Ditolak" ||
@@ -1893,7 +2820,6 @@ function PeminjamanDetailPetugas() {
                             )}
                         </div>
 
-
                         {/* TITLE */}
 
                         <h2
@@ -1903,9 +2829,10 @@ function PeminjamanDetailPetugas() {
                                 text-white
                             "
                         >
-                            {confirmModal.title}
+                            {
+                                confirmModal.title
+                            }
                         </h2>
-
 
                         {/* MESSAGE */}
 
@@ -1916,9 +2843,10 @@ function PeminjamanDetailPetugas() {
                                 leading-6
                             "
                         >
-                            {confirmModal.message}
+                            {
+                                confirmModal.message
+                            }
                         </p>
-
 
                         {/* DETAIL */}
 
@@ -1953,7 +2881,9 @@ function PeminjamanDetailPetugas() {
                                     "
                                 >
                                     Peminjaman #
-                                    {data?.id_peminjaman}
+                                    {
+                                        data?.id_peminjaman
+                                    }
                                 </p>
 
                                 <p
@@ -1963,8 +2893,10 @@ function PeminjamanDetailPetugas() {
                                         mt-1
                                     "
                                 >
-                                    {data?.nama_user ||
-                                        "Pelanggan"}
+                                    {
+                                        data?.nama_user ||
+                                        "Pelanggan"
+                                    }
                                 </p>
 
                                 <p
@@ -1974,21 +2906,21 @@ function PeminjamanDetailPetugas() {
                                         mt-1
                                     "
                                 >
-                                    {data?.nama_kostum ||
-                                        "Kostum"}
+                                    {
+                                        data?.nama_kostum ||
+                                        "Kostum"
+                                    }
                                 </p>
 
                             </div>
 
                         </div>
 
-
                         {/* BUTTON */}
 
                         <div
                             className="
-                                grid
-                                grid-cols-2
+                                flex
                                 gap-3
                                 mt-7
                             "
@@ -2005,6 +2937,7 @@ function PeminjamanDetailPetugas() {
                                     updatingStatus
                                 }
                                 className="
+                                    flex-1
                                     px-5
                                     py-3
                                     rounded-xl
@@ -2022,7 +2955,6 @@ function PeminjamanDetailPetugas() {
                                 Batal
                             </button>
 
-
                             {/* KONFIRMASI */}
 
                             <button
@@ -2034,6 +2966,7 @@ function PeminjamanDetailPetugas() {
                                     updatingStatus
                                 }
                                 className={`
+                                    flex-1
                                     px-5
                                     py-3
                                     rounded-xl
@@ -2064,17 +2997,17 @@ function PeminjamanDetailPetugas() {
                                     ? "Memproses..."
                                     : confirmModal.newStatus ===
                                       "Dibatalkan"
-                                        ? "Ya, Batalkan"
-                                        : confirmModal.newStatus ===
-                                          "Ditolak"
-                                            ? "Ya, Tolak"
-                                            : confirmModal.newStatus ===
-                                              "Diproses"
-                                                ? "Ya, Proses"
-                                                : confirmModal.newStatus ===
-                                                  "Disetujui"
-                                                    ? "Ya, Setujui"
-                                                    : "Konfirmasi"}
+                                    ? "Ya, Batalkan"
+                                    : confirmModal.newStatus ===
+                                      "Ditolak"
+                                    ? "Ya, Tolak"
+                                    : confirmModal.newStatus ===
+                                      "Diproses"
+                                    ? "Ya, Proses"
+                                    : confirmModal.newStatus ===
+                                      "Disetujui"
+                                    ? "Ya, Setujui"
+                                    : "Konfirmasi"}
                             </button>
 
                         </div>

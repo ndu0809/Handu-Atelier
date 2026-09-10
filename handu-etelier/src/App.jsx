@@ -11,15 +11,16 @@ import BorrowForm from "./pages/borrowing/BorrowForm";
 import BorrowSuccess from "./pages/borrowing/BorrowSuccess";
 import CollectionsPage from "./pages/category/CollectionsPage";
 
-// HowToRent berada di components/home
-import HowToRent from "./components/home/HowToRent";
+// ======================================================
+// HOW TO RENT
+// ======================================================
 
-// Navbar & Footer untuk halaman Cara Penyewaan
+import HowToRent from "./components/home/HowToRent";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 
 // ======================================================
-// AUTH USER
+// AUTH
 // ======================================================
 
 import Login from "./pages/auth/Login";
@@ -35,6 +36,7 @@ import Settings from "./pages/user/Settings";
 import ChangePassword from "./pages/user/ChangePassword";
 import MyBorrowings from "./pages/user/MyBorrowings";
 import BorrowingDetail from "./pages/user/BorrowingDetail";
+import ChatPage from "./pages/chat/ChatPage";
 
 // ======================================================
 // ROUTE GUARDS
@@ -83,409 +85,292 @@ import AdminLayout from "./components/admin/AdminLayout";
 // ADMIN ROUTE WRAPPER
 // ======================================================
 
-const AdminPage = ({
-    children,
-    activePage
-}) => {
+function AdminPage({ children, activePage }) {
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
+  const handleNavigate = (page) => {
+    switch (page) {
+      case "dashboard":
+        navigate("/admin/dashboard");
+        break;
 
-    const handleNavigate = (page) => {
+      case "petugas":
+        navigate("/admin/petugas");
+        break;
 
-        switch (page) {
+      case "pelanggan":
+        navigate("/admin/pelanggan");
+        break;
 
-            case "dashboard":
-                navigate("/admin/dashboard");
-                break;
+      case "kostum":
+        navigate("/admin/kostum");
+        break;
 
-            case "petugas":
-                navigate("/admin/petugas");
-                break;
+      case "koleksi":
+        navigate("/admin/koleksi");
+        break;
 
-            case "pelanggan":
-                navigate("/admin/pelanggan");
-                break;
+      case "kategori":
+        navigate("/admin/kategori");
+        break;
 
-            case "kostum":
-                navigate("/admin/kostum");
-                break;
+      case "registrasi":
+        navigate("/admin/registrasi");
+        break;
 
-            case "koleksi":
-                navigate("/admin/koleksi");
-                break;
+      case "peminjaman":
+        navigate("/admin/peminjaman");
+        break;
 
-            case "kategori":
-                navigate("/admin/kategori");
-                break;
+      case "notifications":
+        navigate("/admin/notifikasi");
+        break;
 
-            case "registrasi":
-                navigate("/admin/registrasi");
-                break;
+      case "pengaturan":
+        navigate("/admin/pengaturan");
+        break;
 
-            case "peminjaman":
-                navigate("/admin/peminjaman");
-                break;
+      default:
+        navigate("/admin/dashboard");
+        break;
+    }
+  };
 
-            case "notifications":
-                navigate("/admin/notifikasi");
-                break;
-
-            case "pengaturan":
-                navigate("/admin/pengaturan");
-                break;
-
-            case "profil":
-                navigate("/admin/pengaturan");
-                break;
-
-            default:
-                navigate("/admin/dashboard");
-                break;
-        }
-    };
-
-
-    return (
-        <AdminLayout
-            activePage={activePage}
-            onNavigate={handleNavigate}
-        >
-            {children}
-        </AdminLayout>
-    );
-};
-
+  return (
+    <AdminLayout activePage={activePage} onNavigate={handleNavigate}>
+      {children}
+    </AdminLayout>
+  );
+}
 
 // ======================================================
 // APP
 // ======================================================
 
 function App() {
-
-    return (
-
-        <Routes>
-
-            {/* ==================================================
-                        PUBLIC
+  return (
+    <Routes>
+      {/* ==================================================
+                PUBLIC
             ================================================== */}
 
-            <Route
-                path="/"
-                element={<Home />}
-            />
+      <Route path="/" element={<Home />} />
 
-            <Route
-                path="/category/:slug"
-                element={<CategoryPage />}
-            />
+      <Route path="/category/:slug" element={<CategoryPage />} />
 
-            <Route
-                path="/costume/:code"
-                element={<CostumeDetail />}
-            />
+      <Route path="/costume/:code" element={<CostumeDetail />} />
 
-            <Route
-                path="/borrow/:code"
-                element={<BorrowForm />}
-            />
+      <Route path="/borrow/:code" element={<BorrowForm />} />
 
-            <Route
-                path="/borrow-success"
-                element={<BorrowSuccess />}
-            />
+      <Route path="/borrow-success" element={<BorrowSuccess />} />
 
+      <Route path="/collections" element={<CollectionsPage />} />
 
-            {/* ===============================
-                HALAMAN SEMUA KOLEKSI
-            =============================== */}
+      <Route path="/chat" element={<ChatPage mode="customer" />} />
 
-            <Route
-                path="/collections"
-                element={<CollectionsPage />}
-            />
+      <Route path="/petugas/chat" element={<ChatPage mode="petugas" />} />
 
+      {/* ==================================================
+                CARA PENYEWAAN
+            ================================================== */}
 
-            {/* ===============================
-                HALAMAN CARA PENYEWAAN
-            =============================== */}
-
-            <Route
-                path="/how-to-rent"
-                element={
-                    <div
-                        className="
+      <Route
+        path="/how-to-rent"
+        element={
+          <div
+            className="
                             min-h-screen
                             bg-[#090909]
                             text-white
                         "
-                    >
+          >
+            <Navbar />
 
-                        <Navbar />
+            <HowToRent />
 
-                        <HowToRent />
+            <Footer />
+          </div>
+        }
+      />
 
-                        <Footer />
-
-                    </div>
-                }
-            />
-
-
-            {/* ==================================================
-                        GUEST ONLY
+      {/* ==================================================
+                GUEST ONLY
             ================================================== */}
 
-            <Route element={<GuestRoute />}>
+      <Route element={<GuestRoute />}>
+        <Route path="/login" element={<Login />} />
 
-                <Route
-                    path="/login"
-                    element={<Login />}
-                />
+        <Route path="/register" element={<Register />} />
+      </Route>
 
-                <Route
-                    path="/register"
-                    element={<Register />}
-                />
-
-            </Route>
-
-
-            {/* ==================================================
-                        USER + PETUGAS
+      {/* ==================================================
+                LOGIN REQUIRED
             ================================================== */}
 
-            <Route element={<ProtectedRoute />}>
-
-                {/* ==================================================
-                            USER
+      <Route element={<ProtectedRoute />}>
+        {/* ==================================================
+                    USER
                 ================================================== */}
 
-                <Route
-                    path="/dashboard"
-                    element={<Dashboard />}
-                />
+        <Route path="/dashboard" element={<Dashboard />} />
 
-                <Route
-                    path="/profile"
-                    element={<Profile />}
-                />
+        <Route path="/profile" element={<Profile />} />
 
-                <Route
-                    path="/settings"
-                    element={<Settings />}
-                />
+        <Route path="/settings" element={<Settings />} />
 
-                <Route
-                    path="/change-password"
-                    element={<ChangePassword />}
-                />
+        <Route path="/change-password" element={<ChangePassword />} />
 
-                <Route
-                    path="/my-borrowings"
-                    element={<MyBorrowings />}
-                />
+        <Route path="/my-borrowings" element={<MyBorrowings />} />
 
-                <Route
-                    path="/borrow-detail/:id"
-                    element={<BorrowingDetail />}
-                />
+        <Route path="/borrow-detail/:id" element={<BorrowingDetail />} />
 
-
-                {/* ==================================================
-                            PETUGAS
+        {/* ==================================================
+                    PETUGAS
                 ================================================== */}
 
-                <Route
-                    path="/petugas/dashboard"
-                    element={<StaffDashboard />}
-                />
+        <Route path="/petugas/dashboard" element={<StaffDashboard />} />
 
-                <Route
-                    path="/petugas/peminjaman"
-                    element={<PeminjamanPetugas />}
-                />
+        <Route path="/petugas/peminjaman" element={<PeminjamanPetugas />} />
 
-                <Route
-                    path="/petugas/peminjaman/:id"
-                    element={<PeminjamanDetailPetugas />}
-                />
+        <Route
+          path="/petugas/peminjaman/:id"
+          element={<PeminjamanDetailPetugas />}
+        />
 
-                <Route
-                    path="/petugas/pengembalian"
-                    element={<PengembalianPetugas />}
-                />
+        <Route path="/petugas/pengembalian" element={<PengembalianPetugas />} />
 
-                <Route
-                    path="/petugas/kostum"
-                    element={<KostumPetugas />}
-                />
+        <Route path="/petugas/kostum" element={<KostumPetugas />} />
 
-                <Route
-                    path="/petugas/customer"
-                    element={<Customer />}
-                />
+        <Route path="/petugas/customer" element={<Customer />} />
 
-                <Route
-                    path="/petugas/profile"
-                    element={<StaffProfile />}
-                />
+        <Route path="/petugas/profile" element={<StaffProfile />} />
 
-                <Route
-                    path="/petugas/pembayaran"
-                    element={<Payments />}
-                />
+        <Route path="/petugas/pembayaran" element={<Payments />} />
 
-                <Route
-                    path="/petugas/customer/:id"
-                    element={<CustomerDetail />}
-                />
+        <Route path="/petugas/customer/:id" element={<CustomerDetail />} />
 
-                <Route
-                    path="/petugas/pengaturan-pembayaran"
-                    element={<PengaturanPembayaran />}
-                />
+        <Route
+          path="/petugas/pengaturan-pembayaran"
+          element={<PengaturanPembayaran />}
+        />
+      </Route>
 
-            </Route>
-
-
-            {/* ==================================================
-                        ADMIN LOGIN LAMA
-                        ARAHKAN KE LOGIN UTAMA
+      {/* ==================================================
+                ADMIN LOGIN LAMA
             ================================================== */}
 
-            <Route
-                path="/admin/login"
-                element={
-                    <Navigate
-                        to="/login"
-                        replace
-                    />
-                }
-            />
+      <Route path="/admin/login" element={<Navigate to="/login" replace />} />
 
-
-            {/* ==================================================
-                        ADMIN
+      {/* ==================================================
+                ADMIN
             ================================================== */}
 
-            <Route
-                path="/admin/dashboard"
-                element={
-                    <AdminPage activePage="dashboard">
-                        <AdminDashboard />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminPage activePage="dashboard">
+            <AdminDashboard />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/petugas"
-                element={
-                    <AdminPage activePage="petugas">
-                        <PetugasPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/petugas"
+        element={
+          <AdminPage activePage="petugas">
+            <PetugasPage />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/pelanggan"
-                element={
-                    <AdminPage activePage="pelanggan">
-                        <PelangganPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/pelanggan"
+        element={
+          <AdminPage activePage="pelanggan">
+            <PelangganPage />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/kostum"
-                element={
-                    <AdminPage activePage="kostum">
-                        <KostumPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/kostum"
+        element={
+          <AdminPage activePage="kostum">
+            <KostumPage />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/koleksi"
-                element={
-                    <AdminPage activePage="koleksi">
-                        <KoleksiPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/koleksi"
+        element={
+          <AdminPage activePage="koleksi">
+            <KoleksiPage />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/kategori"
-                element={
-                    <AdminPage activePage="kategori">
-                        <KategoriPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/kategori"
+        element={
+          <AdminPage activePage="kategori">
+            <KategoriPage />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/registrasi"
-                element={
-                    <AdminPage activePage="registrasi">
-                        <RegistrasiPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/registrasi"
+        element={
+          <AdminPage activePage="registrasi">
+            <RegistrasiPage />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/peminjaman"
-                element={
-                    <AdminPage activePage="peminjaman">
-                        <PeminjamanPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/peminjaman"
+        element={
+          <AdminPage activePage="peminjaman">
+            <PeminjamanPage />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/notifikasi"
-                element={
-                    <AdminPage activePage="notifications">
-                        <NotificationPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/notifikasi"
+        element={
+          <AdminPage activePage="notifications">
+            <NotificationPage />
+          </AdminPage>
+        }
+      />
 
-            <Route
-                path="/admin/pengaturan"
-                element={
-                    <AdminPage activePage="pengaturan">
-                        <PengaturanPage />
-                    </AdminPage>
-                }
-            />
+      <Route
+        path="/admin/pengaturan"
+        element={
+          <AdminPage activePage="pengaturan">
+            <PengaturanPage />
+          </AdminPage>
+        }
+      />
 
-
-            {/* ==================================================
-                        FALLBACK ADMIN
+      {/* ==================================================
+                ADMIN FALLBACK
             ================================================== */}
 
-            <Route
-                path="/admin"
-                element={
-                    <Navigate
-                        to="/admin/dashboard"
-                        replace
-                    />
-                }
-            />
+      <Route
+        path="/admin"
+        element={<Navigate to="/admin/dashboard" replace />}
+      />
 
-
-            {/* ==================================================
-                        GLOBAL FALLBACK
+      {/* ==================================================
+                GLOBAL FALLBACK
             ================================================== */}
 
-            <Route
-                path="*"
-                element={<Home />}
-            />
-
-        </Routes>
-    );
+      <Route path="*" element={<Home />} />
+    </Routes>
+  );
 }
 
 export default App;

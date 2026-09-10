@@ -6,6 +6,7 @@ import {
   FaClipboardList,
   FaUser,
   FaCog,
+  FaComments,
   FaSignOutAlt,
   FaBars,
   FaTimes,
@@ -13,7 +14,6 @@ import {
 } from "react-icons/fa";
 
 import { useState } from "react";
-
 
 // ======================================================
 // USER LAYOUT
@@ -24,7 +24,6 @@ function UserLayout({ children, title, subtitle }) {
   const location = useLocation();
 
   const [menuOpen, setMenuOpen] = useState(false);
-
 
   // ======================================================
   // USER DATA
@@ -40,7 +39,6 @@ function UserLayout({ children, title, subtitle }) {
     user = null;
   }
 
-
   // ======================================================
   // LOGOUT
   // ======================================================
@@ -53,7 +51,6 @@ function UserLayout({ children, title, subtitle }) {
       replace: true,
     });
   };
-
 
   // ======================================================
   // MENU
@@ -79,6 +76,12 @@ function UserLayout({ children, title, subtitle }) {
     },
 
     {
+      label: "Chat Petugas",
+      to: "/chat",
+      icon: FaComments,
+    },
+
+    {
       label: "Profil",
       to: "/profile",
       icon: FaUser,
@@ -90,7 +93,6 @@ function UserLayout({ children, title, subtitle }) {
       icon: FaCog,
     },
   ];
-
 
   // ======================================================
   // ACTIVE MENU
@@ -106,7 +108,6 @@ function UserLayout({ children, title, subtitle }) {
 
     return location.pathname === to;
   };
-
 
   // ======================================================
   // RENDER
@@ -161,7 +162,6 @@ function UserLayout({ children, title, subtitle }) {
         `}
       </style>
 
-
       {/* ==================================================
           MOBILE HEADER
       ================================================== */}
@@ -213,7 +213,6 @@ function UserLayout({ children, title, subtitle }) {
 
           </div>
 
-
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -228,7 +227,6 @@ function UserLayout({ children, title, subtitle }) {
         </div>
 
       </header>
-
 
       {/* ==================================================
           MOBILE MENU
@@ -297,7 +295,6 @@ function UserLayout({ children, title, subtitle }) {
 
                   </div>
 
-
                   <FaChevronRight
                     className="
                       text-xs
@@ -310,7 +307,6 @@ function UserLayout({ children, title, subtitle }) {
               );
 
             })}
-
 
             {/* ==================================================
                 MOBILE LOGOUT
@@ -346,7 +342,6 @@ function UserLayout({ children, title, subtitle }) {
         </div>
 
       )}
-
 
       {/* ==================================================
           SIDEBAR DESKTOP
@@ -393,7 +388,6 @@ function UserLayout({ children, title, subtitle }) {
             Handu Atelier
           </p>
 
-
           <p
             className="
               text-[9px]
@@ -407,14 +401,8 @@ function UserLayout({ children, title, subtitle }) {
 
         </div>
 
-
         {/* ==================================================
             SIDEBAR MENU
-
-            PERBAIKAN:
-            - tetap overflow-y-auto
-            - tetap bisa scroll manual
-            - scrollbar disembunyikan
         ================================================== */}
 
         <div
@@ -443,7 +431,6 @@ function UserLayout({ children, title, subtitle }) {
           >
             Menu Member
           </p>
-
 
           <nav className="space-y-1">
 
@@ -495,7 +482,6 @@ function UserLayout({ children, title, subtitle }) {
 
                   </div>
 
-
                   <FaChevronRight
                     className="
                       text-[9px]
@@ -510,7 +496,6 @@ function UserLayout({ children, title, subtitle }) {
             })}
 
           </nav>
-
 
           {/* ==================================================
               AKSES CEPAT
@@ -537,7 +522,6 @@ function UserLayout({ children, title, subtitle }) {
             >
               Akses Cepat
             </p>
-
 
             <Link
               to="/"
@@ -570,7 +554,6 @@ function UserLayout({ children, title, subtitle }) {
           </div>
 
         </div>
-
 
         {/* ==================================================
             PROFILE SIDEBAR
@@ -620,7 +603,6 @@ function UserLayout({ children, title, subtitle }) {
                 {user?.nama?.charAt(0)?.toUpperCase() || "U"}
               </div>
 
-
               <div
                 className="
                   min-w-0
@@ -637,7 +619,6 @@ function UserLayout({ children, title, subtitle }) {
                   {user?.nama || "User"}
                 </p>
 
-
                 <p
                   className="
                     text-[11px]
@@ -651,7 +632,6 @@ function UserLayout({ children, title, subtitle }) {
               </div>
 
             </div>
-
 
             {/* ==================================================
                 LOGOUT
@@ -680,7 +660,6 @@ function UserLayout({ children, title, subtitle }) {
         </div>
 
       </aside>
-
 
       {/* ==================================================
           MAIN
@@ -732,7 +711,6 @@ function UserLayout({ children, title, subtitle }) {
                 Member Area
               </p>
 
-
               <h1
                 className="
                   text-3xl
@@ -743,7 +721,6 @@ function UserLayout({ children, title, subtitle }) {
               >
                 {title}
               </h1>
-
 
               {subtitle && (
 
@@ -759,7 +736,6 @@ function UserLayout({ children, title, subtitle }) {
               )}
 
             </div>
-
 
             {/* ==================================================
                 USER INFO HEADER
@@ -792,7 +768,6 @@ function UserLayout({ children, title, subtitle }) {
                 {user?.nama?.charAt(0)?.toUpperCase() || "U"}
               </div>
 
-
               <div>
 
                 <p
@@ -803,7 +778,6 @@ function UserLayout({ children, title, subtitle }) {
                 >
                   {user?.nama || "User"}
                 </p>
-
 
                 <p
                   className="
@@ -820,7 +794,6 @@ function UserLayout({ children, title, subtitle }) {
 
           </div>
 
-
           {/* ==================================================
               PAGE CONTENT
           ================================================== */}
@@ -834,6 +807,5 @@ function UserLayout({ children, title, subtitle }) {
     </div>
   );
 }
-
 
 export default UserLayout;

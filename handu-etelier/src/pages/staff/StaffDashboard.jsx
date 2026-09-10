@@ -17,6 +17,7 @@ import {
   FaChartLine,
   FaClock,
   FaCheckCircle,
+  FaComments,
 } from "react-icons/fa";
 
 function StaffDashboard() {
@@ -477,43 +478,55 @@ function StaffDashboard() {
   // MENU
   // ==================================================
 
-  const menu = [
-    {
-      label: "Dashboard",
-      path: "/petugas/dashboard",
-      icon: FaHome,
-    },
-    {
-      label: "Peminjaman",
-      path: "/petugas/peminjaman",
-      icon: FaClipboardList,
-    },
-    {
-      label: "Pengembalian",
-      path: "/petugas/pengembalian",
-      icon: FaUndoAlt,
-    },
-    {
-      label: "Koleksi Kostum",
-      path: "/collections",
-      icon: FaTshirt,
-    },
-    {
-      label: "Customer",
-      path: "/petugas/customer",
-      icon: FaUsers,
-    },
-    {
-      label: "Profil",
-      path: "/petugas/profile",
-      icon: FaUserCircle,
-    },
-    {
-      label: "Pembayaran",
-      path: "/petugas/pengaturan-pembayaran",
-      icon: FaCreditCard,
-    },
-  ];
+const menu = [
+  {
+    label: "Dashboard",
+    path: "/petugas/dashboard",
+    icon: FaHome,
+  },
+
+  {
+    label: "Peminjaman",
+    path: "/petugas/peminjaman",
+    icon: FaClipboardList,
+  },
+
+  {
+    label: "Pengembalian",
+    path: "/petugas/pengembalian",
+    icon: FaUndoAlt,
+  },
+
+  {
+    label: "Koleksi Kostum",
+    path: "/collections",
+    icon: FaTshirt,
+  },
+
+  {
+    label: "Customer",
+    path: "/petugas/customer",
+    icon: FaUsers,
+  },
+
+  {
+    label: "Chat Pelanggan",
+    path: "/petugas/chat",
+    icon: FaComments,
+  },
+
+  {
+    label: "Profil",
+    path: "/petugas/profile",
+    icon: FaUserCircle,
+  },
+
+  {
+    label: "Pembayaran",
+    path: "/petugas/pengaturan-pembayaran",
+    icon: FaCreditCard,
+  },
+];
 
   // ==================================================
   // STATUS STYLE
