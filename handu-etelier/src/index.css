@@ -1,1 +1,173 @@
 @import "tailwindcss";
+
+@import "tailwindcss";
+
+
+/* ==========================================================
+   DEFAULT / LIGHT MODE
+   Mengikuti perangkat pengguna
+========================================================== */
+
+:root {
+
+    --theme-bg: #f7f6f2;
+
+    --theme-panel: #ffffff;
+
+    --theme-surface: #f1efe8;
+
+    --theme-text: #252525;
+
+    --theme-heading: #111111;
+
+    --theme-muted: #666666;
+
+    --theme-border: rgba(
+        130,
+        100,
+        20,
+        0.18
+    );
+
+    --theme-accent: #8a6914;
+
+    --theme-accent-soft: rgba(
+        138,
+        105,
+        20,
+        0.12
+    );
+
+    --theme-button: #ffffff;
+}
+
+
+/* ==========================================================
+   DARK MODE
+   Otomatis mengikuti Dark Mode perangkat
+========================================================== */
+
+html[data-theme="dark"] {
+
+    --theme-bg: #090909;
+
+    --theme-panel: #111111;
+
+    --theme-surface: #151515;
+
+    --theme-text: #f5f5f5;
+
+    --theme-heading: #ffffff;
+
+    --theme-muted: #9ca3af;
+
+    --theme-border: rgba(
+        212,
+        175,
+        55,
+        0.15
+    );
+
+    --theme-accent: #d4af37;
+
+    --theme-accent-soft: rgba(
+        212,
+        175,
+        55,
+        0.12
+    );
+
+    --theme-button: #090909;
+}
+
+
+/* ==========================================================
+   THEME UTILITY CLASSES
+========================================================== */
+
+.bg-theme-bg {
+    background-color:
+        var(--theme-bg);
+}
+
+.bg-theme-panel {
+    background-color:
+        var(--theme-panel);
+}
+
+.bg-theme-surface {
+    background-color:
+        var(--theme-surface);
+}
+
+.bg-theme-accent-soft {
+    background-color:
+        var(--theme-accent-soft);
+}
+
+
+.text-theme-text {
+    color:
+        var(--theme-text);
+}
+
+.text-theme-heading {
+    color:
+        var(--theme-heading);
+}
+
+.text-theme-muted {
+    color:
+        var(--theme-muted);
+}
+
+.text-theme-accent {
+    color:
+        var(--theme-accent);
+}
+
+.text-theme-button {
+    color:
+        var(--theme-button);
+}
+
+
+.border-theme-border {
+    border-color:
+        var(--theme-border);
+}
+
+.border-theme-accent {
+    border-color:
+        var(--theme-accent);
+}
+
+
+/* ==========================================================
+   BODY
+========================================================== */
+
+html,
+body {
+
+    margin: 0;
+
+    min-height: 100%;
+
+    background-color:
+        var(--theme-bg);
+
+    color:
+        var(--theme-text);
+
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease;
+}
+
+
+body {
+
+    min-height: 100vh;
+
+}

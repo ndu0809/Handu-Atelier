@@ -1,4 +1,9 @@
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 
 // ======================================================
 // PUBLIC
@@ -36,12 +41,25 @@ import Settings from "./pages/user/Settings";
 import ChangePassword from "./pages/user/ChangePassword";
 import MyBorrowings from "./pages/user/MyBorrowings";
 import BorrowingDetail from "./pages/user/BorrowingDetail";
-import ChatPage from "./pages/chat/ChatPage";
+
+// ======================================================
+// CHAT
+// ======================================================
+
+import ChatPage from "./pages/chat/chatPage";
+
+// ======================================================
+// LAYOUT
+// ======================================================
+
+import UserLayout from "./pages/user/UserLayout.jsx";
+import StaffLayout from "./components/layout/StaffLayout";
 
 // ======================================================
 // ROUTE GUARDS
 // ======================================================
 
+// Folder routes berada di luar src
 import ProtectedRoute from "../routes/ProtectedRoute";
 import GuestRoute from "../routes/GuestRoute";
 
@@ -85,7 +103,10 @@ import AdminLayout from "./components/admin/AdminLayout";
 // ADMIN ROUTE WRAPPER
 // ======================================================
 
-function AdminPage({ children, activePage }) {
+function AdminPage({
+  children,
+  activePage,
+}) {
   const navigate = useNavigate();
 
   const handleNavigate = (page) => {
@@ -137,7 +158,10 @@ function AdminPage({ children, activePage }) {
   };
 
   return (
-    <AdminLayout activePage={activePage} onNavigate={handleNavigate}>
+    <AdminLayout
+      activePage={activePage}
+      onNavigate={handleNavigate}
+    >
       {children}
     </AdminLayout>
   );
@@ -150,39 +174,55 @@ function AdminPage({ children, activePage }) {
 function App() {
   return (
     <Routes>
-      {/* ==================================================
-                PUBLIC
-            ================================================== */}
-
-      <Route path="/" element={<Home />} />
-
-      <Route path="/category/:slug" element={<CategoryPage />} />
-
-      <Route path="/costume/:code" element={<CostumeDetail />} />
-
-      <Route path="/borrow/:code" element={<BorrowForm />} />
-
-      <Route path="/borrow-success" element={<BorrowSuccess />} />
-
-      <Route path="/collections" element={<CollectionsPage />} />
-
-      <Route path="/chat" element={<ChatPage mode="customer" />} />
-
-      <Route path="/petugas/chat" element={<ChatPage mode="petugas" />} />
 
       {/* ==================================================
-                CARA PENYEWAAN
-            ================================================== */}
+          PUBLIC
+      ================================================== */}
+
+      <Route
+        path="/"
+        element={<Home />}
+      />
+
+      <Route
+        path="/category/:slug"
+        element={<CategoryPage />}
+      />
+
+      <Route
+        path="/costume/:code"
+        element={<CostumeDetail />}
+      />
+
+      <Route
+        path="/borrow/:code"
+        element={<BorrowForm />}
+      />
+
+      <Route
+        path="/borrow-success"
+        element={<BorrowSuccess />}
+      />
+
+      <Route
+        path="/collections"
+        element={<CollectionsPage />}
+      />
+
+
+      {/* ==================================================
+          HOW TO RENT
+      ================================================== */}
 
       <Route
         path="/how-to-rent"
         element={
           <div
             className="
-                            min-h-screen
-                            bg-[#090909]
-                            text-white
-                        "
+              min-h-screen
+              bg-[#090909]
+              text-white
+            "
           >
             <Navbar />
 
@@ -193,77 +233,186 @@ function App() {
         }
       />
 
+
       {/* ==================================================
-                GUEST ONLY
-            ================================================== */}
+          GUEST ONLY
+      ================================================== */}
 
       <Route element={<GuestRoute />}>
-        <Route path="/login" element={<Login />} />
 
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
       </Route>
 
+
       {/* ==================================================
-                LOGIN REQUIRED
-            ================================================== */}
+          LOGIN REQUIRED
+      ================================================== */}
 
       <Route element={<ProtectedRoute />}>
-        {/* ==================================================
-                    USER
-                ================================================== */}
-
-        <Route path="/dashboard" element={<Dashboard />} />
-
-        <Route path="/profile" element={<Profile />} />
-
-        <Route path="/settings" element={<Settings />} />
-
-        <Route path="/change-password" element={<ChangePassword />} />
-
-        <Route path="/my-borrowings" element={<MyBorrowings />} />
-
-        <Route path="/borrow-detail/:id" element={<BorrowingDetail />} />
 
         {/* ==================================================
-                    PETUGAS
-                ================================================== */}
+            USER
+        ================================================== */}
 
-        <Route path="/petugas/dashboard" element={<StaffDashboard />} />
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
 
-        <Route path="/petugas/peminjaman" element={<PeminjamanPetugas />} />
+        <Route
+          path="/profile"
+          element={<Profile />}
+        />
+
+        <Route
+          path="/settings"
+          element={<Settings />}
+        />
+
+        <Route
+          path="/change-password"
+          element={<ChangePassword />}
+        />
+
+        <Route
+          path="/my-borrowings"
+          element={<MyBorrowings />}
+        />
+
+        <Route
+          path="/borrow-detail/:id"
+          element={<BorrowingDetail />}
+        />
+
+
+        {/* ==================================================
+            USER CHAT
+            SIDEBAR USER TETAP ADA
+            CHAT TETAP REALTIME
+        ================================================== */}
+
+        <Route
+          path="/chat"
+          element={
+            <UserLayout>
+              <ChatPage mode="customer" />
+            </UserLayout>
+          }
+        />
+
+
+        {/* ==================================================
+            PETUGAS
+        ================================================== */}
+
+        <Route
+          path="/petugas/dashboard"
+          element={<StaffDashboard />}
+        />
+
+        <Route
+          path="/petugas/peminjaman"
+          element={<PeminjamanPetugas />}
+        />
 
         <Route
           path="/petugas/peminjaman/:id"
-          element={<PeminjamanDetailPetugas />}
+          element={
+            <PeminjamanDetailPetugas />
+          }
         />
 
-        <Route path="/petugas/pengembalian" element={<PengembalianPetugas />} />
+        <Route
+          path="/petugas/pengembalian"
+          element={
+            <PengembalianPetugas />
+          }
+        />
 
-        <Route path="/petugas/kostum" element={<KostumPetugas />} />
+        <Route
+          path="/petugas/kostum"
+          element={
+            <KostumPetugas />
+          }
+        />
 
-        <Route path="/petugas/customer" element={<Customer />} />
+        <Route
+          path="/petugas/customer"
+          element={<Customer />}
+        />
 
-        <Route path="/petugas/profile" element={<StaffProfile />} />
+        <Route
+          path="/petugas/profile"
+          element={
+            <StaffProfile />
+          }
+        />
 
-        <Route path="/petugas/pembayaran" element={<Payments />} />
+        <Route
+          path="/petugas/pembayaran"
+          element={<Payments />}
+        />
 
-        <Route path="/petugas/customer/:id" element={<CustomerDetail />} />
+        <Route
+          path="/petugas/customer/:id"
+          element={
+            <CustomerDetail />
+          }
+        />
 
         <Route
           path="/petugas/pengaturan-pembayaran"
-          element={<PengaturanPembayaran />}
+          element={
+            <PengaturanPembayaran />
+          }
         />
+
+
+        {/* ==================================================
+            PETUGAS CHAT
+            SIDEBAR PETUGAS TETAP ADA
+            CHAT TETAP REALTIME
+        ================================================== */}
+
+        <Route
+          path="/petugas/chat"
+          element={
+            <StaffLayout>
+              <ChatPage mode="petugas" />
+            </StaffLayout>
+          }
+        />
+
       </Route>
 
-      {/* ==================================================
-                ADMIN LOGIN LAMA
-            ================================================== */}
-
-      <Route path="/admin/login" element={<Navigate to="/login" replace />} />
 
       {/* ==================================================
-                ADMIN
-            ================================================== */}
+          ADMIN LOGIN LAMA
+      ================================================== */}
+
+      <Route
+        path="/admin/login"
+        element={
+          <Navigate
+            to="/login"
+            replace
+          />
+        }
+      />
+
+
+      {/* ==================================================
+          ADMIN
+      ================================================== */}
 
       <Route
         path="/admin/dashboard"
@@ -355,20 +504,31 @@ function App() {
         }
       />
 
+
       {/* ==================================================
-                ADMIN FALLBACK
-            ================================================== */}
+          ADMIN FALLBACK
+      ================================================== */}
 
       <Route
         path="/admin"
-        element={<Navigate to="/admin/dashboard" replace />}
+        element={
+          <Navigate
+            to="/admin/dashboard"
+            replace
+          />
+        }
       />
 
-      {/* ==================================================
-                GLOBAL FALLBACK
-            ================================================== */}
 
-      <Route path="*" element={<Home />} />
+      {/* ==================================================
+          GLOBAL FALLBACK
+      ================================================== */}
+
+      <Route
+        path="*"
+        element={<Home />}
+      />
+
     </Routes>
   );
 }

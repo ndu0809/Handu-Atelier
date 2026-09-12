@@ -1,12 +1,18 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import {
   FaHome,
-  FaTshirt,
   FaClipboardList,
-  FaUser,
-  FaCog,
+  FaUndoAlt,
+  FaTshirt,
+  FaUsers,
   FaComments,
+  FaUserCircle,
+  FaCreditCard,
   FaSignOutAlt,
   FaBars,
   FaTimes,
@@ -16,10 +22,10 @@ import {
 import { useState } from "react";
 
 // ======================================================
-// USER LAYOUT
+// STAFF LAYOUT
 // ======================================================
 
-function UserLayout({
+function StaffLayout({
   children,
   title = "Dashboard",
   subtitle = "",
@@ -30,7 +36,7 @@ function UserLayout({
   const [menuOpen, setMenuOpen] = useState(false);
 
   // ======================================================
-  // USER DATA
+  // USER
   // ======================================================
 
   const storedUser = localStorage.getItem("user");
@@ -42,6 +48,68 @@ function UserLayout({
   } catch {
     user = null;
   }
+
+  // ======================================================
+  // MENU
+  // ======================================================
+
+  const menu = [
+    {
+      label: "Dashboard",
+      path: "/petugas/dashboard",
+      icon: FaHome,
+    },
+    {
+      label: "Peminjaman",
+      path: "/petugas/peminjaman",
+      icon: FaClipboardList,
+    },
+    {
+      label: "Pengembalian",
+      path: "/petugas/pengembalian",
+      icon: FaUndoAlt,
+    },
+    {
+      label: "Koleksi Kostum",
+      path: "/collections",
+      icon: FaTshirt,
+    },
+    {
+      label: "Customer",
+      path: "/petugas/customer",
+      icon: FaUsers,
+    },
+    {
+      label: "Chat Pelanggan",
+      path: "/petugas/chat",
+      icon: FaComments,
+    },
+    {
+      label: "Profil",
+      path: "/petugas/profile",
+      icon: FaUserCircle,
+    },
+    {
+      label: "Pembayaran",
+      path: "/petugas/pengaturan-pembayaran",
+      icon: FaCreditCard,
+    },
+  ];
+
+  // ======================================================
+  // ACTIVE MENU
+  // ======================================================
+
+  const isActive = (path) => {
+    if (path === "/collections") {
+      return (
+        location.pathname === "/collections" ||
+        location.pathname.startsWith("/category")
+      );
+    }
+
+    return location.pathname === path;
+  };
 
   // ======================================================
   // LOGOUT
@@ -57,59 +125,7 @@ function UserLayout({
   };
 
   // ======================================================
-  // MENU
-  // ======================================================
-
-  const menu = [
-    {
-      label: "Dashboard",
-      to: "/dashboard",
-      icon: FaHome,
-    },
-    {
-      label: "Koleksi Kostum",
-      to: "/collections",
-      icon: FaTshirt,
-    },
-    {
-      label: "Peminjaman Saya",
-      to: "/my-borrowings",
-      icon: FaClipboardList,
-    },
-    {
-      label: "Chat Petugas",
-      to: "/chat",
-      icon: FaComments,
-    },
-    {
-      label: "Profil",
-      to: "/profile",
-      icon: FaUser,
-    },
-    {
-      label: "Pengaturan",
-      to: "/settings",
-      icon: FaCog,
-    },
-  ];
-
-  // ======================================================
-  // ACTIVE MENU
-  // ======================================================
-
-  const isActive = (to) => {
-    if (to === "/collections") {
-      return (
-        location.pathname === "/collections" ||
-        location.pathname.startsWith("/category")
-      );
-    }
-
-    return location.pathname === to;
-  };
-
-  // ======================================================
-  // CLOSE MOBILE MENU WHEN CLICK OUTSIDE
+  // CLOSE MOBILE
   // ======================================================
 
   const closeMobileMenu = () => {
@@ -122,40 +138,17 @@ function UserLayout({
 
   return (
     <div className="min-h-screen bg-[#080808] text-white">
-      {/* ==================================================
-          GLOBAL STYLE
-      ================================================== */}
-
       <style>
         {`
-          .user-layout-scroll {
+          .staff-layout-scroll {
             scrollbar-width: none;
             -ms-overflow-style: none;
           }
 
-          .user-layout-scroll::-webkit-scrollbar {
+          .staff-layout-scroll::-webkit-scrollbar {
             display: none;
             width: 0;
             height: 0;
-          }
-
-          .user-no-scrollbar {
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-          }
-
-          .user-no-scrollbar::-webkit-scrollbar {
-            display: none;
-            width: 0;
-            height: 0;
-          }
-
-          @media (max-width: 1023px) {
-            .user-layout-content {
-              width: 100%;
-              max-width: 100%;
-              min-width: 0;
-            }
           }
         `}
       </style>
@@ -170,6 +163,7 @@ function UserLayout({
           sticky
           top-0
           z-[60]
+          h-[72px]
           bg-[#111111]/95
           backdrop-blur-xl
           border-b
@@ -178,7 +172,7 @@ function UserLayout({
       >
         <div
           className="
-            h-[72px]
+            h-full
             px-4
             sm:px-5
             flex
@@ -203,10 +197,9 @@ function UserLayout({
                 text-[9px]
                 tracking-[3px]
                 text-gray-500
-                mt-1
               "
             >
-              MEMBER AREA
+              PETUGAS
             </p>
           </div>
 
@@ -221,7 +214,6 @@ function UserLayout({
             className="
               w-10
               h-10
-              shrink-0
               rounded-xl
               border
               border-[#D4AF37]/20
@@ -230,7 +222,6 @@ function UserLayout({
               flex
               items-center
               justify-center
-              text-lg
             "
           >
             {menuOpen ? <FaTimes /> : <FaBars />}
@@ -240,13 +231,10 @@ function UserLayout({
 
       {/* ==================================================
           MOBILE DRAWER
-          HANYA MUNCUL SAAT MENU DIBUKA
       ================================================== */}
 
       {menuOpen && (
         <>
-          {/* OVERLAY */}
-
           <button
             type="button"
             aria-label="Tutup menu"
@@ -259,8 +247,6 @@ function UserLayout({
               lg:hidden
             "
           />
-
-          {/* DRAWER */}
 
           <aside
             className="
@@ -309,7 +295,7 @@ function UserLayout({
                     text-gray-500
                   "
                 >
-                  MEMBER AREA
+                  PETUGAS
                 </p>
               </div>
 
@@ -337,7 +323,7 @@ function UserLayout({
                 flex-1
                 min-h-0
                 overflow-y-auto
-                user-layout-scroll
+                staff-layout-scroll
                 px-4
                 py-6
               "
@@ -352,18 +338,18 @@ function UserLayout({
                   mb-4
                 "
               >
-                Menu Member
+                Menu Utama
               </p>
 
               <nav className="space-y-2">
                 {menu.map((item) => {
                   const Icon = item.icon;
-                  const active = isActive(item.to);
+                  const active = isActive(item.path);
 
                   return (
                     <Link
                       key={item.label}
-                      to={item.to}
+                      to={item.path}
                       onClick={closeMobileMenu}
                       className={`
                         flex
@@ -424,7 +410,6 @@ function UserLayout({
                   border-red-500/20
                   bg-red-500/5
                   text-red-400
-                  text-sm
                 "
               >
                 <FaSignOutAlt />
@@ -460,32 +445,42 @@ function UserLayout({
         <div
           className="
             px-6
-            py-8
+            py-7
             border-b
             border-white/5
             shrink-0
           "
         >
-          <p
+          <div
             className="
-              text-2xl
-              font-bold
-              text-[#D4AF37]
+              flex
+              items-center
+              gap-3
             "
           >
-            Handu Atelier
-          </p>
+            <div>
+              <h1
+                className="
+                  text-2xl
+                  font-bold
+                  text-[#D4AF37]
+                "
+              >
+                Handu Atelier
+              </h1>
 
-          <p
-            className="
-              text-[9px]
-              tracking-[4px]
-              text-gray-500
-              mt-1
-            "
-          >
-            ELEGANCE FOR EVERY MOMENT
-          </p>
+              <p
+                className="
+                  text-[9px]
+                  tracking-[3px]
+                  text-gray-500
+                  mt-1
+                "
+              >
+                ELEGANCE FOR EVERY MOMENT
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* MENU */}
@@ -495,7 +490,7 @@ function UserLayout({
             flex-1
             min-h-0
             overflow-y-auto
-            user-layout-scroll
+            staff-layout-scroll
             px-3
             py-7
           "
@@ -510,18 +505,18 @@ function UserLayout({
               mb-4
             "
           >
-            Menu Member
+            Menu Utama
           </p>
 
           <nav className="space-y-1">
             {menu.map((item) => {
               const Icon = item.icon;
-              const active = isActive(item.to);
+              const active = isActive(item.path);
 
               return (
                 <Link
                   key={item.label}
-                  to={item.to}
+                  to={item.path}
                   className={`
                     flex
                     items-center
@@ -529,10 +524,10 @@ function UserLayout({
                     px-4
                     py-3.5
                     rounded-xl
-                    transition
+                    transition-all
                     ${
                       active
-                        ? "bg-gradient-to-r from-[#D4AF37]/25 to-transparent text-[#F1C75B]"
+                        ? "bg-gradient-to-r from-[#D4AF37]/30 to-[#D4AF37]/5 text-[#F1C75B]"
                         : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
                     }
                   `}
@@ -554,8 +549,8 @@ function UserLayout({
 
                   <FaChevronRight
                     className="
-                      text-[9px]
-                      opacity-30
+                      text-[10px]
+                      opacity-40
                       shrink-0
                     "
                   />
@@ -582,11 +577,11 @@ function UserLayout({
                 mb-3
               "
             >
-              Akses Cepat
+              Pengaturan
             </p>
 
             <Link
-              to="/"
+              to="/petugas/profile"
               className="
                 flex
                 items-center
@@ -597,15 +592,37 @@ function UserLayout({
                 text-gray-400
                 hover:bg-white/[0.04]
                 hover:text-white
-                transition
               "
             >
-              <FaHome />
+              <FaUserCircle />
 
               <span className="text-sm">
-                Beranda
+                Profil
               </span>
             </Link>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="
+                w-full
+                flex
+                items-center
+                gap-4
+                px-4
+                py-3.5
+                mt-1
+                rounded-xl
+                text-red-400
+                hover:bg-red-500/5
+              "
+            >
+              <FaSignOutAlt />
+
+              <span className="text-sm">
+                Keluar
+              </span>
+            </button>
           </div>
         </div>
 
@@ -621,11 +638,11 @@ function UserLayout({
         >
           <div
             className="
-              rounded-2xl
-              bg-[#141414]
+              rounded-xl
+              bg-[#151515]
               border
               border-[#D4AF37]/10
-              p-4
+              p-3
             "
           >
             <div
@@ -637,8 +654,8 @@ function UserLayout({
             >
               <div
                 className="
-                  w-10
-                  h-10
+                  w-9
+                  h-9
                   rounded-full
                   bg-[#D4AF37]
                   text-black
@@ -649,7 +666,7 @@ function UserLayout({
                   shrink-0
                 "
               >
-                {user?.nama?.charAt(0)?.toUpperCase() || "U"}
+                {user?.nama?.charAt(0)?.toUpperCase() || "P"}
               </div>
 
               <div className="min-w-0">
@@ -660,44 +677,25 @@ function UserLayout({
                     truncate
                   "
                 >
-                  {user?.nama || "User"}
+                  {user?.nama || "Petugas"}
                 </p>
 
                 <p
                   className="
                     text-[11px]
                     text-gray-500
-                    truncate
                   "
                 >
-                  {user?.email || ""}
+                  Petugas
                 </p>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="
-                w-full
-                mt-4
-                py-2.5
-                rounded-xl
-                border
-                border-red-500/20
-                bg-red-500/5
-                text-red-400
-                text-sm
-              "
-            >
-              Keluar
-            </button>
           </div>
         </div>
       </aside>
 
       {/* ==================================================
-          MAIN CONTENT
+          MAIN
       ================================================== */}
 
       <main
@@ -709,7 +707,6 @@ function UserLayout({
       >
         <div
           className="
-            user-layout-content
             max-w-[1450px]
             mx-auto
             px-4
@@ -743,7 +740,7 @@ function UserLayout({
                   sm:text-xs
                 "
               >
-                Member Area
+                Area Petugas
               </p>
 
               <h1
@@ -797,29 +794,22 @@ function UserLayout({
                   font-bold
                 "
               >
-                {user?.nama?.charAt(0)?.toUpperCase() || "U"}
+                {user?.nama?.charAt(0)?.toUpperCase() || "P"}
               </div>
 
-              <div className="min-w-0">
-                <p
-                  className="
-                    text-sm
-                    font-semibold
-                    truncate
-                    max-w-[180px]
-                  "
-                >
-                  {user?.nama || "User"}
+              <div>
+                <p className="text-sm font-semibold">
+                  {user?.nama || "Petugas"}
                 </p>
 
                 <p className="text-xs text-gray-600">
-                  Member
+                  Petugas
                 </p>
               </div>
             </div>
           </div>
 
-          {/* PAGE CONTENT */}
+          {/* CONTENT */}
 
           <div className="min-w-0">
             {children}
@@ -830,4 +820,4 @@ function UserLayout({
   );
 }
 
-export default UserLayout;
+export default StaffLayout;

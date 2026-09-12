@@ -13,23 +13,45 @@ const NotificationPage = () => {
     const navigate = useNavigate();
 
     // =====================================================
+    // KONFIGURASI PAGINATION
+    // =====================================================
+
+    const ITEMS_PER_PAGE = 10;
+
+    // =====================================================
     // STATE
     // =====================================================
 
-    const [notifications, setNotifications] =
-        useState([]);
+    const [
+        notifications,
+        setNotifications
+    ] = useState([]);
 
-    const [loading, setLoading] =
-        useState(true);
+    const [
+        loading,
+        setLoading
+    ] = useState(true);
 
-    const [actionLoading, setActionLoading] =
-        useState(false);
+    const [
+        actionLoading,
+        setActionLoading
+    ] = useState(false);
 
-    const [message, setMessage] =
-        useState("");
+    const [
+        message,
+        setMessage
+    ] = useState("");
 
-    const [messageType, setMessageType] =
-        useState("success");
+    const [
+        messageType,
+        setMessageType
+    ] = useState("success");
+
+    // Halaman aktif
+    const [
+        currentPage,
+        setCurrentPage
+    ] = useState(1);
 
     // =====================================================
     // STYLE
@@ -244,8 +266,7 @@ const NotificationPage = () => {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            padding:
-                "5px 8px",
+            padding: "5px 8px",
             borderRadius: "20px",
             background:
                 "rgba(212,175,55,0.10)",
@@ -260,8 +281,7 @@ const NotificationPage = () => {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            padding:
-                "5px 8px",
+            padding: "5px 8px",
             borderRadius: "20px",
             background:
                 "rgba(130,130,130,0.08)",
@@ -315,6 +335,69 @@ const NotificationPage = () => {
 
         emptyText: {
             margin: "6px 0 0",
+            color: "#666666",
+            fontSize: "10px"
+        },
+
+        // =================================================
+        // PAGINATION
+        // =================================================
+
+        paginationWrapper: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            flexWrap: "wrap",
+            padding: "14px 20px",
+            borderTop:
+                "1px solid rgba(212,175,55,0.08)"
+        },
+
+        paginationInfo: {
+            color: "#666666",
+            fontSize: "9px"
+        },
+
+        paginationControls: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+            flexWrap: "wrap"
+        },
+
+        paginationButton: {
+            minWidth: "32px",
+            height: "32px",
+            padding: "0 9px",
+            border:
+                "1px solid rgba(212,175,55,0.22)",
+            borderRadius: "7px",
+            background:
+                "rgba(212,175,55,0.04)",
+            color: "#d4af37",
+            cursor: "pointer",
+            fontSize: "10px",
+            fontWeight: 600
+        },
+
+        paginationButtonDisabled: {
+            opacity: 0.35,
+            cursor: "not-allowed"
+        },
+
+        paginationActive: {
+            background:
+                "rgba(212,175,55,0.16)",
+            border:
+                "1px solid rgba(212,175,55,0.45)",
+            color: "#ffffff"
+        },
+
+        paginationEllipsis: {
+            minWidth: "25px",
+            textAlign: "center",
             color: "#666666",
             fontSize: "10px"
         },
@@ -373,6 +456,10 @@ const NotificationPage = () => {
 
             let data = response;
 
+            // =================================================
+            // NORMALISASI RESPONSE
+            // =================================================
+
             if (
                 data &&
                 typeof data === "object" &&
@@ -409,7 +496,31 @@ const NotificationPage = () => {
                 );
             }
 
-            setNotifications(data);
+            // =================================================
+            // URUTKAN TERBARU
+            // =================================================
+
+            const sorted =
+                [...data].sort(
+                    (
+                        a,
+                        b
+                    ) => {
+                        return (
+                            new Date(
+                                b.created_at
+                            ) -
+                            new Date(
+                                a.created_at
+                            )
+                        );
+                    }
+                );
+
+            setNotifications(sorted);
+
+            // Setelah refresh selalu kembali ke halaman 1
+            setCurrentPage(1);
 
         } catch (error) {
             console.error(
@@ -418,6 +529,8 @@ const NotificationPage = () => {
             );
 
             setNotifications([]);
+
+            setCurrentPage(1);
 
             showMessage(
                 error?.message ||
@@ -532,13 +645,15 @@ const NotificationPage = () => {
         if (
             text.includes("selesai") ||
             text.includes("berhasil") ||
-            text.includes("diterima")
+            text.includes("diterima") ||
+            text.includes("disetujui")
         ) {
             return "success";
         }
 
         if (
             text.includes("dibatalkan") ||
+            text.includes("ditolak") ||
             text.includes("gagal")
         ) {
             return "danger";
@@ -670,6 +785,7 @@ const NotificationPage = () => {
 
     const markAllAsRead =
         async () => {
+
             const unread =
                 notifications.filter(
                     (item) =>
@@ -732,7 +848,7 @@ const NotificationPage = () => {
         };
 
     // =====================================================
-    // UNREAD
+    // UNREAD COUNT
     // =====================================================
 
     const unreadCount =
@@ -741,6 +857,179 @@ const NotificationPage = () => {
                 item.status ===
                 "Belum Dibaca"
         ).length;
+
+    // =====================================================
+    // PAGINATION
+    // =====================================================
+
+    const totalNotifications =
+        notifications.length;
+
+    const totalPages =
+        Math.ceil(
+            totalNotifications /
+            ITEMS_PER_PAGE
+        );
+
+    // =====================================================
+    // DATA YANG DITAMPILKAN DI HALAMAN AKTIF
+    // =====================================================
+
+    const startIndex =
+        (
+            currentPage -
+            1
+        ) * ITEMS_PER_PAGE;
+
+    const endIndex =
+        startIndex +
+        ITEMS_PER_PAGE;
+
+    const currentNotifications =
+        notifications.slice(
+            startIndex,
+            endIndex
+        );
+
+    // =====================================================
+    // NOMOR HALAMAN
+    // =====================================================
+
+    const getPageNumbers = () => {
+
+        const pages = [];
+
+        // Jika halaman sedikit
+        if (
+            totalPages <= 5
+        ) {
+            for (
+                let i = 1;
+                i <= totalPages;
+                i++
+            ) {
+                pages.push(i);
+            }
+
+            return pages;
+        }
+
+        // =================================================
+        // HALAMAN AWAL
+        // =================================================
+
+        if (
+            currentPage <= 3
+        ) {
+
+            pages.push(
+                1,
+                2,
+                3,
+                4,
+                "..."
+            );
+
+            pages.push(
+                totalPages
+            );
+
+            return pages;
+        }
+
+        // =================================================
+        // HALAMAN AKHIR
+        // =================================================
+
+        if (
+            currentPage >=
+            totalPages - 2
+        ) {
+
+            pages.push(
+                1,
+                "..."
+            );
+
+            for (
+                let i =
+                    totalPages - 3;
+                i <= totalPages;
+                i++
+            ) {
+                pages.push(i);
+            }
+
+            return pages;
+        }
+
+        // =================================================
+        // HALAMAN TENGAH
+        // =================================================
+
+        pages.push(
+            1,
+            "..."
+        );
+
+        pages.push(
+            currentPage - 1,
+            currentPage,
+            currentPage + 1
+        );
+
+        pages.push(
+            "...",
+            totalPages
+        );
+
+        return pages;
+    };
+
+    // =====================================================
+    // PINDAH HALAMAN
+    // =====================================================
+
+    const goToPage = (
+        page
+    ) => {
+
+        if (
+            page === "..."
+        ) {
+            return;
+        }
+
+        if (
+            page < 1 ||
+            page > totalPages
+        ) {
+            return;
+        }
+
+        setCurrentPage(page);
+
+        // Scroll ke atas area halaman
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    };
+
+    // =====================================================
+    // INFORMASI DATA YANG DITAMPILKAN
+    // =====================================================
+
+    const displayStart =
+        totalNotifications === 0
+            ? 0
+            : startIndex + 1;
+
+    const displayEnd =
+        Math.min(
+            endIndex,
+            totalNotifications
+        );
 
     // =====================================================
     // RENDER
@@ -808,6 +1097,7 @@ const NotificationPage = () => {
 
             </div>
 
+
             {/* =========================================
                 CARD
             ========================================= */}
@@ -817,6 +1107,10 @@ const NotificationPage = () => {
                     styles.card
                 }
             >
+
+                {/* =====================================
+                    CARD HEADER
+                ===================================== */}
 
                 <div
                     style={
@@ -873,6 +1167,7 @@ const NotificationPage = () => {
 
                 </div>
 
+
                 {/* =====================================
                     MESSAGE
                 ===================================== */}
@@ -890,6 +1185,7 @@ const NotificationPage = () => {
                         {message}
                     </div>
                 )}
+
 
                 {/* =====================================
                     LOADING
@@ -941,118 +1237,276 @@ const NotificationPage = () => {
 
                 ) : (
 
-                    <div
-                        style={
-                            styles.list
-                        }
-                    >
+                    <>
+                        {/* =================================
+                            LIST NOTIFIKASI
+                            MAKSIMAL 10 ITEM
+                        ================================= */}
 
-                        {notifications.map(
-                            (
-                                notification
-                            ) => {
+                        <div
+                            style={
+                                styles.list
+                            }
+                        >
 
-                                const type =
-                                    getType(
-                                        notification.pesan
+                            {currentNotifications.map(
+                                (
+                                    notification
+                                ) => {
+
+                                    const type =
+                                        getType(
+                                            notification.pesan
+                                        );
+
+                                    const unread =
+                                        notification.status ===
+                                        "Belum Dibaca";
+
+                                    return (
+                                        <div
+                                            key={
+                                                notification.id_notifikasi
+                                            }
+                                            style={{
+                                                ...styles.item,
+                                                ...(unread
+                                                    ? styles.unreadItem
+                                                    : {})
+                                            }}
+                                            onClick={() => {
+                                                if (
+                                                    unread &&
+                                                    !actionLoading
+                                                ) {
+                                                    markAsRead(
+                                                        notification.id_notifikasi
+                                                    );
+                                                }
+                                            }}
+                                        >
+
+                                            {/* ICON */}
+
+                                            <div
+                                                style={
+                                                    getIconStyle(
+                                                        type
+                                                    )
+                                                }
+                                            >
+                                                {getIcon(
+                                                    type
+                                                )}
+                                            </div>
+
+
+                                            {/* CONTENT */}
+
+                                            <div
+                                                style={
+                                                    styles.content
+                                                }
+                                            >
+
+                                                <p
+                                                    style={
+                                                        styles.messageText
+                                                    }
+                                                >
+                                                    {
+                                                        notification.pesan
+                                                    }
+                                                </p>
+
+                                                <span
+                                                    style={
+                                                        styles.time
+                                                    }
+                                                >
+                                                    {formatTime(
+                                                        notification.created_at
+                                                    )}
+                                                </span>
+
+                                            </div>
+
+
+                                            {/* STATUS */}
+
+                                            {unread ? (
+
+                                                <span
+                                                    style={
+                                                        styles.newBadge
+                                                    }
+                                                >
+                                                    BARU
+                                                </span>
+
+                                            ) : (
+
+                                                <span
+                                                    style={
+                                                        styles.readBadge
+                                                    }
+                                                >
+                                                    DIBACA
+                                                </span>
+
+                                            )}
+
+                                        </div>
                                     );
+                                }
+                            )}
 
-                                const unread =
-                                    notification.status ===
-                                    "Belum Dibaca";
+                        </div>
 
-                                return (
-                                    <div
-                                        key={
-                                            notification.id_notifikasi
-                                        }
+
+                        {/* =================================
+                            PAGINATION
+                        ================================= */}
+
+                        {totalPages > 1 && (
+
+                            <div
+                                style={
+                                    styles.paginationWrapper
+                                }
+                            >
+
+                                {/* INFORMASI */}
+
+                                <span
+                                    style={
+                                        styles.paginationInfo
+                                    }
+                                >
+                                    Menampilkan{" "}
+                                    {displayStart}
+                                    –
+                                    {displayEnd}
+                                    {" "}dari{" "}
+                                    {totalNotifications}
+                                    {" "}notifikasi
+                                </span>
+
+
+                                {/* CONTROLS */}
+
+                                <div
+                                    style={
+                                        styles.paginationControls
+                                    }
+                                >
+
+                                    {/* SEBELUMNYA */}
+
+                                    <button
+                                        type="button"
                                         style={{
-                                            ...styles.item,
-                                            ...(unread
-                                                ? styles.unreadItem
+                                            ...styles.paginationButton,
+                                            ...(currentPage === 1
+                                                ? styles.paginationButtonDisabled
                                                 : {})
                                         }}
-                                        onClick={() => {
-                                            if (
-                                                unread &&
-                                                !actionLoading
-                                            ) {
-                                                markAsRead(
-                                                    notification.id_notifikasi
-                                                );
-                                            }
-                                        }}
+                                        disabled={
+                                            currentPage === 1
+                                        }
+                                        onClick={() =>
+                                            goToPage(
+                                                currentPage - 1
+                                            )
+                                        }
                                     >
+                                        ←
+                                    </button>
 
-                                        <div
-                                            style={
-                                                getIconStyle(
-                                                    type
-                                                )
+
+                                    {/* NOMOR HALAMAN */}
+
+                                    {getPageNumbers().map(
+                                        (
+                                            page,
+                                            index
+                                        ) => {
+
+                                            if (
+                                                page === "..."
+                                            ) {
+
+                                                return (
+                                                    <span
+                                                        key={`ellipsis-${index}`}
+                                                        style={
+                                                            styles.paginationEllipsis
+                                                        }
+                                                    >
+                                                        ...
+                                                    </span>
+                                                );
+
                                             }
-                                        >
-                                            {getIcon(
-                                                type
-                                            )}
-                                        </div>
 
-                                        <div
-                                            style={
-                                                styles.content
-                                            }
-                                        >
+                                            return (
+                                                <button
+                                                    key={
+                                                        page
+                                                    }
+                                                    type="button"
+                                                    style={{
+                                                        ...styles.paginationButton,
+                                                        ...(currentPage ===
+                                                        page
+                                                            ? styles.paginationActive
+                                                            : {})
+                                                    }}
+                                                    onClick={() =>
+                                                        goToPage(
+                                                            page
+                                                        )
+                                                    }
+                                                >
+                                                    {page}
+                                                </button>
+                                            );
+                                        }
+                                    )}
 
-                                            <p
-                                                style={
-                                                    styles.messageText
-                                                }
-                                            >
-                                                {
-                                                    notification.pesan
-                                                }
-                                            </p>
 
-                                            <span
-                                                style={
-                                                    styles.time
-                                                }
-                                            >
-                                                {formatTime(
-                                                    notification.created_at
-                                                )}
-                                            </span>
+                                    {/* BERIKUTNYA */}
 
-                                        </div>
+                                    <button
+                                        type="button"
+                                        style={{
+                                            ...styles.paginationButton,
+                                            ...(currentPage ===
+                                            totalPages
+                                                ? styles.paginationButtonDisabled
+                                                : {})
+                                        }}
+                                        disabled={
+                                            currentPage ===
+                                            totalPages
+                                        }
+                                        onClick={() =>
+                                            goToPage(
+                                                currentPage + 1
+                                            )
+                                        }
+                                    >
+                                        →
+                                    </button>
 
-                                        {unread ? (
+                                </div>
 
-                                            <span
-                                                style={
-                                                    styles.newBadge
-                                                }
-                                            >
-                                                BARU
-                                            </span>
-
-                                        ) : (
-
-                                            <span
-                                                style={
-                                                    styles.readBadge
-                                                }
-                                            >
-                                                DIBACA
-                                            </span>
-
-                                        )}
-
-                                    </div>
-                                );
-                            }
+                            </div>
                         )}
 
-                    </div>
+                    </>
                 )}
+
 
                 {/* =====================================
                     FOOTER
