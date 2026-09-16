@@ -17,7 +17,7 @@ import {
 
 import {
     getCostumes,
-} from "./services/CostumeService";
+} from "../../services/CostumeService";
 
 
 function CostumeDetail() {
@@ -285,9 +285,39 @@ function CostumeDetail() {
             costume.image
         );
 
+
+    // ==================================================
+    // STOK
+    // ==================================================
+
+    const stock = Number(
+        costume.stock ??
+        costume.stok ??
+        0
+    );
+
+
+    // ==================================================
+    // STATUS
+    // ==================================================
+
+    const status = String(
+        costume.status || ""
+    )
+        .trim()
+        .toLowerCase();
+
+
+    // ==================================================
+    // CEK KETERSEDIAAN
+    // ==================================================
+
     const available =
-        costume.available === true &&
-        Number(costume.stock) > 0;
+        stock > 0 &&
+        status !== "dipinjam" &&
+        status !== "perawatan" &&
+        status !== "rusak" &&
+        status !== "tidak tersedia";
 
 
     // ==================================================
@@ -838,8 +868,7 @@ function CostumeDetail() {
                                         mt-2
                                     "
                                 >
-                                    {costume.stock ??
-                                        0}
+                                    {stock}
                                 </p>
 
                             </div>

@@ -133,12 +133,6 @@ function CategoryPage() {
 
     // ==================================================
     // LOAD DATA
-    //
-    // AMBIL:
-    // 1. KOLEKSI
-    // 2. SEMUA KOSTUM
-    //
-    // KEDUANYA DARI DATABASE
     // ==================================================
 
     useEffect(() => {
@@ -364,14 +358,6 @@ function CategoryPage() {
 
     // ==================================================
     // FILTER BERDASARKAN KOLEKSI DATABASE
-    //
-    // PRIORITAS:
-    //
-    // 1. id_koleksi
-    // 2. nama_koleksi
-    //
-    // TIDAK ADA LAGI FILTER
-    // BERDASARKAN KODE KST-001 DST.
     // ==================================================
 
     const categoryCostumes =
@@ -384,10 +370,6 @@ function CategoryPage() {
             }
 
 
-            // ==========================================
-            // ID KOLEKSI DARI DATABASE
-            // ==========================================
-
             const collectionId =
                 currentCollection?.id_koleksi;
 
@@ -396,8 +378,7 @@ function CategoryPage() {
                 (item) => {
 
                     // ======================================
-                    // PRIORITAS 1
-                    // ID KOLEKSI
+                    // PRIORITAS 1: ID KOLEKSI
                     // ======================================
 
                     if (
@@ -431,8 +412,7 @@ function CategoryPage() {
 
 
                     // ======================================
-                    // PRIORITAS 2
-                    // NAMA KOLEKSI
+                    // PRIORITAS 2: NAMA KOLEKSI
                     // ======================================
 
                     const itemCollectionName =
@@ -466,6 +446,102 @@ function CategoryPage() {
 
 
     // ==================================================
+    // KETERSEDIAAN KOSTUM
+    // ==================================================
+
+    const getStock = (item) => {
+
+        return Number(
+            item?.stok ??
+            item?.stock ??
+            0
+        );
+
+    };
+
+
+    const getAvailable = (item) => {
+
+        const stock =
+            getStock(item);
+
+
+        const status =
+            String(
+                item?.status || ""
+            )
+                .trim()
+                .toLowerCase();
+
+
+        // ==========================================
+        // STOK 0 = TIDAK TERSEDIA
+        // ==========================================
+
+        if (stock <= 0) {
+
+            return false;
+
+        }
+
+
+        // ==========================================
+        // STATUS TIDAK TERSEDIA
+        // ==========================================
+
+        if (
+            status === "dipinjam" ||
+            status === "perawatan" ||
+            status === "rusak" ||
+            status === "tidak tersedia"
+        ) {
+
+            return false;
+
+        }
+
+
+        // ==========================================
+        // STATUS TERSEDIA
+        // ==========================================
+
+        if (
+            status === "tersedia"
+        ) {
+
+            return true;
+
+        }
+
+
+        // ==========================================
+        // FALLBACK FIELD AVAILABLE
+        // ==========================================
+
+        if (
+            item?.available !==
+                undefined &&
+            item?.available !==
+                null
+        ) {
+
+            return Boolean(
+                item.available
+            );
+
+        }
+
+
+        // ==========================================
+        // FALLBACK STOK
+        // ==========================================
+
+        return stock > 0;
+
+    };
+
+
+    // ==================================================
     // SEARCH + FILTER
     // ==================================================
 
@@ -491,31 +567,18 @@ function CategoryPage() {
                             const searchable = [
 
                                 item?.collectionName,
-
                                 item?.costumeName,
-
                                 item?.nama_kostum,
-
                                 item?.costumeType,
-
                                 item?.categoryName,
-
                                 item?.nama_kategori,
-
                                 item?.collectionGroup,
-
                                 item?.kelompok_koleksi,
-
                                 item?.code,
-
                                 item?.kode_koleksi,
-
                                 item?.color,
-
                                 item?.warna,
-
                                 item?.size,
-
                                 item?.ukuran
 
                             ]
@@ -547,8 +610,8 @@ function CategoryPage() {
                             "Tersedia"
                         ) {
 
-                            return Boolean(
-                                item?.available
+                            return getAvailable(
+                                item
                             );
 
                         }
@@ -563,8 +626,8 @@ function CategoryPage() {
                             "Tidak Tersedia"
                         ) {
 
-                            return !Boolean(
-                                item?.available
+                            return !getAvailable(
+                                item
                             );
 
                         }
@@ -606,6 +669,7 @@ function CategoryPage() {
                             a?.collectionName ||
                             a?.nama_koleksi ||
                             "";
+
 
                         const nameB =
                             b?.costumeName ||
@@ -649,6 +713,7 @@ function CategoryPage() {
                             a?.collectionName ||
                             a?.nama_koleksi ||
                             "";
+
 
                         const nameB =
                             b?.costumeName ||
@@ -817,7 +882,6 @@ function CategoryPage() {
             }
 
 
-            // Foto database kostum
             return `/uploads/kostum/${value}`;
 
         };
@@ -1441,8 +1505,8 @@ function CategoryPage() {
                                     }
 
                                     available={
-                                        Boolean(
-                                            item.available
+                                        getAvailable(
+                                            item
                                         )
                                     }
 

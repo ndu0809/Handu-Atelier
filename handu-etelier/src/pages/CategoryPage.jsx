@@ -98,6 +98,79 @@ function CategoryPage() {
     }, []);
 
     // =====================================================
+    // CEK STOK
+    // =====================================================
+
+    const getStock = (costume) => {
+        return Number(
+            costume?.stok ??
+            costume?.stock ??
+            0
+        );
+    };
+
+    // =====================================================
+    // CEK KETERSEDIAAN
+    // =====================================================
+
+    const getAvailable = (costume) => {
+        const stock = getStock(costume);
+
+        const status = String(
+            costume?.status || ""
+        )
+            .toLowerCase()
+            .trim();
+
+        // =================================================
+        // STOK 0 = SELALU TIDAK TERSEDIA
+        // =================================================
+
+        if (stock <= 0) {
+            return false;
+        }
+
+        // =================================================
+        // STATUS YANG TIDAK TERSEDIA
+        // =================================================
+
+        if (
+            status === "dipinjam" ||
+            status === "perawatan" ||
+            status === "rusak" ||
+            status === "tidak tersedia"
+        ) {
+            return false;
+        }
+
+        // =================================================
+        // STATUS TERSEDIA
+        // =================================================
+
+        if (status === "tersedia") {
+            return true;
+        }
+
+        // =================================================
+        // FALLBACK DARI BACKEND
+        // =================================================
+
+        if (
+            costume?.available !== undefined
+        ) {
+            return Boolean(
+                costume.available
+            );
+        }
+
+        // =================================================
+        // FALLBACK BERDASARKAN STOK
+        // =================================================
+
+        return stock > 0;
+    };
+
+    // =====================================================
     // FILTER BERDASARKAN KATEGORI
     // =====================================================
 
@@ -599,9 +672,15 @@ function CategoryPage() {
                     >
                         {filteredCostumes.map(
                             (costume) => {
+
                                 const imageUrl =
                                     getImageUrl(
                                         costume.image
+                                    );
+
+                                const isAvailable =
+                                    getAvailable(
+                                        costume
                                     );
 
                                 return (
@@ -693,13 +772,13 @@ function CategoryPage() {
                                                         font-semibold
                                                         backdrop-blur
                                                         ${
-                                                            costume.available
+                                                            isAvailable
                                                                 ? "bg-green-500/80 text-white"
                                                                 : "bg-red-500/80 text-white"
                                                         }
                                                     `}
                                                 >
-                                                    {costume.available
+                                                    {isAvailable
                                                         ? "Tersedia"
                                                         : "Tidak Tersedia"}
                                                 </span>

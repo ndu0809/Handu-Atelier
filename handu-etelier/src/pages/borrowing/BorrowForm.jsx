@@ -31,6 +31,14 @@ function BorrowForm() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // ======================================================
+  // STATE KETERSEDIAAN BERDASARKAN TANGGAL
+  // ======================================================
+
+  const [availability, setAvailability] = useState(null);
+  const [checkingAvailability, setCheckingAvailability] =
+    useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -181,9 +189,137 @@ function BorrowForm() {
       [name]: value,
     }));
 
+    // Jika tanggal berubah, hasil availability
+    // sebelumnya tidak boleh langsung digunakan.
+    if (
+      name === "tanggal_peminjaman" ||
+      name === "tanggal_kembali"
+    ) {
+      setAvailability(null);
+    }
+
     setError("");
     setSuccess("");
   };
+
+  // ======================================================
+  // CEK KETERSEDIAAN KOSTUM BERDASARKAN TANGGAL
+  // ======================================================
+
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (
+        !costume?.id_kostum ||
+        !formData.tanggal_peminjaman ||
+        !formData.tanggal_kembali
+      ) {
+        setAvailability(null);
+        return;
+      }
+
+      // ==================================================
+      // VALIDASI TANGGAL SEBELUM REQUEST
+      // ==================================================
+
+      const start = new Date(
+        `${formData.tanggal_peminjaman}T00:00:00`
+      );
+
+      const end = new Date(
+        `${formData.tanggal_kembali}T00:00:00`
+      );
+
+      if (
+        Number.isNaN(start.getTime()) ||
+        Number.isNaN(end.getTime())
+      ) {
+        setAvailability(null);
+        return;
+      }
+
+      if (end <= start) {
+        setAvailability(null);
+        return;
+      }
+
+      try {
+        setCheckingAvailability(true);
+
+        const params =
+          new URLSearchParams({
+            id_kostum:
+              String(costume.id_kostum),
+
+            tanggal_peminjaman:
+              formData.tanggal_peminjaman,
+
+            tanggal_kembali:
+              formData.tanggal_kembali,
+
+            jumlah: "1",
+          });
+
+        const response = await fetch(
+          `/peminjaman/check-availability?${params.toString()}`
+        );
+
+        const result =
+          await response.json();
+
+        console.log(
+          "HASIL CEK KETERSEDIAAN:",
+          result
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            result.message ||
+              "Gagal mengecek ketersediaan kostum."
+          );
+        }
+
+        // Backend dapat mengembalikan:
+        // { data: {...} }
+        // atau langsung {...}
+        const data =
+          result.data ||
+          result;
+
+        setAvailability(data);
+
+        if (data?.tersedia === false) {
+          setError(
+            "Kostum tidak tersedia pada tanggal yang dipilih. Silakan pilih tanggal lain."
+          );
+        } else {
+          setError("");
+        }
+      } catch (err) {
+        console.error(
+          "Error cek ketersediaan:",
+          err
+        );
+
+        setAvailability({
+          tersedia: false,
+          error: true,
+        });
+
+        setError(
+          err.message ||
+            "Gagal mengecek ketersediaan kostum."
+        );
+      } finally {
+        setCheckingAvailability(false);
+      }
+    };
+
+    checkAvailability();
+  }, [
+    costume?.id_kostum,
+    formData.tanggal_peminjaman,
+    formData.tanggal_kembali,
+  ]);
 
   // ======================================================
   // HANDLE BUKTI PEMBAYARAN
@@ -386,13 +522,72 @@ function BorrowForm() {
   // STATUS KOSTUM
   // ======================================================
 
-  const isAvailable =
+  // Status "Tersedia" menjadi status dasar.
+  // Stok tidak lagi dijadikan syarat mutlak di sini
+  // karena stok dapat sedang berada pada peminjaman aktif
+  // untuk periode lain.
+  const costumeStatus =
     String(
       costume?.status || ""
-    ).toLowerCase() ===
-      "tersedia" &&
-    Number(costume?.stok || 0) >
-      0;
+    )
+      .trim()
+      .toLowerCase();
+
+  const baseAvailable =
+    costumeStatus === "tersedia";
+
+  // ======================================================
+  // KETERSEDIAAN FINAL
+  // ======================================================
+  //
+  // Jika tanggal belum dipilih:
+  // gunakan stok fisik sebagai informasi awal.
+  //
+  // Jika tanggal sudah dipilih:
+  // gunakan hasil check-availability berdasarkan
+  // periode tanggal yang dipilih.
+  //
+  // Hal ini penting karena stok fisik dapat bernilai 0
+  // ketika seluruh unit sedang dipinjam, tetapi unit yang
+  // sama dapat tersedia kembali pada tanggal yang berbeda.
+  //
+  // ======================================================
+
+  const hasCompleteDates =
+    Boolean(
+      formData.tanggal_peminjaman &&
+        formData.tanggal_kembali
+    );
+
+  const dateAvailability =
+    hasCompleteDates
+      ? availability?.tersedia === true
+      : Number(costume?.stok || 0) > 0;
+
+  const isAvailable =
+    baseAvailable &&
+    dateAvailability;
+
+  // ======================================================
+  // TANGGAL MINIMUM
+  // ======================================================
+
+  const getTodayLocal = () => {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(
+      now.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+      now.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const today = getTodayLocal();
 
   // ======================================================
   // SUBMIT PEMINJAMAN
@@ -472,7 +667,7 @@ function BorrowForm() {
       return;
     }
 
-    if (!isAvailable) {
+    if (!baseAvailable) {
       setError(
         "Kostum sedang tidak tersedia."
       );
@@ -495,6 +690,17 @@ function BorrowForm() {
       return;
     }
 
+    if (
+      formData.tanggal_peminjaman <
+      today
+    ) {
+      setError(
+        "Tanggal peminjaman tidak boleh sebelum hari ini."
+      );
+
+      return;
+    }
+
     if (jumlahHari <= 0) {
       setError(
         "Tanggal kembali harus setelah tanggal peminjaman."
@@ -502,6 +708,43 @@ function BorrowForm() {
 
       return;
     }
+
+    // ==================================================
+    // 4. WAJIB ADA HASIL CEK KETERSEDIAAN
+    // ==================================================
+
+    if (checkingAvailability) {
+      setError(
+        "Sedang mengecek ketersediaan kostum. Silakan tunggu."
+      );
+
+      return;
+    }
+
+    if (
+      !availability ||
+      availability?.error
+    ) {
+      setError(
+        "Ketersediaan kostum belum dapat dipastikan. Silakan ubah tanggal atau coba lagi."
+      );
+
+      return;
+    }
+
+    if (
+      availability?.tersedia !== true
+    ) {
+      setError(
+        "Kostum tidak tersedia pada tanggal yang dipilih. Silakan pilih tanggal lain."
+      );
+
+      return;
+    }
+
+    // ==================================================
+    // 5. VALIDASI TOTAL
+    // ==================================================
 
     if (totalHarga <= 0) {
       setError(
@@ -512,7 +755,7 @@ function BorrowForm() {
     }
 
     // ==================================================
-    // 4. VALIDASI PEMBAYARAN
+    // 6. VALIDASI PEMBAYARAN
     // ==================================================
 
     if (
@@ -555,22 +798,90 @@ function BorrowForm() {
     }
 
     // ==================================================
-    // 5. KIRIM PEMINJAMAN
+    // 7. KIRIM PEMINJAMAN
     // ==================================================
 
     try {
       setSubmitting(true);
 
+      // ==================================================
+      // CEK ULANG KETERSEDIAAN SEBELUM CREATE
+      // ==================================================
+      //
+      // Tujuannya agar data tidak hanya bergantung
+      // pada hasil pengecekan sebelumnya.
+      //
+      // ==================================================
+
+      const recheckParams =
+        new URLSearchParams({
+          id_kostum:
+            String(costume.id_kostum),
+
+          tanggal_peminjaman:
+            formData.tanggal_peminjaman,
+
+          tanggal_kembali:
+            formData.tanggal_kembali,
+
+          jumlah: "1",
+        });
+
+      const recheckResponse =
+        await fetch(
+          `/peminjaman/check-availability?${recheckParams.toString()}`
+        );
+
+      const recheckResult =
+        await recheckResponse.json();
+
+      console.log(
+        "HASIL CEK ULANG KETERSEDIAAN:",
+        recheckResult
+      );
+
+      if (!recheckResponse.ok) {
+        throw new Error(
+          recheckResult.message ||
+            "Gagal memastikan ketersediaan kostum."
+        );
+      }
+
+      const recheckData =
+        recheckResult.data ||
+        recheckResult;
+
+      if (
+        recheckData?.tersedia !== true
+      ) {
+        throw new Error(
+          "Kostum baru saja tidak tersedia pada tanggal yang dipilih. Silakan pilih tanggal lain."
+        );
+      }
+
+      // ==================================================
+      // DATA PEMINJAMAN
+      // ==================================================
+
       const dataPeminjaman = {
         id_user: idUser,
+
+        // Belum disetujui admin
         disetujui_oleh: null,
+
+        // Belum diproses petugas
         diproses_oleh: null,
+
         tanggal_peminjaman:
           formData.tanggal_peminjaman,
+
         tanggal_kembali:
           formData.tanggal_kembali,
+
         total_harga:
           totalHarga,
+
+        // Reservasi masuk sebagai Menunggu
         status: "Menunggu",
       };
 
@@ -613,6 +924,10 @@ function BorrowForm() {
         );
       }
 
+      // ==================================================
+      // AMBIL ID PEMINJAMAN
+      // ==================================================
+
       const idPeminjaman =
         peminjamanResult.id_peminjaman;
 
@@ -623,7 +938,7 @@ function BorrowForm() {
       }
 
       // ==================================================
-      // 6. SIMPAN DETAIL PEMINJAMAN
+      // SIMPAN DETAIL PEMINJAMAN
       // ==================================================
 
       const dataDetail = {
@@ -638,10 +953,12 @@ function BorrowForm() {
         jumlah: 1,
 
         // HARGA SEWA PER HARI
-        harga: hargaPerHari,
+        harga:
+          hargaPerHari,
 
         // TOTAL BERDASARKAN DURASI
-        subtotal: totalHarga,
+        subtotal:
+          totalHarga,
       };
 
       console.log(
@@ -682,7 +999,7 @@ function BorrowForm() {
       }
 
       // ==================================================
-      // 7. SIMPAN PEMBAYARAN
+      // SIMPAN PEMBAYARAN
       // ==================================================
 
       const paymentFormData =
@@ -750,7 +1067,8 @@ function BorrowForm() {
           "/pembayaran",
           {
             method: "POST",
-            body: paymentFormData,
+            body:
+              paymentFormData,
           }
         );
 
@@ -772,7 +1090,7 @@ function BorrowForm() {
       }
 
       // ==================================================
-      // 8. BERHASIL
+      // BERHASIL
       // ==================================================
 
       setSuccess(
@@ -787,6 +1105,8 @@ function BorrowForm() {
         persentase_pembayaran:
           "50",
       });
+
+      setAvailability(null);
 
       setBuktiFile(null);
       setBuktiPreview("");
@@ -999,14 +1319,6 @@ function BorrowForm() {
 
           {/* ==================================================
               FORM UTAMA
-              
-              3 KOTAK:
-              
-              BARIS 1:
-              [ KOSTUM ] [ DETAIL PEMINJAMAN ]
-              
-              BARIS 2:
-              [          PEMBAYARAN          ]
           ================================================== */}
 
           <form
@@ -1111,7 +1423,7 @@ function BorrowForm() {
 
                 <div className="flex justify-between gap-4">
                   <span className="text-gray-400">
-                    Stok
+                    Stok Fisik
                   </span>
 
                   <span>
@@ -1126,18 +1438,111 @@ function BorrowForm() {
 
                   <span
                     className={
-                      isAvailable
+                      baseAvailable
                         ? "text-green-400"
                         : "text-red-400"
                     }
                   >
-                    {isAvailable
+                    {baseAvailable
                       ? "Tersedia"
                       : "Tidak tersedia"}
                   </span>
                 </div>
 
               </div>
+
+              {/* ==================================================
+                  STATUS KETERSEDIAAN BERDASARKAN TANGGAL
+              ================================================== */}
+
+              {hasCompleteDates && (
+                <div
+                  className="
+                    mt-6
+                    p-4
+                    rounded-xl
+                    border
+                    border-[#D4AF37]/20
+                    bg-[#0D0D0D]
+                  "
+                >
+                  {checkingAvailability ? (
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="
+                          w-5
+                          h-5
+                          border-2
+                          border-[#D4AF37]/30
+                          border-t-[#D4AF37]
+                          rounded-full
+                          animate-spin
+                        "
+                      />
+
+                      <span className="text-gray-400 text-sm">
+                        Mengecek ketersediaan pada tanggal yang dipilih...
+                      </span>
+                    </div>
+                  ) : availability?.tersedia === true ? (
+                    <div>
+                      <p className="text-green-400 font-semibold">
+                        Kostum tersedia
+                      </p>
+
+                      <p className="text-gray-400 text-sm mt-1">
+                        Kostum tersedia untuk tanggal yang Anda pilih.
+                      </p>
+
+                      {availability?.stok_fisik !==
+                        undefined && (
+                        <p className="text-gray-500 text-xs mt-2">
+                          Stok fisik:{" "}
+                          {availability.stok_fisik} unit
+                          {" · "}
+                          Terpesan pada periode:{" "}
+                          {availability.jumlah_terpesan ??
+                            0} unit
+                          {" · "}
+                          Tersedia:{" "}
+                          {availability.stok_tersedia ??
+                            0} unit
+                        </p>
+                      )}
+                    </div>
+                  ) : availability ? (
+                    <div>
+                      <p className="text-red-400 font-semibold">
+                        Kostum tidak tersedia
+                      </p>
+
+                      <p className="text-gray-400 text-sm mt-1">
+                        Terdapat peminjaman lain pada periode tanggal yang dipilih.
+                      </p>
+
+                      {availability?.stok_fisik !==
+                        undefined && (
+                        <p className="text-gray-500 text-xs mt-2">
+                          Stok fisik:{" "}
+                          {availability.stok_fisik} unit
+                          {" · "}
+                          Terpesan pada periode:{" "}
+                          {availability.jumlah_terpesan ??
+                            0} unit
+                          {" · "}
+                          Tersedia:{" "}
+                          {availability.stok_tersedia ??
+                            0} unit
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">
+                      Pilih tanggal untuk mengecek ketersediaan kostum.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* HARGA */}
 
@@ -1215,11 +1620,7 @@ function BorrowForm() {
                     formData.tanggal_peminjaman
                   }
                   onChange={handleChange}
-                  min={
-                    new Date()
-                      .toISOString()
-                      .split("T")[0]
-                  }
+                  min={today}
                   className="
                     w-full
                     bg-[#0D0D0D]
@@ -1260,9 +1661,7 @@ function BorrowForm() {
                   onChange={handleChange}
                   min={
                     formData.tanggal_peminjaman ||
-                    new Date()
-                      .toISOString()
-                      .split("T")[0]
+                    today
                   }
                   className="
                     w-full
@@ -1351,9 +1750,6 @@ function BorrowForm() {
             {/* ==================================================
                 KOTAK 3
                 PEMBAYARAN
-                
-                lg:col-span-2 = MEMENUHI LEBAR
-                DUA KOTAK DI ATAS
             ================================================== */}
 
             <div
@@ -1757,6 +2153,7 @@ function BorrowForm() {
                       space-y-4
                     "
                   >
+
                     {/* BANK */}
 
                     <div className="flex justify-between gap-4">
@@ -1802,6 +2199,7 @@ function BorrowForm() {
                           "-"}
                       </span>
                     </div>
+
                   </div>
                 </div>
               )}
@@ -1964,9 +2362,14 @@ function BorrowForm() {
                 type="submit"
                 disabled={
                   submitting ||
+                  checkingAvailability ||
                   !isAvailable ||
                   !costume ||
-                  totalHarga <= 0
+                  totalHarga <= 0 ||
+                  (
+                    hasCompleteDates &&
+                    availability?.tersedia !== true
+                  )
                 }
                 className="
                   w-full
@@ -1983,7 +2386,9 @@ function BorrowForm() {
                   disabled:cursor-not-allowed
                 "
               >
-                {submitting
+                {checkingAvailability
+                  ? "Mengecek Ketersediaan..."
+                  : submitting
                   ? "Mengirim..."
                   : "Ajukan Peminjaman & Bayar"}
               </button>

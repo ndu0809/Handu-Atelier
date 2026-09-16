@@ -7,7 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 // ========================================
 
 const TUNNEL_URL =
-  "https://catalog-haven-realm-clearance.trycloudflare.com";
+  "https://chance-claire-legendary-html.trycloudflare.com";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

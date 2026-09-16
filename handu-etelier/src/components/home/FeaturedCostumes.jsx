@@ -67,6 +67,7 @@ function FeaturedCostumes() {
                             rows.data
                         )
                     ) {
+
                         rows = rows.data;
                     }
 
@@ -77,12 +78,14 @@ function FeaturedCostumes() {
                             rows.costumes
                         )
                     ) {
+
                         rows = rows.costumes;
                     }
 
                     if (
                         !Array.isArray(rows)
                     ) {
+
                         rows = [];
                     }
 
@@ -175,7 +178,9 @@ function FeaturedCostumes() {
                 } finally {
 
                     if (!cancelled) {
+
                         setLoading(false);
+
                     }
 
                 }
@@ -185,7 +190,9 @@ function FeaturedCostumes() {
         loadFeaturedCostumes();
 
         return () => {
+
             cancelled = true;
+
         };
 
     }, []);
@@ -262,8 +269,30 @@ function FeaturedCostumes() {
 
         };
 
+    // ======================================================
+    // CEK KETERSEDIAAN
+    // ======================================================
+    //
+    // ATURAN:
+    //
+    // 1. STOK 0  -> TIDAK TERSEDIA
+    // 2. STOK > 0 + STATUS TERSEDIA -> TERSEDIA
+    // 3. STATUS DIPINJAM -> TIDAK TERSEDIA
+    // 4. STATUS PERAWATAN -> TIDAK TERSEDIA
+    // 5. STATUS RUSAK -> TIDAK TERSEDIA
+    // 6. STATUS TIDAK TERSEDIA -> TIDAK TERSEDIA
+    //
+    // ======================================================
+
     const getAvailable =
         (item) => {
+
+            const stock =
+                Number(
+                    item?.stok ??
+                    item?.stock ??
+                    0
+                );
 
             const status =
                 String(
@@ -273,40 +302,63 @@ function FeaturedCostumes() {
                     .toLowerCase()
                     .trim();
 
-            if (
-                status ===
-                "tersedia"
-            ) {
-                return true;
+            // ==============================================
+            // STOK 0 = SELALU TIDAK TERSEDIA
+            // ==============================================
+
+            if (stock <= 0) {
+
+                return false;
+
             }
 
+            // ==============================================
+            // STATUS YANG TIDAK TERSEDIA
+            // ==============================================
+
             if (
-                status ===
-                    "dipinjam" ||
-                status ===
-                    "perawatan" ||
-                status ===
-                    "rusak"
+                status === "dipinjam" ||
+                status === "perawatan" ||
+                status === "rusak" ||
+                status === "tidak tersedia"
             ) {
+
                 return false;
+
             }
+
+            // ==============================================
+            // STATUS TERSEDIA
+            // ==============================================
+
+            if (
+                status === "tersedia"
+            ) {
+
+                return true;
+
+            }
+
+            // ==============================================
+            // FALLBACK JIKA BACKEND MENGIRIM available
+            // ==============================================
 
             if (
                 item?.available !==
                 undefined
             ) {
+
                 return Boolean(
                     item.available
                 );
+
             }
 
-            return (
-                Number(
-                    item?.stok ??
-                    item?.stock ??
-                    0
-                ) > 0
-            );
+            // ==============================================
+            // FALLBACK BERDASARKAN STOK
+            // ==============================================
+
+            return stock > 0;
 
         };
 
@@ -330,16 +382,20 @@ function FeaturedCostumes() {
                     item?.size
                 )
             ) {
+
                 return item.size;
+
             }
 
             // Jika backend hanya mengirim ukuran string
             if (
                 item?.ukuran
             ) {
+
                 return [
                     item.ukuran
                 ];
+
             }
 
             return [];
@@ -399,6 +455,7 @@ function FeaturedCostumes() {
                         "
                     >
                         Kostum{" "}
+
                         <span
                             className="
                                 text-[#D4AF37]
@@ -406,6 +463,7 @@ function FeaturedCostumes() {
                         >
                             Pilihan Pelanggan
                         </span>
+
                     </h2>
 
                     <p
@@ -587,6 +645,7 @@ function FeaturedCostumes() {
                                         premium={
                                             true
                                         }
+
                                     />
 
                                 )
@@ -621,6 +680,7 @@ function FeaturedCostumes() {
         </section>
 
     );
+
 }
 
 export default FeaturedCostumes;
