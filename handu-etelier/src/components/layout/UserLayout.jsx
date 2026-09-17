@@ -1,4 +1,8 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import {
   FaHome,
@@ -21,24 +25,28 @@ import { useState } from "react";
 
 function UserLayout({
   children,
-  title = "Dashboard",
-  subtitle = "",
+  title,
+  subtitle,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] =
+    useState(false);
 
   // ======================================================
   // USER DATA
   // ======================================================
 
-  const storedUser = localStorage.getItem("user");
+  const storedUser =
+    localStorage.getItem("user");
 
   let user = null;
 
   try {
-    user = storedUser ? JSON.parse(storedUser) : null;
+    user = storedUser
+      ? JSON.parse(storedUser)
+      : null;
   } catch {
     user = null;
   }
@@ -49,7 +57,9 @@ function UserLayout({
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem(
+      "isLoggedIn"
+    );
 
     navigate("/login", {
       replace: true,
@@ -57,7 +67,7 @@ function UserLayout({
   };
 
   // ======================================================
-  // MENU
+  // MENU MEMBER
   // ======================================================
 
   const menu = [
@@ -66,26 +76,31 @@ function UserLayout({
       to: "/dashboard",
       icon: FaHome,
     },
+
     {
       label: "Koleksi Kostum",
       to: "/collections",
       icon: FaTshirt,
     },
+
     {
       label: "Peminjaman Saya",
       to: "/my-borrowings",
       icon: FaClipboardList,
     },
+
     {
       label: "Chat Petugas",
       to: "/chat",
       icon: FaComments,
     },
+
     {
       label: "Profil",
       to: "/profile",
       icon: FaUser,
     },
+
     {
       label: "Pengaturan",
       to: "/settings",
@@ -100,8 +115,11 @@ function UserLayout({
   const isActive = (to) => {
     if (to === "/collections") {
       return (
-        location.pathname === "/collections" ||
-        location.pathname.startsWith("/category")
+        location.pathname ===
+          "/collections" ||
+        location.pathname.startsWith(
+          "/category"
+        )
       );
     }
 
@@ -109,7 +127,7 @@ function UserLayout({
   };
 
   // ======================================================
-  // CLOSE MOBILE MENU WHEN CLICK OUTSIDE
+  // CLOSE MOBILE MENU
   // ======================================================
 
   const closeMobileMenu = () => {
@@ -122,40 +140,47 @@ function UserLayout({
 
   return (
     <div className="min-h-screen bg-[#080808] text-white">
+
       {/* ==================================================
-          GLOBAL STYLE
+          HIDDEN SCROLLBAR STYLE
       ================================================== */}
 
       <style>
         {`
-          .user-layout-scroll {
+          /* ==================================================
+             SIDEBAR USER
+          ================================================== */
+
+          .user-sidebar-scroll {
+            overflow-y: auto;
+            overflow-x: hidden;
+
             scrollbar-width: none;
             -ms-overflow-style: none;
           }
 
-          .user-layout-scroll::-webkit-scrollbar {
-            display: none;
+          .user-sidebar-scroll::-webkit-scrollbar {
             width: 0;
             height: 0;
+            display: none;
           }
 
-          .user-no-scrollbar {
+          /* ==================================================
+             MOBILE MENU
+          ================================================== */
+
+          .user-mobile-menu-scroll {
+            overflow-y: auto;
+            overflow-x: hidden;
+
             scrollbar-width: none;
             -ms-overflow-style: none;
           }
 
-          .user-no-scrollbar::-webkit-scrollbar {
-            display: none;
+          .user-mobile-menu-scroll::-webkit-scrollbar {
             width: 0;
             height: 0;
-          }
-
-          @media (max-width: 1023px) {
-            .user-layout-content {
-              width: 100%;
-              max-width: 100%;
-              min-width: 0;
-            }
+            display: none;
           }
         `}
       </style>
@@ -169,7 +194,7 @@ function UserLayout({
           lg:hidden
           sticky
           top-0
-          z-[60]
+          z-50
           bg-[#111111]/95
           backdrop-blur-xl
           border-b
@@ -178,21 +203,19 @@ function UserLayout({
       >
         <div
           className="
-            h-[72px]
-            px-4
-            sm:px-5
+            px-5
+            py-4
             flex
             items-center
             justify-between
           "
         >
-          <div className="min-w-0">
+          <div>
             <p
               className="
                 text-lg
                 font-bold
                 text-[#D4AF37]
-                truncate
               "
             >
               Handu Atelier
@@ -203,7 +226,6 @@ function UserLayout({
                 text-[9px]
                 tracking-[3px]
                 text-gray-500
-                mt-1
               "
             >
               MEMBER AREA
@@ -212,134 +234,146 @@ function UserLayout({
 
           <button
             type="button"
-            onClick={() => setMenuOpen((previous) => !previous)}
+            onClick={() =>
+              setMenuOpen(
+                !menuOpen
+              )
+            }
+            className="
+              text-[#D4AF37]
+              text-xl
+              w-10
+              h-10
+              rounded-xl
+              border
+              border-[#D4AF37]/20
+              flex
+              items-center
+              justify-center
+              hover:bg-[#D4AF37]/10
+              transition
+            "
             aria-label={
               menuOpen
                 ? "Tutup menu"
                 : "Buka menu"
             }
-            className="
-              w-10
-              h-10
-              shrink-0
-              rounded-xl
-              border
-              border-[#D4AF37]/20
-              bg-[#121212]
-              text-[#D4AF37]
-              flex
-              items-center
-              justify-center
-              text-lg
-            "
           >
-            {menuOpen ? <FaTimes /> : <FaBars />}
+            {menuOpen ? (
+              <FaTimes />
+            ) : (
+              <FaBars />
+            )}
           </button>
         </div>
       </header>
 
       {/* ==================================================
-          MOBILE DRAWER
-          HANYA MUNCUL SAAT MENU DIBUKA
+          MOBILE MENU
       ================================================== */}
 
       {menuOpen && (
-        <>
-          {/* OVERLAY */}
+        <div
+          className="
+            fixed
+            inset-0
+            z-40
+            bg-[#080808]
+            lg:hidden
+            pt-24
+            px-6
+            user-mobile-menu-scroll
+          "
+        >
+          <nav className="pb-8">
 
-          <button
-            type="button"
-            aria-label="Tutup menu"
-            onClick={closeMobileMenu}
-            className="
-              fixed
-              inset-0
-              z-40
-              bg-black/60
-              lg:hidden
-            "
-          />
+            {/* ==================================================
+                MENU MEMBER
+            ================================================== */}
 
-          {/* DRAWER */}
-
-          <aside
-            className="
-              fixed
-              top-0
-              left-0
-              bottom-0
-              z-50
-              w-[min(320px,88vw)]
-              bg-[#0E0E0E]
-              border-r
-              border-[#D4AF37]/15
-              lg:hidden
-              flex
-              flex-col
-              shadow-2xl
-            "
-          >
-            <div
+            <p
               className="
-                h-[72px]
-                px-5
-                border-b
-                border-white/5
-                flex
-                items-center
-                justify-between
-                shrink-0
+                text-[10px]
+                uppercase
+                tracking-[3px]
+                text-gray-600
+                px-4
+                mb-4
               "
             >
-              <div>
-                <p
-                  className="
-                    text-lg
-                    font-bold
-                    text-[#D4AF37]
-                  "
-                >
-                  Handu Atelier
-                </p>
+              Menu Member
+            </p>
 
-                <p
-                  className="
-                    text-[9px]
-                    tracking-[3px]
-                    text-gray-500
-                  "
-                >
-                  MEMBER AREA
-                </p>
-              </div>
+            <div className="space-y-2">
 
-              <button
-                type="button"
-                onClick={closeMobileMenu}
-                className="
-                  w-9
-                  h-9
-                  rounded-xl
-                  border
-                  border-white/10
-                  text-gray-400
-                  flex
-                  items-center
-                  justify-center
-                "
-              >
-                <FaTimes />
-              </button>
+              {menu.map((item) => {
+                const Icon = item.icon;
+
+                const active =
+                  isActive(
+                    item.to
+                  );
+
+                return (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    onClick={
+                      closeMobileMenu
+                    }
+                    className={`
+                      flex
+                      items-center
+                      justify-between
+                      px-5
+                      py-4
+                      rounded-2xl
+                      border
+                      transition
+
+                      ${
+                        active
+                          ? "bg-[#D4AF37]/15 border-[#D4AF37]/30 text-[#D4AF37]"
+                          : "bg-[#121212] border-white/5 text-gray-400 hover:bg-white/[0.04] hover:text-white"
+                      }
+                    `}
+                  >
+                    <div
+                      className="
+                        flex
+                        items-center
+                        gap-4
+                      "
+                    >
+                      <Icon />
+
+                      <span>
+                        {item.label}
+                      </span>
+                    </div>
+
+                    <FaChevronRight
+                      className="
+                        text-xs
+                        opacity-40
+                      "
+                    />
+                  </Link>
+                );
+              })}
+
             </div>
+
+            {/* ==================================================
+                AKSES CEPAT MOBILE
+            ================================================== */}
 
             <div
               className="
-                flex-1
-                min-h-0
-                overflow-y-auto
-                user-layout-scroll
-                px-4
-                py-6
+                mt-8
+                pt-6
+                border-t
+                border-white/5
               "
             >
               <p
@@ -348,95 +382,115 @@ function UserLayout({
                   uppercase
                   tracking-[3px]
                   text-gray-600
-                  px-3
-                  mb-4
+                  px-4
+                  mb-3
                 "
               >
-                Menu Member
+                Akses Cepat
               </p>
 
-              <nav className="space-y-2">
-                {menu.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.to);
+              {/* ==================================================
+                  BERANDA MOBILE
+              ================================================== */}
 
-                  return (
-                    <Link
-                      key={item.label}
-                      to={item.to}
-                      onClick={closeMobileMenu}
-                      className={`
-                        flex
-                        items-center
-                        justify-between
-                        px-4
-                        py-3.5
-                        rounded-xl
-                        border
-                        transition
-                        ${
-                          active
-                            ? "bg-[#D4AF37]/15 border-[#D4AF37]/30 text-[#D4AF37]"
-                            : "bg-[#121212] border-white/5 text-gray-400"
-                        }
-                      `}
-                    >
-                      <div
-                        className="
-                          flex
-                          items-center
-                          gap-4
-                          min-w-0
-                        "
-                      >
-                        <Icon className="shrink-0" />
-
-                        <span className="text-sm truncate">
-                          {item.label}
-                        </span>
-                      </div>
-
-                      <FaChevronRight
-                        className="
-                          text-[10px]
-                          opacity-40
-                          shrink-0
-                        "
-                      />
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              <button
-                type="button"
-                onClick={handleLogout}
+              <Link
+                to="/"
+                onClick={
+                  closeMobileMenu
+                }
                 className="
-                  w-full
+                  flex
+                  items-center
+                  justify-between
+                  px-5
+                  py-4
+                  rounded-2xl
+                  border
+                  border-white/5
+                  bg-[#121212]
+                  text-gray-400
+                  hover:bg-white/[0.04]
+                  hover:text-white
+                  transition
+                "
+              >
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-4
+                  "
+                >
+                  <FaHome />
+
+                  <span>
+                    Beranda
+                  </span>
+                </div>
+
+                <FaChevronRight
+                  className="
+                    text-xs
+                    opacity-40
+                  "
+                />
+              </Link>
+            </div>
+
+            {/* ==================================================
+                MOBILE LOGOUT
+            ================================================== */}
+
+            <button
+              type="button"
+              onClick={
+                handleLogout
+              }
+              className="
+                w-full
+                flex
+                items-center
+                justify-between
+                px-5
+                py-4
+                mt-5
+                rounded-2xl
+                border
+                border-red-500/20
+                bg-red-500/5
+                text-red-400
+                hover:bg-red-500/10
+                transition
+              "
+            >
+              <div
+                className="
                   flex
                   items-center
                   gap-4
-                  px-4
-                  py-3.5
-                  mt-6
-                  rounded-xl
-                  border
-                  border-red-500/20
-                  bg-red-500/5
-                  text-red-400
-                  text-sm
                 "
               >
                 <FaSignOutAlt />
-                Keluar
-              </button>
-            </div>
-          </aside>
-        </>
+
+                <span>
+                  Keluar
+                </span>
+              </div>
+
+              <FaChevronRight
+                className="
+                  text-xs
+                  opacity-40
+                "
+              />
+            </button>
+
+          </nav>
+        </div>
       )}
 
       {/* ==================================================
-          DESKTOP SIDEBAR
+          SIDEBAR DESKTOP
       ================================================== */}
 
       <aside
@@ -455,7 +509,10 @@ function UserLayout({
           z-40
         "
       >
-        {/* LOGO */}
+
+        {/* ==================================================
+            LOGO
+        ================================================== */}
 
         <div
           className="
@@ -463,7 +520,7 @@ function UserLayout({
             py-8
             border-b
             border-white/5
-            shrink-0
+            flex-shrink-0
           "
         >
           <p
@@ -488,18 +545,24 @@ function UserLayout({
           </p>
         </div>
 
-        {/* MENU */}
+        {/* ==================================================
+            SIDEBAR MENU
+        ================================================== */}
 
         <div
           className="
+            user-sidebar-scroll
             flex-1
             min-h-0
-            overflow-y-auto
-            user-layout-scroll
             px-3
             py-7
           "
         >
+
+          {/* ==================================================
+              MENU MEMBER
+          ================================================== */}
+
           <p
             className="
               text-[10px]
@@ -514,9 +577,15 @@ function UserLayout({
           </p>
 
           <nav className="space-y-1">
+
             {menu.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.to);
+              const Icon =
+                item.icon;
+
+              const active =
+                isActive(
+                  item.to
+                );
 
               return (
                 <Link
@@ -530,6 +599,7 @@ function UserLayout({
                     py-3.5
                     rounded-xl
                     transition
+
                     ${
                       active
                         ? "bg-gradient-to-r from-[#D4AF37]/25 to-transparent text-[#F1C75B]"
@@ -542,12 +612,15 @@ function UserLayout({
                       flex
                       items-center
                       gap-4
-                      min-w-0
                     "
                   >
-                    <Icon className="shrink-0" />
+                    <Icon />
 
-                    <span className="text-sm truncate">
+                    <span
+                      className="
+                        text-sm
+                      "
+                    >
                       {item.label}
                     </span>
                   </div>
@@ -556,13 +629,17 @@ function UserLayout({
                     className="
                       text-[9px]
                       opacity-30
-                      shrink-0
                     "
                   />
                 </Link>
               );
             })}
+
           </nav>
+
+          {/* ==================================================
+              AKSES CEPAT DESKTOP
+          ================================================== */}
 
           <div
             className="
@@ -602,21 +679,28 @@ function UserLayout({
             >
               <FaHome />
 
-              <span className="text-sm">
+              <span
+                className="
+                  text-sm
+                "
+              >
                 Beranda
               </span>
             </Link>
           </div>
+
         </div>
 
-        {/* PROFILE */}
+        {/* ==================================================
+            PROFILE SIDEBAR
+        ================================================== */}
 
         <div
           className="
             p-4
             border-t
             border-white/5
-            shrink-0
+            flex-shrink-0
           "
         >
           <div
@@ -628,6 +712,7 @@ function UserLayout({
               p-4
             "
           >
+
             <div
               className="
                 flex
@@ -635,6 +720,7 @@ function UserLayout({
                 gap-3
               "
             >
+
               <div
                 className="
                   w-10
@@ -646,13 +732,20 @@ function UserLayout({
                   items-center
                   justify-center
                   font-bold
-                  shrink-0
+                  flex-shrink-0
                 "
               >
-                {user?.nama?.charAt(0)?.toUpperCase() || "U"}
+                {user?.nama
+                  ?.charAt(0)
+                  ?.toUpperCase() ||
+                  "U"}
               </div>
 
-              <div className="min-w-0">
+              <div
+                className="
+                  min-w-0
+                "
+              >
                 <p
                   className="
                     text-sm
@@ -660,7 +753,8 @@ function UserLayout({
                     truncate
                   "
                 >
-                  {user?.nama || "User"}
+                  {user?.nama ||
+                    "User"}
                 </p>
 
                 <p
@@ -670,14 +764,22 @@ function UserLayout({
                     truncate
                   "
                 >
-                  {user?.email || ""}
+                  {user?.email ||
+                    ""}
                 </p>
               </div>
+
             </div>
+
+            {/* ==================================================
+                LOGOUT
+            ================================================== */}
 
             <button
               type="button"
-              onClick={handleLogout}
+              onClick={
+                handleLogout
+              }
               className="
                 w-full
                 mt-4
@@ -688,38 +790,41 @@ function UserLayout({
                 bg-red-500/5
                 text-red-400
                 text-sm
+                hover:bg-red-500/10
+                transition
               "
             >
               Keluar
             </button>
+
           </div>
         </div>
+
       </aside>
 
       {/* ==================================================
-          MAIN CONTENT
+          MAIN
       ================================================== */}
 
       <main
         className="
           lg:ml-[245px]
           min-h-screen
-          min-w-0
         "
       >
         <div
           className="
-            user-layout-content
             max-w-[1450px]
             mx-auto
-            px-4
-            sm:px-5
+            px-5
             md:px-8
-            py-5
-            sm:py-7
+            py-7
           "
         >
-          {/* PAGE HEADER */}
+
+          {/* ==================================================
+              PAGE HEADER
+          ================================================== */}
 
           <div
             className="
@@ -728,19 +833,19 @@ function UserLayout({
               md:flex-row
               md:items-center
               md:justify-between
-              gap-4
-              mb-6
-              sm:mb-8
+              gap-5
+              mb-8
             "
           >
-            <div className="min-w-0">
+
+            <div>
+
               <p
                 className="
                   uppercase
                   tracking-[4px]
                   text-[#D4AF37]
-                  text-[10px]
-                  sm:text-xs
+                  text-xs
                 "
               >
                 Member Area
@@ -748,12 +853,10 @@ function UserLayout({
 
               <h1
                 className="
-                  text-2xl
-                  sm:text-3xl
+                  text-3xl
                   md:text-4xl
                   font-bold
                   mt-2
-                  truncate
                 "
               >
                 {title}
@@ -763,15 +866,18 @@ function UserLayout({
                 <p
                   className="
                     text-gray-500
-                    text-sm
                     mt-2
-                    max-w-2xl
                   "
                 >
                   {subtitle}
                 </p>
               )}
+
             </div>
+
+            {/* ==================================================
+                USER INFO HEADER
+            ================================================== */}
 
             <div
               className="
@@ -779,9 +885,9 @@ function UserLayout({
                 md:flex
                 items-center
                 gap-3
-                shrink-0
               "
             >
+
               <div
                 className="
                   w-11
@@ -797,35 +903,48 @@ function UserLayout({
                   font-bold
                 "
               >
-                {user?.nama?.charAt(0)?.toUpperCase() || "U"}
+                {user?.nama
+                  ?.charAt(0)
+                  ?.toUpperCase() ||
+                  "U"}
               </div>
 
-              <div className="min-w-0">
+              <div>
+
                 <p
                   className="
                     text-sm
                     font-semibold
-                    truncate
-                    max-w-[180px]
                   "
                 >
-                  {user?.nama || "User"}
+                  {user?.nama ||
+                    "User"}
                 </p>
 
-                <p className="text-xs text-gray-600">
+                <p
+                  className="
+                    text-xs
+                    text-gray-600
+                  "
+                >
                   Member
                 </p>
+
               </div>
+
             </div>
+
           </div>
 
-          {/* PAGE CONTENT */}
+          {/* ==================================================
+              PAGE CONTENT
+          ================================================== */}
 
-          <div className="min-w-0">
-            {children}
-          </div>
+          {children}
+
         </div>
       </main>
+
     </div>
   );
 }

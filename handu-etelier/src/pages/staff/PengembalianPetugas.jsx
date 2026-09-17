@@ -15,26 +15,20 @@ function PengembalianPetugas() {
     // ==================================================
 
     const [data, setData] = useState([]);
-    const [
-        peminjamanTersedia,
-        setPeminjamanTersedia,
-    ] = useState([]);
+    const [peminjamanTersedia, setPeminjamanTersedia] =
+        useState([]);
 
     // ==================================================
     // UI
     // ==================================================
 
     const [loading, setLoading] = useState(true);
-    const [
-        loadingPeminjaman,
-        setLoadingPeminjaman,
-    ] = useState(false);
-
+    const [loadingPeminjaman, setLoadingPeminjaman] =
+        useState(false);
     const [saving, setSaving] = useState(false);
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
     const [search, setSearch] = useState("");
 
     // ==================================================
@@ -43,6 +37,10 @@ function PengembalianPetugas() {
 
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
+
+    // ==================================================
+    // TODAY
+    // ==================================================
 
     const getToday = () => {
         const now = new Date();
@@ -68,17 +66,13 @@ function PengembalianPetugas() {
         keterangan: "",
     };
 
-    const [form, setForm] = useState(
-        emptyForm
-    );
+    const [form, setForm] = useState(emptyForm);
 
     // ==================================================
-    // PARSE JSON
+    // PARSE RESPONSE
     // ==================================================
 
-    const parseResponse = async (
-        response
-    ) => {
+    const parseResponse = async (response) => {
         const raw = await response.text();
 
         if (!raw) {
@@ -87,15 +81,20 @@ function PengembalianPetugas() {
 
         try {
             return JSON.parse(raw);
-        } catch {
+        } catch (err) {
+            console.error(
+                "Response bukan JSON:",
+                raw
+            );
+
             throw new Error(
-                "Server mengembalikan response yang bukan JSON."
+                `Server mengembalikan response yang bukan JSON. Status: ${response.status}`
             );
         }
     };
 
     // ==================================================
-    // CEK PETUGAS
+    // CEK SESSION PETUGAS
     // ==================================================
 
     useEffect(() => {
@@ -133,9 +132,7 @@ function PengembalianPetugas() {
             );
 
             localStorage.removeItem("user");
-            localStorage.removeItem(
-                "isLoggedIn"
-            );
+            localStorage.removeItem("isLoggedIn");
 
             navigate("/login", {
                 replace: true,
@@ -152,15 +149,21 @@ function PengembalianPetugas() {
             setLoading(true);
             setError("");
 
-            const response =
-                await fetch(
-                    "/pengembalian"
-                );
+            const response = await fetch(
+                `/pengembalian?_t=${Date.now()}`,
+                {
+                    method: "GET",
+                    cache: "no-store",
+                    headers: {
+                        "Cache-Control":
+                            "no-cache, no-store, must-revalidate",
+                        Pragma: "no-cache",
+                    },
+                }
+            );
 
             const result =
-                await parseResponse(
-                    response
-                );
+                await parseResponse(response);
 
             if (!response.ok) {
                 throw new Error(
@@ -205,15 +208,27 @@ function PengembalianPetugas() {
             setLoadingPeminjaman(true);
             setError("");
 
-            const response =
-                await fetch(
-                    "/pengembalian/peminjaman-belum-dikembalikan"
-                );
+            /*
+             * PENTING:
+             * Tambahkan timestamp agar browser/proxy
+             * tidak menggunakan response lama.
+             */
+            const response = await fetch(
+                `/pengembalian/peminjaman-belum-dikembalikan?_t=${Date.now()}`,
+                {
+                    method: "GET",
+                    cache: "no-store",
+                    headers: {
+                        "Cache-Control":
+                            "no-cache, no-store, must-revalidate",
+                        Pragma: "no-cache",
+                        Expires: "0",
+                    },
+                }
+            );
 
             const result =
-                await parseResponse(
-                    response
-                );
+                await parseResponse(response);
 
             if (!response.ok) {
                 throw new Error(
@@ -233,7 +248,7 @@ function PengembalianPetugas() {
                     : [];
 
             // ==================================================
-            // FILTER HANYA STATUS DIPROSES
+            // HANYA STATUS DIPROSES
             // ==================================================
 
             available =
@@ -241,17 +256,22 @@ function PengembalianPetugas() {
                     (item) =>
                         String(
                             item.status || ""
-                        ).toLowerCase() ===
+                        )
+                            .trim()
+                            .toLowerCase() ===
                         "diproses"
                 );
 
-            // ==================================================
-            // MODE EDIT
-            // ==================================================
+            /*
+             * JANGAN memasukkan kembali data lama
+             * ketika mode edit jika status sebenarnya
+             * sudah Selesai.
+             *
+             * Data lama sebelumnya bisa menyebabkan
+             * peminjaman Selesai muncul lagi di dropdown.
+             */
 
-            if (
-                currentPengembalianId
-            ) {
+            if (currentPengembalianId) {
                 const currentData =
                     data.find(
                         (item) =>
@@ -263,8 +283,19 @@ function PengembalianPetugas() {
                             )
                     );
 
+                /*
+                 * Untuk EDIT, kita hanya boleh menambahkan
+                 * data lama jika status peminjaman masih
+                 * benar-benar Diproses.
+                 */
                 if (
                     currentData &&
+                    String(
+                        currentData.status || ""
+                    )
+                        .trim()
+                        .toLowerCase() ===
+                        "diproses" &&
                     !available.some(
                         (item) =>
                             Number(
@@ -304,8 +335,7 @@ function PengembalianPetugas() {
                                 "",
 
                             status:
-                                currentData.status ||
-                                "Selesai",
+                                currentData.status,
 
                             tanggal_peminjaman:
                                 currentData.tanggal_peminjaman ||
@@ -351,7 +381,12 @@ function PengembalianPetugas() {
             return;
         }
 
-        loadData();
+        const initialize = async () => {
+            await loadData();
+            await loadPeminjamanTersedia();
+        };
+
+        initialize();
     }, [user]);
 
     // ==================================================
@@ -374,7 +409,7 @@ function PengembalianPetugas() {
     };
 
     // ==================================================
-    // OPEN ADD
+    // OPEN ADD FORM
     // ==================================================
 
     const openAddForm = async () => {
@@ -388,9 +423,14 @@ function PengembalianPetugas() {
 
         setError("");
         setSuccess("");
+        setPeminjamanTersedia([]);
 
         setShowForm(true);
 
+        /*
+         * Ambil ulang data TERBARU setiap kali
+         * form dibuka.
+         */
         await loadPeminjamanTersedia();
 
         window.scrollTo({
@@ -405,7 +445,13 @@ function PengembalianPetugas() {
 
     const closeForm = () => {
         setEditingId(null);
-        setForm(emptyForm);
+
+        setForm({
+            ...emptyForm,
+            tanggal_pengembalian:
+                getToday(),
+        });
+
         setShowForm(false);
 
         setError("");
@@ -413,19 +459,59 @@ function PengembalianPetugas() {
     };
 
     // ==================================================
+    // CEK STATUS PEMINJAMAN TERBARU
+    // ==================================================
+
+    const checkLatestPeminjamanStatus = async (
+        idPeminjaman
+    ) => {
+        const response = await fetch(
+            `/peminjaman/${idPeminjaman}?_t=${Date.now()}`,
+            {
+                method: "GET",
+                cache: "no-store",
+                headers: {
+                    "Cache-Control":
+                        "no-cache, no-store, must-revalidate",
+                    Pragma: "no-cache",
+                },
+            }
+        );
+
+        const result =
+            await parseResponse(response);
+
+        if (!response.ok) {
+            throw new Error(
+                result.message ||
+                    "Gagal memeriksa status peminjaman."
+            );
+        }
+
+        /*
+         * Backend bisa mengembalikan object langsung
+         * atau object dengan property data.
+         */
+        const latest =
+            result?.data ||
+            result?.peminjaman ||
+            result;
+
+        return latest;
+    };
+
+    // ==================================================
     // SUBMIT
     // ==================================================
 
-    const handleSubmit = async (
-        e
-    ) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         setError("");
         setSuccess("");
 
         // ==================================================
-        // VALIDASI
+        // VALIDASI ID
         // ==================================================
 
         if (
@@ -439,15 +525,21 @@ function PengembalianPetugas() {
             return;
         }
 
-        if (
-            !form.tanggal_pengembalian
-        ) {
+        // ==================================================
+        // VALIDASI TANGGAL
+        // ==================================================
+
+        if (!form.tanggal_pengembalian) {
             setError(
                 "Tanggal pengembalian wajib diisi."
             );
 
             return;
         }
+
+        // ==================================================
+        // VALIDASI KONDISI
+        // ==================================================
 
         if (!form.kondisi_baju) {
             setError(
@@ -457,9 +549,14 @@ function PengembalianPetugas() {
             return;
         }
 
-        if (
-            Number(form.denda) < 0
-        ) {
+        // ==================================================
+        // VALIDASI DENDA
+        // ==================================================
+
+        const nominalDenda =
+            Number(form.denda) || 0;
+
+        if (nominalDenda < 0) {
             setError(
                 "Denda tidak boleh kurang dari 0."
             );
@@ -470,40 +567,57 @@ function PengembalianPetugas() {
         try {
             setSaving(true);
 
-            const selected =
-                peminjamanTersedia.find(
-                    (item) =>
-                        Number(
-                            item.id_peminjaman
-                        ) ===
-                        Number(
-                            form.id_peminjaman
-                        )
-                );
+            const idPeminjaman =
+                Number(form.id_peminjaman);
 
             // ==================================================
-            // CREATE HARUS DIPROSES
+            // CEK DATA TERBARU DARI SERVER
             // ==================================================
 
-            if (
-                !editingId &&
-                selected &&
-                String(
-                    selected.status || ""
-                ).toLowerCase() !==
+            /*
+             * Ini adalah pengecekan tambahan sebelum POST.
+             *
+             * Tujuannya:
+             * jika dropdown masih menyimpan data lama,
+             * kita tidak akan mengirim pengembalian
+             * untuk peminjaman yang sudah Selesai.
+             */
+            if (!editingId) {
+                const latest =
+                    await checkLatestPeminjamanStatus(
+                        idPeminjaman
+                    );
+
+                const latestStatus =
+                    String(
+                        latest?.status || ""
+                    )
+                        .trim()
+                        .toLowerCase();
+
+                if (
+                    latestStatus !==
                     "diproses"
-            ) {
-                setError(
-                    "Hanya peminjaman dengan status Diproses yang dapat dikembalikan."
-                );
+                ) {
+                    /*
+                     * Refresh dropdown supaya data lama
+                     * langsung hilang.
+                     */
+                    await loadPeminjamanTersedia();
 
-                setSaving(false);
+                    setForm((prev) => ({
+                        ...prev,
+                        id_peminjaman: "",
+                    }));
 
-                return;
+                    throw new Error(
+                        `Peminjaman #${idPeminjaman} tidak dapat dikembalikan karena status terbaru adalah "${latest?.status || "Tidak diketahui"}". Daftar peminjaman telah diperbarui.`
+                    );
+                }
             }
 
             // ==================================================
-            // PETUGAS ID
+            // CEK PETUGAS
             // ==================================================
 
             const idPetugas =
@@ -511,11 +625,19 @@ function PengembalianPetugas() {
                 user?.id_user ||
                 null;
 
+            if (!idPetugas) {
+                throw new Error(
+                    "ID petugas tidak ditemukan. Silakan login ulang."
+                );
+            }
+
+            // ==================================================
+            // PAYLOAD
+            // ==================================================
+
             const payload = {
                 id_peminjaman:
-                    Number(
-                        form.id_peminjaman
-                    ),
+                    idPeminjaman,
 
                 tanggal_pengembalian:
                     form.tanggal_pengembalian,
@@ -524,9 +646,7 @@ function PengembalianPetugas() {
                     form.kondisi_baju,
 
                 denda:
-                    Number(
-                        form.denda
-                    ) || 0,
+                    nominalDenda,
 
                 keterangan:
                     form.keterangan?.trim() ||
@@ -542,7 +662,7 @@ function PengembalianPetugas() {
             );
 
             // ==================================================
-            // URL
+            // URL DAN METHOD
             // ==================================================
 
             const url = editingId
@@ -553,27 +673,35 @@ function PengembalianPetugas() {
                 ? "PUT"
                 : "POST";
 
+            // ==================================================
+            // REQUEST
+            // ==================================================
+
             const response =
-                await fetch(
-                    url,
-                    {
-                        method,
+                await fetch(url, {
+                    method,
 
-                        headers: {
-                            "Content-Type":
-                                "application/json",
-                        },
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-                        body: JSON.stringify(
-                            payload
-                        ),
-                    }
-                );
+                        "Cache-Control":
+                            "no-cache",
+                    },
+
+                    body: JSON.stringify(
+                        payload
+                    ),
+                });
 
             const result =
                 await parseResponse(
                     response
                 );
+
+            // ==================================================
+            // ERROR BACKEND
+            // ==================================================
 
             if (!response.ok) {
                 throw new Error(
@@ -582,16 +710,32 @@ function PengembalianPetugas() {
                 );
             }
 
+            // ==================================================
+            // SUCCESS
+            // ==================================================
+
             setSuccess(
                 editingId
                     ? "Pengembalian berhasil diperbarui."
+                    : nominalDenda > 0
+                    ? `Pengembalian berhasil disimpan. Denda ${formatRupiah(
+                          nominalDenda
+                      )} telah dicatat dan status peminjaman menjadi Selesai.`
                     : "Pengembalian berhasil ditambahkan. Status peminjaman menjadi Selesai."
             );
 
-            setForm(emptyForm);
+            setForm({
+                ...emptyForm,
+                tanggal_pengembalian:
+                    getToday(),
+            });
+
             setEditingId(null);
             setShowForm(false);
 
+            /*
+             * Refresh semua data setelah berhasil.
+             */
             await loadData();
             await loadPeminjamanTersedia();
 
@@ -618,9 +762,7 @@ function PengembalianPetugas() {
     // DELETE
     // ==================================================
 
-    const handleDelete = async (
-        id
-    ) => {
+    const handleDelete = async (id) => {
         const confirmed =
             window.confirm(
                 "Yakin ingin menghapus data pengembalian ini?"
@@ -677,16 +819,20 @@ function PengembalianPetugas() {
     // EDIT
     // ==================================================
 
-    const handleEdit = async (
-        item
-    ) => {
+    const handleEdit = async (item) => {
+        /*
+         * Untuk edit, data pengembalian memang sudah
+         * ada sehingga id_peminjaman tetap digunakan.
+         */
+
         setEditingId(
             item.id_pengembalian
         );
 
         setForm({
             id_peminjaman:
-                item.id_peminjaman || "",
+                item.id_peminjaman ||
+                "",
 
             tanggal_pengembalian:
                 item.tanggal_pengembalian ||
@@ -698,9 +844,7 @@ function PengembalianPetugas() {
 
             denda:
                 item.denda != null
-                    ? String(
-                          item.denda
-                      )
+                    ? String(item.denda)
                     : "0",
 
             keterangan:
@@ -722,54 +866,46 @@ function PengembalianPetugas() {
     };
 
     // ==================================================
-    // FILTER
+    // FILTER TABLE
     // ==================================================
 
-    const filteredData =
-        useMemo(() => {
-            const keyword =
-                search
-                    .trim()
-                    .toLowerCase();
+    const filteredData = useMemo(() => {
+        const keyword =
+            search
+                .trim()
+                .toLowerCase();
 
-            if (!keyword) {
-                return data;
-            }
+        if (!keyword) {
+            return data;
+        }
 
-            return data.filter(
-                (item) =>
-                    String(
-                        item.id_pengembalian
-                    )
-                        .toLowerCase()
-                        .includes(
-                            keyword
-                        ) ||
-                    String(
-                        item.id_peminjaman
-                    )
-                        .toLowerCase()
-                        .includes(
-                            keyword
-                        ) ||
-                    String(
-                        item.nama_user ||
-                            ""
-                    )
-                        .toLowerCase()
-                        .includes(
-                            keyword
-                        ) ||
-                    String(
-                        item.nama_kostum ||
-                            ""
-                    )
-                        .toLowerCase()
-                        .includes(
-                            keyword
-                        )
-            );
-        }, [data, search]);
+        return data.filter(
+            (item) =>
+                String(
+                    item.id_pengembalian
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
+
+                String(
+                    item.id_peminjaman
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
+
+                String(
+                    item.nama_user || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
+
+                String(
+                    item.nama_kostum || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword)
+        );
+    }, [data, search]);
 
     // ==================================================
     // SELECTED PEMINJAMAN
@@ -790,9 +926,7 @@ function PengembalianPetugas() {
     // FORMAT TANGGAL
     // ==================================================
 
-    const formatTanggal = (
-        value
-    ) => {
+    const formatTanggal = (value) => {
         if (!value) {
             return "-";
         }
@@ -822,9 +956,7 @@ function PengembalianPetugas() {
     // FORMAT RUPIAH
     // ==================================================
 
-    const formatRupiah = (
-        value
-    ) => {
+    const formatRupiah = (value) => {
         return new Intl.NumberFormat(
             "id-ID",
             {
@@ -841,29 +973,29 @@ function PengembalianPetugas() {
     // SUMMARY
     // ==================================================
 
-    const totalDenda =
-        useMemo(() => {
-            return data.reduce(
-                (total, item) =>
-                    total +
-                    (Number(
-                        item.denda
-                    ) || 0),
-                0
-            );
-        }, [data]);
+    const totalDenda = useMemo(() => {
+        return data.reduce(
+            (total, item) =>
+                total +
+                (Number(item.denda) || 0),
+            0
+        );
+    }, [data]);
 
     const totalPengembalian =
         data.length;
+
+    const totalDenganDenda =
+        data.filter(
+            (item) =>
+                Number(item.denda) > 0
+        ).length;
 
     // ==================================================
     // LOADING
     // ==================================================
 
-    if (
-        !user ||
-        loading
-    ) {
+    if (!user || loading) {
         return (
             <div
                 className="
@@ -938,13 +1070,13 @@ function PengembalianPetugas() {
                         </h1>
 
                         <p className="text-gray-500 mt-2">
-                            Kelola data pengembalian
-                            kostum.
+                            Kelola pengembalian
+                            kostum, kondisi
+                            kostum, dan denda.
                         </p>
                     </div>
 
                     <div className="flex gap-3">
-
                         <Link
                             to="/petugas/dashboard"
                             className="
@@ -1000,7 +1132,9 @@ function PengembalianPetugas() {
                 "
             >
 
-                {/* ERROR */}
+                {/* ==================================================
+                    ERROR
+                ================================================== */}
 
                 {error && (
                     <div
@@ -1019,7 +1153,9 @@ function PengembalianPetugas() {
                     </div>
                 )}
 
-                {/* SUCCESS */}
+                {/* ==================================================
+                    SUCCESS
+                ================================================== */}
 
                 {success && (
                     <div
@@ -1046,7 +1182,7 @@ function PengembalianPetugas() {
                     className="
                         grid
                         sm:grid-cols-2
-                        lg:grid-cols-3
+                        lg:grid-cols-4
                         gap-4
                         mb-7
                     "
@@ -1129,6 +1265,31 @@ function PengembalianPetugas() {
                             )}
                         </p>
                     </div>
+
+                    <div
+                        className="
+                            rounded-2xl
+                            bg-[#141414]
+                            border
+                            border-orange-500/15
+                            p-5
+                        "
+                    >
+                        <p className="text-gray-500 text-sm">
+                            Pengembalian Dengan Denda
+                        </p>
+
+                        <p
+                            className="
+                                text-3xl
+                                font-bold
+                                text-orange-400
+                                mt-2
+                            "
+                        >
+                            {totalDenganDenda}
+                        </p>
+                    </div>
                 </section>
 
                 {/* ==================================================
@@ -1179,13 +1340,13 @@ function PengembalianPetugas() {
                                     mt-2
                                 "
                             >
-                                Hanya peminjaman
+                                Pengembalian hanya
+                                dapat dilakukan
+                                untuk peminjaman
                                 dengan status
                                 <span className="text-[#D4AF37]">
-                                    {" "}
-                                    Diproses
-                                </span>{" "}
-                                yang dapat dikembalikan.
+                                    {" "}Diproses
+                                </span>.
                             </p>
                         </div>
 
@@ -1201,10 +1362,11 @@ function PengembalianPetugas() {
                             "
                         >
 
-                            {/* PEMINJAMAN */}
+                            {/* ==================================================
+                                PEMINJAMAN
+                            ================================================== */}
 
                             <div className="md:col-span-2">
-
                                 <label
                                     className="
                                         block
@@ -1226,7 +1388,10 @@ function PengembalianPetugas() {
                                     }
                                     required
                                     disabled={
-                                        loadingPeminjaman
+                                        loadingPeminjaman ||
+                                        Boolean(
+                                            editingId
+                                        )
                                     }
                                     className="
                                         w-full
@@ -1251,9 +1416,7 @@ function PengembalianPetugas() {
                                     </option>
 
                                     {peminjamanTersedia.map(
-                                        (
-                                            item
-                                        ) => (
+                                        (item) => (
                                             <option
                                                 key={
                                                     item.id_peminjaman
@@ -1278,15 +1441,32 @@ function PengembalianPetugas() {
                                                 }{" "}
                                                 —{" "}
                                                 {
-                                                    item.status ||
-                                                    "Diproses"
+                                                    item.status
                                                 }
                                             </option>
                                         )
                                     )}
                                 </select>
 
-                                {/* DETAIL */}
+                                {editingId && (
+                                    <p
+                                        className="
+                                            text-xs
+                                            text-gray-500
+                                            mt-2
+                                        "
+                                    >
+                                        ID peminjaman
+                                        tidak dapat
+                                        diubah saat
+                                        mengedit
+                                        pengembalian.
+                                    </p>
+                                )}
+
+                                {/* ==================================================
+                                    DETAIL PEMINJAMAN
+                                ================================================== */}
 
                                 {selectedPeminjaman && (
                                     <div
@@ -1363,7 +1543,7 @@ function PengembalianPetugas() {
 
                                             <div>
                                                 <p className="text-gray-500">
-                                                    Tanggal Kembali
+                                                    Batas Pengembalian
                                                 </p>
 
                                                 <p className="mt-1">
@@ -1377,10 +1557,11 @@ function PengembalianPetugas() {
                                 )}
                             </div>
 
-                            {/* TANGGAL */}
+                            {/* ==================================================
+                                TANGGAL PENGEMBALIAN
+                            ================================================== */}
 
                             <div>
-
                                 <label
                                     className="
                                         block
@@ -1416,10 +1597,11 @@ function PengembalianPetugas() {
                                 />
                             </div>
 
-                            {/* KONDISI */}
+                            {/* ==================================================
+                                KONDISI
+                            ================================================== */}
 
                             <div>
-
                                 <label
                                     className="
                                         block
@@ -1469,10 +1651,11 @@ function PengembalianPetugas() {
                                 </select>
                             </div>
 
-                            {/* DENDA */}
+                            {/* ==================================================
+                                DENDA
+                            ================================================== */}
 
                             <div>
-
                                 <label
                                     className="
                                         block
@@ -1485,7 +1668,6 @@ function PengembalianPetugas() {
                                 </label>
 
                                 <div className="relative">
-
                                     <span
                                         className="
                                             absolute
@@ -1523,12 +1705,24 @@ function PengembalianPetugas() {
                                         "
                                     />
                                 </div>
+
+                                <p
+                                    className="
+                                        text-xs
+                                        text-gray-600
+                                        mt-2
+                                    "
+                                >
+                                    Isi 0 jika tidak
+                                    ada denda.
+                                </p>
                             </div>
 
-                            {/* KETERANGAN */}
+                            {/* ==================================================
+                                KETERANGAN
+                            ================================================== */}
 
                             <div>
-
                                 <label
                                     className="
                                         block
@@ -1565,7 +1759,9 @@ function PengembalianPetugas() {
                                 />
                             </div>
 
-                            {/* BUTTON */}
+                            {/* ==================================================
+                                BUTTON
+                            ================================================== */}
 
                             <div
                                 className="
@@ -1575,7 +1771,6 @@ function PengembalianPetugas() {
                                     gap-3
                                 "
                             >
-
                                 <button
                                     type="submit"
                                     disabled={
@@ -1595,7 +1790,7 @@ function PengembalianPetugas() {
                                     "
                                 >
                                     {saving
-                                        ? "Menyimpan..."
+                                        ? "Memeriksa & Menyimpan..."
                                         : editingId
                                         ? "Simpan Perubahan"
                                         : "Simpan Pengembalian"}
@@ -1673,11 +1868,13 @@ function PengembalianPetugas() {
                         overflow-hidden
                     "
                 >
-
                     <div className="overflow-x-auto">
-
-                        <table className="w-full min-w-[1100px]">
-
+                        <table
+                            className="
+                                w-full
+                                min-w-[1100px]
+                            "
+                        >
                             <thead
                                 className="
                                     bg-[#1A1A1A]
@@ -1686,7 +1883,6 @@ function PengembalianPetugas() {
                                 "
                             >
                                 <tr>
-
                                     <th className="text-left px-5 py-4 text-gray-500 text-sm">
                                         ID
                                     </th>
@@ -1718,12 +1914,10 @@ function PengembalianPetugas() {
                                     <th className="text-left px-5 py-4 text-gray-500 text-sm">
                                         Aksi
                                     </th>
-
                                 </tr>
                             </thead>
 
                             <tbody>
-
                                 {filteredData.length ===
                                 0 ? (
                                     <tr>
@@ -1741,9 +1935,7 @@ function PengembalianPetugas() {
                                     </tr>
                                 ) : (
                                     filteredData.map(
-                                        (
-                                            item
-                                        ) => (
+                                        (item) => (
                                             <tr
                                                 key={
                                                     item.id_pengembalian
@@ -1754,6 +1946,7 @@ function PengembalianPetugas() {
                                                     hover:bg-white/[0.02]
                                                 "
                                             >
+                                                {/* ID */}
 
                                                 <td
                                                     className="
@@ -1769,8 +1962,9 @@ function PengembalianPetugas() {
                                                     }
                                                 </td>
 
-                                                <td className="px-5 py-5">
+                                                {/* PEMINJAMAN */}
 
+                                                <td className="px-5 py-5">
                                                     <p className="font-semibold">
                                                         #
                                                         {
@@ -1785,11 +1979,11 @@ function PengembalianPetugas() {
                                                             }
                                                         </p>
                                                     )}
-
                                                 </td>
 
-                                                <td className="px-5 py-5">
+                                                {/* USER */}
 
+                                                <td className="px-5 py-5">
                                                     <p>
                                                         {
                                                             item.nama_user ||
@@ -1804,8 +1998,9 @@ function PengembalianPetugas() {
                                                             }
                                                         </p>
                                                     )}
-
                                                 </td>
+
+                                                {/* TANGGAL */}
 
                                                 <td className="px-5 py-5">
                                                     {formatTanggal(
@@ -1813,8 +2008,9 @@ function PengembalianPetugas() {
                                                     )}
                                                 </td>
 
-                                                <td className="px-5 py-5">
+                                                {/* KONDISI */}
 
+                                                <td className="px-5 py-5">
                                                     <span
                                                         className={`
                                                             inline-flex
@@ -1840,8 +2036,9 @@ function PengembalianPetugas() {
                                                             "-"
                                                         }
                                                     </span>
-
                                                 </td>
+
+                                                {/* DENDA */}
 
                                                 <td
                                                     className="
@@ -1856,6 +2053,8 @@ function PengembalianPetugas() {
                                                     )}
                                                 </td>
 
+                                                {/* PETUGAS */}
+
                                                 <td className="px-5 py-5">
                                                     {
                                                         item.nama_petugas ||
@@ -1863,10 +2062,10 @@ function PengembalianPetugas() {
                                                     }
                                                 </td>
 
+                                                {/* AKSI */}
+
                                                 <td className="px-5 py-5">
-
                                                     <div className="flex gap-2">
-
                                                         <button
                                                             type="button"
                                                             onClick={() =>
@@ -1908,28 +2107,22 @@ function PengembalianPetugas() {
                                                         >
                                                             Hapus
                                                         </button>
-
                                                     </div>
-
                                                 </td>
-
                                             </tr>
                                         )
                                     )
                                 )}
-
                             </tbody>
-
                         </table>
-
                     </div>
-
                 </section>
 
-                {/* BACK */}
+                {/* ==================================================
+                    BACK
+                ================================================== */}
 
                 <div className="mt-6">
-
                     <Link
                         to="/petugas/dashboard"
                         className="
@@ -1942,9 +2135,7 @@ function PengembalianPetugas() {
                     >
                         ← Kembali ke Dashboard
                     </Link>
-
                 </div>
-
             </main>
         </div>
     );

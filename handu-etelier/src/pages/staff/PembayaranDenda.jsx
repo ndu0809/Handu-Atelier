@@ -10,9 +10,10 @@ import {
     FaSearch,
     FaSyncAlt,
     FaTimes,
+    FaExclamationTriangle,
 } from "react-icons/fa";
 
-function Payments() {
+function PembayaranDenda() {
     const navigate = useNavigate();
 
     // ==================================================
@@ -26,15 +27,11 @@ function Payments() {
     // ==================================================
 
     const [payments, setPayments] = useState([]);
-    const [peminjaman, setPeminjaman] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     // ==================================================
     // UI
     // ==================================================
-
-    const [loading, setLoading] = useState(true);
-    const [loadingPeminjaman, setLoadingPeminjaman] =
-        useState(false);
 
     const [updatingId, setUpdatingId] = useState(null);
 
@@ -124,7 +121,7 @@ function Payments() {
     };
 
     // ==================================================
-    // NORMALIZE METHOD
+    // FORMAT METODE
     // ==================================================
 
     const formatMetode = (method) => {
@@ -142,7 +139,7 @@ function Payments() {
     };
 
     // ==================================================
-    // URL BUKTI PEMBAYARAN
+    // URL BUKTI PEMBAYARAN DENDA
     // ==================================================
 
     const getProofUrl = (bukti) => {
@@ -156,7 +153,7 @@ function Payments() {
             return "";
         }
 
-        // Base64 / data URL
+        // Base64 / Data URL
         if (
             value.startsWith("data:image/") ||
             value.startsWith("data:application/pdf")
@@ -183,11 +180,11 @@ function Payments() {
         }
 
         // Nama file saja
-        return `/uploads/pembayaran/${value}`;
+        return `/uploads/pembayaran-denda/${value}`;
     };
 
     // ==================================================
-    // CEK APAKAH BUKTI PDF
+    // CEK PDF
     // ==================================================
 
     const isPdfProof = (bukti) => {
@@ -204,12 +201,19 @@ function Payments() {
     };
 
     // ==================================================
+    // NORMALIZE STATUS
+    // ==================================================
+
+    const getStatus = (item) => {
+        return String(item?.status || "Belum Bayar").trim();
+    };
+
+    // ==================================================
     // CEK SESSION PETUGAS
     // ==================================================
 
     useEffect(() => {
-        const storedUser =
-            localStorage.getItem("user");
+        const storedUser = localStorage.getItem("user");
 
         if (!storedUser) {
             navigate("/login", {
@@ -220,8 +224,7 @@ function Payments() {
         }
 
         try {
-            const parsedUser =
-                JSON.parse(storedUser);
+            const parsedUser = JSON.parse(storedUser);
 
             if (
                 !parsedUser?.id_user ||
@@ -236,10 +239,7 @@ function Payments() {
 
             setUser(parsedUser);
         } catch (err) {
-            console.error(
-                "Session error:",
-                err
-            );
+            console.error("Session error:", err);
 
             localStorage.removeItem("user");
             localStorage.removeItem("isLoggedIn");
@@ -251,7 +251,7 @@ function Payments() {
     }, [navigate]);
 
     // ==================================================
-    // LOAD PEMBAYARAN
+    // LOAD PEMBAYARAN DENDA
     // ==================================================
 
     const loadPayments = async () => {
@@ -260,16 +260,15 @@ function Payments() {
             setError("");
 
             const response = await fetch(
-                "/pembayaran"
+                "/pembayaran-denda"
             );
 
-            const result =
-                await parseResponse(response);
+            const result = await parseResponse(response);
 
             if (!response.ok) {
                 throw new Error(
                     result.message ||
-                        "Gagal mengambil data pembayaran."
+                        "Gagal mengambil data pembayaran denda."
                 );
             }
 
@@ -279,69 +278,23 @@ function Payments() {
 
             if (!Array.isArray(rows)) {
                 throw new Error(
-                    "Format data pembayaran tidak sesuai."
+                    "Format data pembayaran denda tidak sesuai."
                 );
             }
 
             setPayments(rows);
         } catch (err) {
             console.error(
-                "Load pembayaran:",
+                "Load pembayaran denda:",
                 err
             );
 
             setError(
                 err.message ||
-                    "Gagal mengambil data pembayaran."
+                    "Gagal mengambil data pembayaran denda."
             );
         } finally {
             setLoading(false);
-        }
-    };
-
-    // ==================================================
-    // LOAD PEMINJAMAN
-    // ==================================================
-
-    const loadPeminjaman = async () => {
-        try {
-            setLoadingPeminjaman(true);
-
-            const response = await fetch(
-                "/peminjaman"
-            );
-
-            const result =
-                await parseResponse(response);
-
-            if (!response.ok) {
-                throw new Error(
-                    result.message ||
-                        "Gagal mengambil data peminjaman."
-                );
-            }
-
-            const rows = Array.isArray(result)
-                ? result
-                : result.data;
-
-            setPeminjaman(
-                Array.isArray(rows)
-                    ? rows
-                    : []
-            );
-        } catch (err) {
-            console.error(
-                "Load peminjaman:",
-                err
-            );
-
-            setError(
-                err.message ||
-                    "Gagal mengambil data peminjaman."
-            );
-        } finally {
-            setLoadingPeminjaman(false);
         }
     };
 
@@ -355,7 +308,6 @@ function Payments() {
         }
 
         loadPayments();
-        loadPeminjaman();
     }, [user]);
 
     // ==================================================
@@ -366,102 +318,30 @@ function Payments() {
         setError("");
         setSuccess("");
 
-        await Promise.all([
-            loadPayments(),
-            loadPeminjaman(),
-        ]);
+        await loadPayments();
     };
 
     // ==================================================
-    // CARI DATA PEMINJAMAN
-    // ==================================================
-
-    const getLoanByPayment = (payment) => {
-        if (!payment) {
-            return null;
-        }
-
-        return peminjaman.find(
-            (item) =>
-                Number(item.id_peminjaman) ===
-                Number(payment.id_peminjaman)
-        );
-    };
-
-    // ==================================================
-    // TOTAL PEMINJAMAN
-    // ==================================================
-
-    const getTotalPeminjaman = (payment) => {
-        const loan = getLoanByPayment(payment);
-
-        const value =
-            payment?.total_harga ??
-            payment?.total_peminjaman ??
-            loan?.total_harga ??
-            0;
-
-        return Number(value) || 0;
-    };
-
-    // ==================================================
-    // JENIS PEMBAYARAN
-    // ==================================================
-
-    const getJenisPembayaran = (payment) => {
-        const totalPembayaran =
-            Number(payment?.total) || 0;
-
-        const totalPeminjaman =
-            getTotalPeminjaman(payment);
-
-        if (
-            totalPembayaran > 0 &&
-            totalPeminjaman > 0
-        ) {
-            const percentage =
-                (totalPembayaran /
-                    totalPeminjaman) *
-                100;
-
-            if (
-                Math.abs(percentage - 50) <
-                1
-            ) {
-                return "DP 50%";
-            }
-
-            if (
-                Math.abs(percentage - 100) <
-                1
-            ) {
-                return "Pembayaran Penuh";
-            }
-        }
-
-        return "Pembayaran";
-    };
-
-    // ==================================================
-    // OPEN BUKTI
+    // BUKA BUKTI
     // ==================================================
 
     const openProof = (item) => {
         if (!item?.bukti_bayar) {
             setError(
-                "Pembayaran ini tidak memiliki bukti pembayaran."
+                "Pembayaran denda ini tidak memiliki bukti pembayaran."
             );
 
             return;
         }
 
         setSelectedProof(item);
+
         setError("");
         setSuccess("");
     };
 
     // ==================================================
-    // CLOSE BUKTI
+    // TUTUP BUKTI
     // ==================================================
 
     const closeProof = () => {
@@ -469,7 +349,7 @@ function Payments() {
     };
 
     // ==================================================
-    // VERIFIKASI PEMBAYARAN
+    // VERIFIKASI PEMBAYARAN DENDA
     // ==================================================
 
     const verifyPayment = async (
@@ -480,21 +360,30 @@ function Payments() {
             return false;
         }
 
-        if (item.status === "Lunas") {
+        const status = getStatus(item);
+
+        if (status === "Lunas") {
             setSuccess(
-                `Pembayaran #${item.id_pembayaran} sudah berstatus Lunas.`
+                `Pembayaran denda #${item.id_pembayaran_denda} sudah berstatus Lunas.`
+            );
+
+            return false;
+        }
+
+        if (status !== "Menunggu Verifikasi") {
+            setError(
+                `Pembayaran denda #${item.id_pembayaran_denda} belum berada pada status Menunggu Verifikasi.`
             );
 
             return false;
         }
 
         if (askConfirmation) {
-            const confirmed =
-                window.confirm(
-                    `Verifikasi pembayaran #${item.id_pembayaran} sebesar ${formatRupiah(
-                        item.total
-                    )} dan tandai sebagai Lunas?`
-                );
+            const confirmed = window.confirm(
+                `Verifikasi pembayaran denda #${item.id_pembayaran_denda} sebesar ${formatRupiah(
+                    item.jumlah
+                )} dan tandai sebagai Lunas?`
+            );
 
             if (!confirmed) {
                 return false;
@@ -503,43 +392,40 @@ function Payments() {
 
         try {
             setUpdatingId(
-                item.id_pembayaran
+                item.id_pembayaran_denda
             );
 
             setError("");
             setSuccess("");
 
-            const response =
-                await fetch(
-                    `/pembayaran/${item.id_pembayaran}/status`,
-                    {
-                        method: "PUT",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json",
-                        },
-
-                        body: JSON.stringify({
-                            status: "Lunas",
-                        }),
-                    }
-                );
+            const response = await fetch(
+                `/pembayaran-denda/${item.id_pembayaran_denda}/status`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                    },
+                    body: JSON.stringify({
+                        status: "Lunas",
+                        diverifikasi_oleh:
+                            user?.id_user,
+                    }),
+                }
+            );
 
             const result =
-                await parseResponse(
-                    response
-                );
+                await parseResponse(response);
 
             if (!response.ok) {
                 throw new Error(
                     result.message ||
-                        "Gagal memverifikasi pembayaran."
+                        "Gagal memverifikasi pembayaran denda."
                 );
             }
 
             setSuccess(
-                `Pembayaran #${item.id_pembayaran} berhasil diverifikasi dan berstatus Lunas.`
+                `Pembayaran denda #${item.id_pembayaran_denda} berhasil diverifikasi dan berstatus Lunas.`
             );
 
             await loadPayments();
@@ -547,13 +433,13 @@ function Payments() {
             return true;
         } catch (err) {
             console.error(
-                "Verifikasi pembayaran:",
+                "Verifikasi pembayaran denda:",
                 err
             );
 
             setError(
                 err.message ||
-                    "Gagal memverifikasi pembayaran."
+                    "Gagal memverifikasi pembayaran denda."
             );
 
             return false;
@@ -566,113 +452,102 @@ function Payments() {
     // SEARCH
     // ==================================================
 
-    const filteredPayments =
-        useMemo(() => {
-            const keyword =
-                search
-                    .trim()
-                    .toLowerCase();
+    const filteredPayments = useMemo(() => {
+        const keyword = search
+            .trim()
+            .toLowerCase();
 
-            if (!keyword) {
-                return payments;
-            }
+        if (!keyword) {
+            return payments;
+        }
 
-            return payments.filter(
-                (item) =>
-                    String(
-                        item.id_pembayaran || ""
-                    )
-                        .toLowerCase()
-                        .includes(keyword) ||
+        return payments.filter((item) => {
+            return (
+                String(
+                    item.id_pembayaran_denda || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
 
-                    String(
-                        item.id_peminjaman || ""
-                    )
-                        .toLowerCase()
-                        .includes(keyword) ||
+                String(
+                    item.id_denda || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
 
-                    String(
-                        item.nama_user || ""
-                    )
-                        .toLowerCase()
-                        .includes(keyword) ||
+                String(
+                    item.id_peminjaman || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
 
-                    String(
-                        item.email_user || ""
-                    )
-                        .toLowerCase()
-                        .includes(keyword) ||
+                String(
+                    item.nama_user || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
 
-                    String(
-                        item.metode || ""
-                    )
-                        .toLowerCase()
-                        .includes(keyword) ||
+                String(
+                    item.email_user || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
 
-                    String(
-                        item.status || ""
-                    )
-                        .toLowerCase()
-                        .includes(keyword)
+                String(
+                    item.metode || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword) ||
+
+                String(
+                    item.status || ""
+                )
+                    .toLowerCase()
+                    .includes(keyword)
             );
-        }, [
-            payments,
-            search,
-        ]);
+        });
+    }, [payments, search]);
 
     // ==================================================
     // SUMMARY
     // ==================================================
 
-    const totalPayments =
-        payments.length;
+    const totalPayments = payments.length;
 
-    const totalLunas =
+    const totalMenungguVerifikasi =
         payments.filter(
             (item) =>
-                item.status ===
-                "Lunas"
+                getStatus(item) ===
+                "Menunggu Verifikasi"
         ).length;
 
-    const totalBelumBayar =
-        payments.filter(
+    const totalLunas = payments.filter(
+        (item) =>
+            getStatus(item) === "Lunas"
+    ).length;
+
+    const totalBelumBayar = payments.filter(
+        (item) =>
+            getStatus(item) === "Belum Bayar"
+    ).length;
+
+    const nominalLunas = payments
+        .filter(
             (item) =>
-                item.status ===
-                "Belum Bayar"
-        ).length;
-
-    const totalDenganBukti =
-        payments.filter(
-            (item) =>
-                Boolean(
-                    item.bukti_bayar
-                )
-        ).length;
-
-    const nominalLunas =
-        payments
-            .filter(
-                (item) =>
-                    item.status ===
-                    "Lunas"
-            )
-            .reduce(
-                (total, item) =>
-                    total +
-                    (Number(
-                        item.total
-                    ) || 0),
-                0
-            );
+                getStatus(item) === "Lunas"
+        )
+        .reduce(
+            (total, item) =>
+                total +
+                (Number(item.jumlah) || 0),
+            0
+        );
 
     // ==================================================
     // LOADING
     // ==================================================
 
-    if (
-        !user ||
-        loading
-    ) {
+    if (!user || loading) {
         return (
             <div
                 className="
@@ -692,7 +567,7 @@ function Payments() {
                         text-sm
                     "
                 >
-                    Memuat data pembayaran...
+                    Memuat pembayaran denda...
                 </p>
             </div>
         );
@@ -754,7 +629,7 @@ function Payments() {
                                 mt-2
                             "
                         >
-                            Pembayaran
+                            Pembayaran Denda
                         </h1>
 
                         <p
@@ -763,7 +638,7 @@ function Payments() {
                                 mt-2
                             "
                         >
-                            Verifikasi pembayaran
+                            Verifikasi pembayaran denda
                             yang dikirim customer.
                         </p>
                     </div>
@@ -928,6 +803,33 @@ function Payments() {
                         </p>
                     </div>
 
+                    {/* MENUNGGU */}
+
+                    <div
+                        className="
+                            rounded-2xl
+                            bg-[#141414]
+                            border
+                            border-yellow-500/15
+                            p-5
+                        "
+                    >
+                        <p className="text-gray-500 text-sm">
+                            Menunggu Verifikasi
+                        </p>
+
+                        <p
+                            className="
+                                text-3xl
+                                font-bold
+                                text-yellow-400
+                                mt-2
+                            "
+                        >
+                            {totalMenungguVerifikasi}
+                        </p>
+                    </div>
+
                     {/* LUNAS */}
 
                     <div
@@ -955,57 +857,30 @@ function Payments() {
                         </p>
                     </div>
 
-                    {/* PERLU VERIFIKASI */}
+                    {/* BELUM BAYAR */}
 
                     <div
                         className="
                             rounded-2xl
                             bg-[#141414]
                             border
-                            border-yellow-500/15
+                            border-red-500/15
                             p-5
                         "
                     >
                         <p className="text-gray-500 text-sm">
-                            Perlu Verifikasi
+                            Belum Bayar
                         </p>
 
                         <p
                             className="
                                 text-3xl
                                 font-bold
-                                text-yellow-400
+                                text-red-400
                                 mt-2
                             "
                         >
                             {totalBelumBayar}
-                        </p>
-                    </div>
-
-                    {/* BUKTI */}
-
-                    <div
-                        className="
-                            rounded-2xl
-                            bg-[#141414]
-                            border
-                            border-blue-500/15
-                            p-5
-                        "
-                    >
-                        <p className="text-gray-500 text-sm">
-                            Ada Bukti
-                        </p>
-
-                        <p
-                            className="
-                                text-3xl
-                                font-bold
-                                text-blue-400
-                                mt-2
-                            "
-                        >
-                            {totalDenganBukti}
                         </p>
                     </div>
 
@@ -1021,7 +896,7 @@ function Payments() {
                         "
                     >
                         <p className="text-gray-500 text-sm">
-                            Nominal Lunas
+                            Nominal Denda Lunas
                         </p>
 
                         <p
@@ -1076,7 +951,7 @@ function Payments() {
                                     font-semibold
                                 "
                             >
-                                Alur pembayaran
+                                Alur pembayaran denda
                             </p>
 
                             <p
@@ -1086,11 +961,12 @@ function Payments() {
                                     mt-1
                                 "
                             >
-                                Pembayaran dibuat oleh
-                                customer. Petugas hanya
-                                memeriksa bukti dan
-                                memverifikasi pembayaran
-                                menjadi Lunas.
+                                Customer melakukan pembayaran
+                                denda melalui halaman detail
+                                peminjaman. Petugas memeriksa
+                                bukti pembayaran dan mengubah
+                                status menjadi Lunas setelah
+                                pembayaran dinyatakan sesuai.
                             </p>
                         </div>
                     </div>
@@ -1129,7 +1005,7 @@ function Payments() {
                                     e.target.value
                                 )
                             }
-                            placeholder="Cari ID pembayaran, ID peminjaman, nama customer, atau metode..."
+                            placeholder="Cari ID pembayaran denda, ID denda, ID peminjaman, nama customer, atau metode..."
                             className="
                                 w-full
                                 pl-11
@@ -1163,7 +1039,7 @@ function Payments() {
                         <table
                             className="
                                 w-full
-                                min-w-[1550px]
+                                min-w-[1500px]
                             "
                         >
                             <thead
@@ -1184,6 +1060,18 @@ function Payments() {
                                         "
                                     >
                                         ID
+                                    </th>
+
+                                    <th
+                                        className="
+                                            text-left
+                                            px-5
+                                            py-4
+                                            text-gray-500
+                                            text-sm
+                                        "
+                                    >
+                                        Denda
                                     </th>
 
                                     <th
@@ -1219,7 +1107,7 @@ function Payments() {
                                             text-sm
                                         "
                                     >
-                                        Tanggal
+                                        Tanggal Bayar
                                     </th>
 
                                     <th
@@ -1232,18 +1120,6 @@ function Payments() {
                                         "
                                     >
                                         Nominal
-                                    </th>
-
-                                    <th
-                                        className="
-                                            text-left
-                                            px-5
-                                            py-4
-                                            text-gray-500
-                                            text-sm
-                                        "
-                                    >
-                                        Jenis
                                     </th>
 
                                     <th
@@ -1309,45 +1185,34 @@ function Payments() {
                                             "
                                         >
                                             Belum ada data
-                                            pembayaran.
+                                            pembayaran denda.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredPayments.map(
                                         (item) => {
+                                            const status =
+                                                getStatus(
+                                                    item
+                                                );
+
+                                            const isLunas =
+                                                status ===
+                                                "Lunas";
+
+                                            const isWaiting =
+                                                status ===
+                                                "Menunggu Verifikasi";
+
                                             const hasProof =
                                                 Boolean(
                                                     item.bukti_bayar
                                                 );
 
-                                            const isLunas =
-                                                item.status ===
-                                                "Lunas";
-
-                                            const loan =
-                                                getLoanByPayment(
-                                                    item
-                                                );
-
-                                            const totalPeminjaman =
-                                                getTotalPeminjaman(
-                                                    item
-                                                );
-
-                                            const jenis =
-                                                getJenisPembayaran(
-                                                    item
-                                                );
-
-                                            const metode =
-                                                formatMetode(
-                                                    item.metode
-                                                );
-
                                             return (
                                                 <tr
                                                     key={
-                                                        item.id_pembayaran
+                                                        item.id_pembayaran_denda
                                                     }
                                                     className="
                                                         border-b
@@ -1367,8 +1232,32 @@ function Payments() {
                                                     >
                                                         #
                                                         {
-                                                            item.id_pembayaran
+                                                            item.id_pembayaran_denda
                                                         }
+                                                    </td>
+
+                                                    {/* DENDA */}
+
+                                                    <td className="px-5 py-5">
+                                                        <p className="font-medium">
+                                                            Denda #
+                                                            {
+                                                                item.id_denda
+                                                            }
+                                                        </p>
+
+                                                        <p
+                                                            className="
+                                                                text-xs
+                                                                text-gray-600
+                                                                mt-1
+                                                            "
+                                                        >
+                                                            {
+                                                                item.alasan ||
+                                                                "Denda pengembalian"
+                                                            }
+                                                        </p>
                                                     </td>
 
                                                     {/* PEMINJAMAN */}
@@ -1380,25 +1269,6 @@ function Payments() {
                                                                 item.id_peminjaman
                                                             }
                                                         </p>
-
-                                                        {loan?.status && (
-                                                            <span
-                                                                className="
-                                                                    inline-flex
-                                                                    mt-2
-                                                                    px-2.5
-                                                                    py-1
-                                                                    rounded-full
-                                                                    text-xs
-                                                                    bg-white/5
-                                                                    text-gray-400
-                                                                "
-                                                            >
-                                                                {
-                                                                    loan.status
-                                                                }
-                                                            </span>
-                                                        )}
                                                     </td>
 
                                                     {/* CUSTOMER */}
@@ -1451,12 +1321,7 @@ function Payments() {
 
                                                     {/* NOMINAL */}
 
-                                                    <td
-                                                        className="
-                                                            px-5
-                                                            py-5
-                                                        "
-                                                    >
+                                                    <td className="px-5 py-5">
                                                         <p
                                                             className="
                                                                 text-[#D4AF37]
@@ -1464,51 +1329,9 @@ function Payments() {
                                                             "
                                                         >
                                                             {formatRupiah(
-                                                                item.total
+                                                                item.jumlah
                                                             )}
                                                         </p>
-
-                                                        {totalPeminjaman >
-                                                            0 && (
-                                                            <p
-                                                                className="
-                                                                    text-xs
-                                                                    text-gray-600
-                                                                    mt-1
-                                                                "
-                                                            >
-                                                                dari{" "}
-                                                                {formatRupiah(
-                                                                    totalPeminjaman
-                                                                )}
-                                                            </p>
-                                                        )}
-                                                    </td>
-
-                                                    {/* JENIS */}
-
-                                                    <td className="px-5 py-5">
-                                                        <span
-                                                            className={`
-                                                                inline-flex
-                                                                px-3
-                                                                py-1.5
-                                                                rounded-full
-                                                                text-xs
-                                                                border
-                                                                ${
-                                                                    jenis ===
-                                                                    "DP 50%"
-                                                                        ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                                                                        : jenis ===
-                                                                          "Pembayaran Penuh"
-                                                                        ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                                                        : "bg-white/5 text-gray-400 border-white/10"
-                                                                }
-                                                            `}
-                                                        >
-                                                            {jenis}
-                                                        </span>
                                                     </td>
 
                                                     {/* METODE */}
@@ -1527,7 +1350,9 @@ function Payments() {
                                                                 border-blue-500/20
                                                             "
                                                         >
-                                                            {metode}
+                                                            {formatMetode(
+                                                                item.metode
+                                                            )}
                                                         </span>
                                                     </td>
 
@@ -1608,18 +1433,21 @@ function Payments() {
                                                                 ${
                                                                     isLunas
                                                                         ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                                                        : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                                                                        : isWaiting
+                                                                        ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                                                                        : "bg-white/5 text-gray-400 border-white/10"
                                                                 }
                                                             `}
                                                         >
                                                             {isLunas ? (
                                                                 <FaCheck />
-                                                            ) : (
+                                                            ) : isWaiting ? (
                                                                 <FaClock />
+                                                            ) : (
+                                                                <FaExclamationTriangle />
                                                             )}
 
-                                                            {item.status ||
-                                                                "Belum Bayar"}
+                                                            {status}
                                                         </span>
                                                     </td>
 
@@ -1633,7 +1461,7 @@ function Payments() {
                                                                 gap-2
                                                             "
                                                         >
-                                                            {!isLunas && (
+                                                            {isWaiting && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() =>
@@ -1643,7 +1471,7 @@ function Payments() {
                                                                     }
                                                                     disabled={
                                                                         updatingId ===
-                                                                        item.id_pembayaran
+                                                                        item.id_pembayaran_denda
                                                                     }
                                                                     className="
                                                                         inline-flex
@@ -1660,12 +1488,12 @@ function Payments() {
                                                                         disabled:opacity-50
                                                                         disabled:cursor-not-allowed
                                                                     "
-                                                                    title="Verifikasi pembayaran"
+                                                                    title="Verifikasi pembayaran denda"
                                                                 >
                                                                     <FaCheck />
 
                                                                     {updatingId ===
-                                                                    item.id_pembayaran
+                                                                    item.id_pembayaran_denda
                                                                         ? "Memproses..."
                                                                         : "Verifikasi"}
                                                                 </button>
@@ -1679,7 +1507,7 @@ function Payments() {
                                                                             item
                                                                         )
                                                                     }
-                                                                    title="Lihat bukti pembayaran"
+                                                                    title="Lihat bukti pembayaran denda"
                                                                     className="
                                                                         px-3
                                                                         py-2
@@ -1739,7 +1567,7 @@ function Payments() {
             </main>
 
             {/* ==================================================
-                MODAL BUKTI PEMBAYARAN
+                MODAL BUKTI PEMBAYARAN DENDA
             ================================================== */}
 
             {selectedProof && (
@@ -1797,7 +1625,7 @@ function Payments() {
                                         text-[#D4AF37]
                                     "
                                 >
-                                    Verifikasi Pembayaran
+                                    Verifikasi Pembayaran Denda
                                 </p>
 
                                 <h2
@@ -1809,7 +1637,7 @@ function Payments() {
                                 >
                                     Bukti Pembayaran #
                                     {
-                                        selectedProof.id_pembayaran
+                                        selectedProof.id_pembayaran_denda
                                     }
                                 </h2>
                             </div>
@@ -1906,7 +1734,7 @@ function Payments() {
                                     "
                                 >
                                     {formatRupiah(
-                                        selectedProof.total
+                                        selectedProof.jumlah
                                     )}
                                 </p>
                             </div>
@@ -1931,7 +1759,7 @@ function Payments() {
                                     src={getProofUrl(
                                         selectedProof.bukti_bayar
                                     )}
-                                    title="Bukti pembayaran PDF"
+                                    title="Bukti pembayaran denda PDF"
                                     className="
                                         w-full
                                         h-[55vh]
@@ -1945,7 +1773,7 @@ function Payments() {
                                     src={getProofUrl(
                                         selectedProof.bukti_bayar
                                     )}
-                                    alt="Bukti pembayaran"
+                                    alt="Bukti pembayaran denda"
                                     className="
                                         max-w-full
                                         max-h-[55vh]
@@ -1990,8 +1818,10 @@ function Payments() {
                                 Tutup
                             </button>
 
-                            {selectedProof.status !==
-                                "Lunas" && (
+                            {getStatus(
+                                selectedProof
+                            ) ===
+                                "Menunggu Verifikasi" && (
                                 <button
                                     type="button"
                                     onClick={async () => {
@@ -2006,7 +1836,7 @@ function Payments() {
                                     }}
                                     disabled={
                                         updatingId ===
-                                        selectedProof.id_pembayaran
+                                        selectedProof.id_pembayaran_denda
                                     }
                                     className="
                                         px-5
@@ -2025,14 +1855,15 @@ function Payments() {
                                     <FaCheck />
 
                                     {updatingId ===
-                                    selectedProof.id_pembayaran
+                                    selectedProof.id_pembayaran_denda
                                         ? "Memproses..."
                                         : "Verifikasi & Tandai Lunas"}
                                 </button>
                             )}
 
-                            {selectedProof.status ===
-                                "Lunas" && (
+                            {getStatus(
+                                selectedProof
+                            ) === "Lunas" && (
                                 <span
                                     className="
                                         px-5
@@ -2059,4 +1890,4 @@ function Payments() {
     );
 }
 
-export default Payments;
+export default PembayaranDenda;

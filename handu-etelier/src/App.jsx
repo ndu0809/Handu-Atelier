@@ -1,8 +1,8 @@
 import {
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
+    Routes,
+    Route,
+    Navigate,
+    useNavigate
 } from "react-router-dom";
 
 // ======================================================
@@ -59,7 +59,6 @@ import StaffLayout from "./components/layout/StaffLayout";
 // ROUTE GUARDS
 // ======================================================
 
-// Folder routes berada di luar src
 import ProtectedRoute from "../routes/ProtectedRoute";
 import GuestRoute from "../routes/GuestRoute";
 
@@ -77,6 +76,7 @@ import Customer from "./pages/staff/Customer.jsx";
 import Payments from "./pages/staff/Payments.jsx";
 import CustomerDetail from "./pages/staff/CustomerDetail.jsx";
 import PengaturanPembayaran from "./pages/staff/PengaturanPembayaran";
+import PembayaranDenda from "./pages/staff/PembayaranDenda.jsx";
 
 // ======================================================
 // ADMIN
@@ -104,67 +104,75 @@ import AdminLayout from "./components/admin/AdminLayout";
 // ======================================================
 
 function AdminPage({
-  children,
-  activePage,
+    children,
+    activePage
 }) {
-  const navigate = useNavigate();
 
-  const handleNavigate = (page) => {
-    switch (page) {
-      case "dashboard":
-        navigate("/admin/dashboard");
-        break;
+    const navigate = useNavigate();
 
-      case "petugas":
-        navigate("/admin/petugas");
-        break;
+    const handleNavigate = (page) => {
 
-      case "pelanggan":
-        navigate("/admin/pelanggan");
-        break;
+        switch (page) {
 
-      case "kostum":
-        navigate("/admin/kostum");
-        break;
+            case "dashboard":
+                navigate("/admin/dashboard");
+                break;
 
-      case "koleksi":
-        navigate("/admin/koleksi");
-        break;
+            case "petugas":
+                navigate("/admin/petugas");
+                break;
 
-      case "kategori":
-        navigate("/admin/kategori");
-        break;
+            case "pelanggan":
+                navigate("/admin/pelanggan");
+                break;
 
-      case "registrasi":
-        navigate("/admin/registrasi");
-        break;
+            case "kostum":
+                navigate("/admin/kostum");
+                break;
 
-      case "peminjaman":
-        navigate("/admin/peminjaman");
-        break;
+            case "koleksi":
+                navigate("/admin/koleksi");
+                break;
 
-      case "notifications":
-        navigate("/admin/notifikasi");
-        break;
+            case "kategori":
+                navigate("/admin/kategori");
+                break;
 
-      case "pengaturan":
-        navigate("/admin/pengaturan");
-        break;
+            case "registrasi":
+                navigate("/admin/registrasi");
+                break;
 
-      default:
-        navigate("/admin/dashboard");
-        break;
-    }
-  };
+            case "peminjaman":
+                navigate("/admin/peminjaman");
+                break;
 
-  return (
-    <AdminLayout
-      activePage={activePage}
-      onNavigate={handleNavigate}
-    >
-      {children}
-    </AdminLayout>
-  );
+            case "notifications":
+                navigate("/admin/notifikasi");
+                break;
+
+            case "pengaturan":
+                navigate("/admin/pengaturan");
+                break;
+
+            default:
+                navigate("/admin/dashboard");
+                break;
+
+        }
+
+    };
+
+    return (
+
+        <AdminLayout
+            activePage={activePage}
+            onNavigate={handleNavigate}
+        >
+            {children}
+        </AdminLayout>
+
+    );
+
 }
 
 // ======================================================
@@ -172,365 +180,349 @@ function AdminPage({
 // ======================================================
 
 function App() {
-  return (
-    <Routes>
-
-      {/* ==================================================
-          PUBLIC
-      ================================================== */}
-
-      <Route
-        path="/"
-        element={<Home />}
-      />
-
-      <Route
-        path="/category/:slug"
-        element={<CategoryPage />}
-      />
-
-      <Route
-        path="/costume/:code"
-        element={<CostumeDetail />}
-      />
-
-      <Route
-        path="/borrow/:code"
-        element={<BorrowForm />}
-      />
-
-      <Route
-        path="/borrow-success"
-        element={<BorrowSuccess />}
-      />
-
-      <Route
-        path="/collections"
-        element={<CollectionsPage />}
-      />
-
-
-      {/* ==================================================
-          HOW TO RENT
-      ================================================== */}
-
-      <Route
-        path="/how-to-rent"
-        element={
-          <div
-            className="
-              min-h-screen
-              bg-[#090909]
-              text-white
-            "
-          >
-            <Navbar />
-
-            <HowToRent />
-
-            <Footer />
-          </div>
-        }
-      />
-
-
-      {/* ==================================================
-          GUEST ONLY
-      ================================================== */}
-
-      <Route element={<GuestRoute />}>
-
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
-        <Route
-          path="/register"
-          element={<Register />}
-        />
-
-      </Route>
-
-
-      {/* ==================================================
-          LOGIN REQUIRED
-      ================================================== */}
-
-      <Route element={<ProtectedRoute />}>
-
-        {/* ==================================================
-            USER
-        ================================================== */}
-
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
-
-        <Route
-          path="/profile"
-          element={<Profile />}
-        />
-
-        <Route
-          path="/settings"
-          element={<Settings />}
-        />
-
-        <Route
-          path="/change-password"
-          element={<ChangePassword />}
-        />
-
-        <Route
-          path="/my-borrowings"
-          element={<MyBorrowings />}
-        />
-
-        <Route
-          path="/borrow-detail/:id"
-          element={<BorrowingDetail />}
-        />
-
-
-        {/* ==================================================
-            USER CHAT
-            SIDEBAR USER TETAP ADA
-            CHAT TETAP REALTIME
-        ================================================== */}
-
-        <Route
-          path="/chat"
-          element={
-            <UserLayout>
-              <ChatPage mode="customer" />
-            </UserLayout>
-          }
-        />
-
-
-        {/* ==================================================
-            PETUGAS
-        ================================================== */}
-
-        <Route
-          path="/petugas/dashboard"
-          element={<StaffDashboard />}
-        />
-
-        <Route
-          path="/petugas/peminjaman"
-          element={<PeminjamanPetugas />}
-        />
-
-        <Route
-          path="/petugas/peminjaman/:id"
-          element={
-            <PeminjamanDetailPetugas />
-          }
-        />
-
-        <Route
-          path="/petugas/pengembalian"
-          element={
-            <PengembalianPetugas />
-          }
-        />
-
-        <Route
-          path="/petugas/kostum"
-          element={
-            <KostumPetugas />
-          }
-        />
-
-        <Route
-          path="/petugas/customer"
-          element={<Customer />}
-        />
-
-        <Route
-          path="/petugas/profile"
-          element={
-            <StaffProfile />
-          }
-        />
-
-        <Route
-          path="/petugas/pembayaran"
-          element={<Payments />}
-        />
-
-        <Route
-          path="/petugas/customer/:id"
-          element={
-            <CustomerDetail />
-          }
-        />
-
-        <Route
-          path="/petugas/pengaturan-pembayaran"
-          element={
-            <PengaturanPembayaran />
-          }
-        />
-
-
-        {/* ==================================================
-            PETUGAS CHAT
-            SIDEBAR PETUGAS TETAP ADA
-            CHAT TETAP REALTIME
-        ================================================== */}
-
-        <Route
-          path="/petugas/chat"
-          element={
-            <StaffLayout>
-              <ChatPage mode="petugas" />
-            </StaffLayout>
-          }
-        />
-
-      </Route>
-
-
-      {/* ==================================================
-          ADMIN LOGIN LAMA
-      ================================================== */}
-
-      <Route
-        path="/admin/login"
-        element={
-          <Navigate
-            to="/login"
-            replace
-          />
-        }
-      />
-
-
-      {/* ==================================================
-          ADMIN
-      ================================================== */}
-
-      <Route
-        path="/admin/dashboard"
-        element={
-          <AdminPage activePage="dashboard">
-            <AdminDashboard />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/petugas"
-        element={
-          <AdminPage activePage="petugas">
-            <PetugasPage />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/pelanggan"
-        element={
-          <AdminPage activePage="pelanggan">
-            <PelangganPage />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/kostum"
-        element={
-          <AdminPage activePage="kostum">
-            <KostumPage />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/koleksi"
-        element={
-          <AdminPage activePage="koleksi">
-            <KoleksiPage />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/kategori"
-        element={
-          <AdminPage activePage="kategori">
-            <KategoriPage />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/registrasi"
-        element={
-          <AdminPage activePage="registrasi">
-            <RegistrasiPage />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/peminjaman"
-        element={
-          <AdminPage activePage="peminjaman">
-            <PeminjamanPage />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/notifikasi"
-        element={
-          <AdminPage activePage="notifications">
-            <NotificationPage />
-          </AdminPage>
-        }
-      />
-
-      <Route
-        path="/admin/pengaturan"
-        element={
-          <AdminPage activePage="pengaturan">
-            <PengaturanPage />
-          </AdminPage>
-        }
-      />
-
-
-      {/* ==================================================
-          ADMIN FALLBACK
-      ================================================== */}
-
-      <Route
-        path="/admin"
-        element={
-          <Navigate
-            to="/admin/dashboard"
-            replace
-          />
-        }
-      />
-
-
-      {/* ==================================================
-          GLOBAL FALLBACK
-      ================================================== */}
-
-      <Route
-        path="*"
-        element={<Home />}
-      />
-
-    </Routes>
-  );
+
+    return (
+
+        <Routes>
+
+            {/* ==================================================
+                PUBLIC
+            ================================================== */}
+
+            <Route
+                path="/"
+                element={<Home />}
+            />
+
+            <Route
+                path="/category/:slug"
+                element={<CategoryPage />}
+            />
+
+            <Route
+                path="/costume/:code"
+                element={<CostumeDetail />}
+            />
+
+            {/* FORM PEMINJAMAN */}
+            <Route
+                path="/borrow/:code"
+                element={<BorrowForm />}
+            />
+
+            <Route
+                path="/borrow-success"
+                element={<BorrowSuccess />}
+            />
+
+            <Route
+                path="/collections"
+                element={<CollectionsPage />}
+            />
+
+            {/* ==================================================
+                HOW TO RENT
+            ================================================== */}
+
+            <Route
+                path="/how-to-rent"
+                element={
+                    <div className="
+                        min-h-screen
+                        bg-[#090909]
+                        text-white
+                    ">
+
+                        <Navbar />
+
+                        <HowToRent />
+
+                        <Footer />
+
+                    </div>
+                }
+            />
+
+            {/* ==================================================
+                GUEST
+            ================================================== */}
+
+            <Route element={<GuestRoute />}>
+
+                <Route
+                    path="/login"
+                    element={<Login />}
+                />
+
+                <Route
+                    path="/register"
+                    element={<Register />}
+                />
+
+            </Route>
+
+            {/* ==================================================
+                LOGIN REQUIRED
+            ================================================== */}
+
+            <Route element={<ProtectedRoute />}>
+
+                {/* ==================================================
+                    USER
+                ================================================== */}
+
+                <Route
+                    path="/dashboard"
+                    element={<Dashboard />}
+                />
+
+                <Route
+                    path="/profile"
+                    element={<Profile />}
+                />
+
+                <Route
+                    path="/settings"
+                    element={<Settings />}
+                />
+
+                <Route
+                    path="/change-password"
+                    element={<ChangePassword />}
+                />
+
+                <Route
+                    path="/my-borrowings"
+                    element={<MyBorrowings />}
+                />
+
+                <Route
+                    path="/borrow-detail/:id"
+                    element={<BorrowingDetail />}
+                />
+
+                {/* ==================================================
+                    USER CHAT
+                ================================================== */}
+
+                <Route
+                    path="/chat"
+                    element={
+                        <UserLayout>
+                            <ChatPage mode="customer" />
+                        </UserLayout>
+                    }
+                />
+
+                {/* ==================================================
+                    PETUGAS
+                ================================================== */}
+
+                <Route
+                    path="/petugas/dashboard"
+                    element={<StaffDashboard />}
+                />
+
+                <Route
+                    path="/petugas/peminjaman"
+                    element={<PeminjamanPetugas />}
+                />
+
+                <Route
+                    path="/petugas/peminjaman/:id"
+                    element={<PeminjamanDetailPetugas />}
+                />
+
+                <Route
+                    path="/petugas/pengembalian"
+                    element={<PengembalianPetugas />}
+                />
+
+                <Route
+                    path="/petugas/kostum"
+                    element={<KostumPetugas />}
+                />
+
+                <Route
+                    path="/petugas/customer"
+                    element={<Customer />}
+                />
+
+                <Route
+                    path="/petugas/profile"
+                    element={<StaffProfile />}
+                />
+
+                <Route
+                    path="/petugas/pembayaran"
+                    element={<Payments />}
+                />
+
+                <Route
+                    path="/petugas/pembayaran-denda"
+                    element={<PembayaranDenda />}
+                />
+
+                <Route
+                    path="/petugas/customer/:id"
+                    element={<CustomerDetail />}
+                />
+
+                <Route
+                    path="/petugas/pengaturan-pembayaran"
+                    element={<PengaturanPembayaran />}
+                />
+
+                {/* ==================================================
+                    PETUGAS CHAT
+                ================================================== */}
+
+                <Route
+                    path="/petugas/chat"
+                    element={
+                        <StaffLayout>
+                            <ChatPage mode="petugas" />
+                        </StaffLayout>
+                    }
+                />
+
+            </Route>
+
+            {/* ==================================================
+                ADMIN LOGIN LAMA
+            ================================================== */}
+
+            <Route
+                path="/admin/login"
+                element={
+                    <Navigate
+                        to="/login"
+                        replace
+                    />
+                }
+            />
+
+            {/* ==================================================
+                ADMIN
+            ================================================== */}
+
+            <Route
+                path="/admin/dashboard"
+                element={
+                    <AdminPage activePage="dashboard">
+                        <AdminDashboard />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/petugas"
+                element={
+                    <AdminPage activePage="petugas">
+                        <PetugasPage />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/pelanggan"
+                element={
+                    <AdminPage activePage="pelanggan">
+                        <PelangganPage />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/kostum"
+                element={
+                    <AdminPage activePage="kostum">
+                        <KostumPage />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/koleksi"
+                element={
+                    <AdminPage activePage="koleksi">
+                        <KoleksiPage />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/kategori"
+                element={
+                    <AdminPage activePage="kategori">
+                        <KategoriPage />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/registrasi"
+                element={
+                    <AdminPage activePage="registrasi">
+                        <RegistrasiPage />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/peminjaman"
+                element={
+                    <AdminPage activePage="peminjaman">
+                        <PeminjamanPage />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/notifikasi"
+                element={
+                    <AdminPage activePage="notifications">
+                        <NotificationPage />
+                    </AdminPage>
+                }
+            />
+
+            <Route
+                path="/admin/pengaturan"
+                element={
+                    <AdminPage activePage="pengaturan">
+                        <PengaturanPage />
+                    </AdminPage>
+                }
+            />
+
+            {/* ==================================================
+                ADMIN FALLBACK
+            ================================================== */}
+
+            <Route
+                path="/admin"
+                element={
+                    <Navigate
+                        to="/admin/dashboard"
+                        replace
+                    />
+                }
+            />
+
+            {/* ==================================================
+                GLOBAL FALLBACK
+            ================================================== */}
+
+            <Route
+                path="*"
+                element={<Home />}
+            />
+
+        </Routes>
+
+    );
+
 }
 
 export default App;

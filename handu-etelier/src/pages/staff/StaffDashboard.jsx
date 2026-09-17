@@ -18,6 +18,7 @@ import {
   FaClock,
   FaCheckCircle,
   FaComments,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 
 function StaffDashboard() {
@@ -136,38 +137,43 @@ function StaffDashboard() {
           parseResponse(pengembalianResponse),
         ]);
 
-        // KOSTUM
         const kostumRows = Array.isArray(kostumResult)
           ? kostumResult
           : kostumResult.data;
 
         setKostumData(
-          Array.isArray(kostumRows) ? kostumRows : []
+          Array.isArray(kostumRows)
+            ? kostumRows
+            : []
         );
 
-        // USERS
         const userRows = Array.isArray(usersResult)
           ? usersResult
           : usersResult.data;
 
         const customerRows = (
-          Array.isArray(userRows) ? userRows : []
+          Array.isArray(userRows)
+            ? userRows
+            : []
         ).filter((item) => {
-          const role = String(item.nama_role || "")
+          const role = String(
+            item.nama_role || ""
+          )
             .trim()
             .toLowerCase();
 
-          return role !== "admin" && role !== "petugas";
+          return (
+            role !== "admin" &&
+            role !== "petugas"
+          );
         });
 
         setUserData(customerRows);
 
-        // PEMINJAMAN
-        const peminjamanRows = Array.isArray(
-          peminjamanResult
-        )
-          ? peminjamanResult
-          : peminjamanResult.data;
+        const peminjamanRows =
+          Array.isArray(peminjamanResult)
+            ? peminjamanResult
+            : peminjamanResult.data;
 
         setPeminjamanData(
           Array.isArray(peminjamanRows)
@@ -175,12 +181,10 @@ function StaffDashboard() {
             : []
         );
 
-        // PENGEMBALIAN
-        const pengembalianRows = Array.isArray(
-          pengembalianResult
-        )
-          ? pengembalianResult
-          : pengembalianResult.data;
+        const pengembalianRows =
+          Array.isArray(pengembalianResult)
+            ? pengembalianResult
+            : pengembalianResult.data;
 
         setPengembalianData(
           Array.isArray(pengembalianRows)
@@ -188,10 +192,14 @@ function StaffDashboard() {
             : []
         );
       } catch (err) {
-        console.error("Dashboard error:", err);
+        console.error(
+          "Dashboard error:",
+          err
+        );
 
         setError(
-          err.message || "Gagal memuat dashboard."
+          err.message ||
+            "Gagal memuat dashboard."
         );
       } finally {
         setLoading(false);
@@ -241,11 +249,14 @@ function StaffDashboard() {
       return value;
     }
 
-    return date.toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    return date.toLocaleDateString(
+      "id-ID",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
   };
 
   // ==================================================
@@ -300,8 +311,8 @@ function StaffDashboard() {
   const waitingBorrowings = useMemo(() => {
     return peminjamanData.filter(
       (item) =>
-        String(item.status || "").toLowerCase() ===
-        "menunggu"
+        String(item.status || "")
+          .toLowerCase() === "menunggu"
     ).length;
   }, [peminjamanData]);
 
@@ -312,8 +323,8 @@ function StaffDashboard() {
   const completedBorrowings = useMemo(() => {
     return peminjamanData.filter(
       (item) =>
-        String(item.status || "").toLowerCase() ===
-        "selesai"
+        String(item.status || "")
+          .toLowerCase() === "selesai"
     ).length;
   }, [peminjamanData]);
 
@@ -326,8 +337,9 @@ function StaffDashboard() {
 
     return pengembalianData.filter(
       (item) =>
-        getDateKey(item.tanggal_pengembalian) ===
-        today
+        getDateKey(
+          item.tanggal_pengembalian
+        ) === today
     ).length;
   }, [pengembalianData]);
 
@@ -338,7 +350,8 @@ function StaffDashboard() {
   const totalDenda = useMemo(() => {
     return pengembalianData.reduce(
       (total, item) =>
-        total + (Number(item.denda) || 0),
+        total +
+        (Number(item.denda) || 0),
       0
     );
   }, [pengembalianData]);
@@ -475,58 +488,64 @@ function StaffDashboard() {
   }, [peminjamanData]);
 
   // ==================================================
-  // MENU
+  // MENU PETUGAS
   // ==================================================
 
-const menu = [
-  {
-    label: "Dashboard",
-    path: "/petugas/dashboard",
-    icon: FaHome,
-  },
+  const menu = [
+    {
+      label: "Dashboard",
+      path: "/petugas/dashboard",
+      icon: FaHome,
+    },
 
-  {
-    label: "Peminjaman",
-    path: "/petugas/peminjaman",
-    icon: FaClipboardList,
-  },
+    {
+      label: "Peminjaman",
+      path: "/petugas/peminjaman",
+      icon: FaClipboardList,
+    },
 
-  {
-    label: "Pengembalian",
-    path: "/petugas/pengembalian",
-    icon: FaUndoAlt,
-  },
+    {
+      label: "Pengembalian",
+      path: "/petugas/pengembalian",
+      icon: FaUndoAlt,
+    },
 
-  {
-    label: "Koleksi Kostum",
-    path: "/collections",
-    icon: FaTshirt,
-  },
+    {
+      label: "Pembayaran",
+      path: "/petugas/pengaturan-pembayaran",
+      icon: FaCreditCard,
+    },
 
-  {
-    label: "Customer",
-    path: "/petugas/customer",
-    icon: FaUsers,
-  },
+    {
+      label: "Pembayaran Denda",
+      path: "/petugas/pembayaran-denda",
+      icon: FaMoneyBillWave,
+    },
 
-  {
-    label: "Chat Pelanggan",
-    path: "/petugas/chat",
-    icon: FaComments,
-  },
+    {
+      label: "Koleksi Kostum",
+      path: "/collections",
+      icon: FaTshirt,
+    },
 
-  {
-    label: "Profil",
-    path: "/petugas/profile",
-    icon: FaUserCircle,
-  },
+    {
+      label: "Customer",
+      path: "/petugas/customer",
+      icon: FaUsers,
+    },
 
-  {
-    label: "Pembayaran",
-    path: "/petugas/pengaturan-pembayaran",
-    icon: FaCreditCard,
-  },
-];
+    {
+      label: "Chat Pelanggan",
+      path: "/petugas/chat",
+      icon: FaComments,
+    },
+
+    {
+      label: "Profil",
+      path: "/petugas/profile",
+      icon: FaUserCircle,
+    },
+  ];
 
   // ==================================================
   // STATUS STYLE
@@ -601,9 +620,7 @@ const menu = [
         text-white
       "
     >
-      {/* ==================================================
-          MOBILE HEADER
-      ================================================== */}
+      {/* MOBILE HEADER */}
 
       <header
         className="
@@ -667,9 +684,7 @@ const menu = [
         </div>
       </header>
 
-      {/* ==================================================
-          MOBILE MENU
-      ================================================== */}
+      {/* MOBILE MENU */}
 
       {menuOpen && (
         <div
@@ -708,6 +723,7 @@ const menu = [
                   "
                 >
                   <Icon className="text-[#D4AF37]" />
+
                   {item.label}
                 </Link>
               );
@@ -738,9 +754,7 @@ const menu = [
         </div>
       )}
 
-      {/* ==================================================
-          SIDEBAR
-      ================================================== */}
+      {/* SIDEBAR */}
 
       <aside
         className="
@@ -890,6 +904,8 @@ const menu = [
             })}
           </nav>
 
+          {/* PENGATURAN */}
+
           <div
             className="
               mt-9
@@ -1028,9 +1044,7 @@ const menu = [
         </div>
       </aside>
 
-      {/* ==================================================
-          MAIN
-      ================================================== */}
+      {/* MAIN */}
 
       <main
         className="
@@ -1176,9 +1190,7 @@ const menu = [
             </div>
           )}
 
-          {/* ==================================================
-              STAT CARDS
-          ================================================== */}
+          {/* STAT CARDS */}
 
           <section
             className="
@@ -1477,9 +1489,7 @@ const menu = [
             </Link>
           </section>
 
-          {/* ==================================================
-              SECONDARY SUMMARY
-          ================================================== */}
+          {/* SECONDARY SUMMARY */}
 
           <section
             className="
@@ -1545,9 +1555,7 @@ const menu = [
             </div>
           </section>
 
-          {/* ==================================================
-              CONTENT GRID
-          ================================================== */}
+          {/* GRAFIK + PEMINJAMAN TERBARU */}
 
           <section
             className="
@@ -1557,8 +1565,6 @@ const menu = [
               mt-5
             "
           >
-            {/* GRAFIK */}
-
             <div
               className="
                 xl:col-span-3
@@ -1623,7 +1629,8 @@ const menu = [
                   p-4
                 "
               >
-                {peminjamanData.length === 0 ? (
+                {peminjamanData.length ===
+                0 ? (
                   <div
                     className="
                       h-full
@@ -1646,12 +1653,6 @@ const menu = [
                       justify-end
                     "
                   >
-                    {/* 
-                      PERBAIKAN:
-                      Tidak menggunakan overflow-x-auto.
-                      Semua tanggal dipaksa masuk ke
-                      lebar grafik.
-                    */}
                     <div
                       className="
                         grid
@@ -1716,9 +1717,6 @@ const menu = [
                                 style={{
                                   height: `${height}px`,
                                 }}
-                                title={`Tanggal ${
-                                  index + 1
-                                }: ${count} peminjaman`}
                               />
 
                               <span
@@ -1739,8 +1737,6 @@ const menu = [
                 )}
               </div>
             </div>
-
-            {/* PEMINJAMAN TERBARU */}
 
             <div
               className="
@@ -1787,7 +1783,8 @@ const menu = [
               </div>
 
               <div className="divide-y divide-white/5">
-                {recentBorrowings.length === 0 ? (
+                {recentBorrowings.length ===
+                0 ? (
                   <div
                     className="
                       py-10
@@ -1799,78 +1796,87 @@ const menu = [
                     Belum ada peminjaman.
                   </div>
                 ) : (
-                  recentBorrowings.map((item) => (
-                    <Link
-                      key={item.id_peminjaman}
-                      to={`/petugas/peminjaman/${item.id_peminjaman}`}
-                      className="
-                        block
-                        py-3
-                        hover:bg-white/[0.02]
-                        transition
-                      "
-                    >
-                      <div
+                  recentBorrowings.map(
+                    (item) => (
+                      <Link
+                        key={
+                          item.id_peminjaman
+                        }
+                        to={`/petugas/peminjaman/${item.id_peminjaman}`}
                         className="
-                          flex
-                          items-center
-                          gap-3
+                          block
+                          py-3
+                          hover:bg-white/[0.02]
+                          transition
                         "
                       >
                         <div
                           className="
-                            w-10
-                            h-10
-                            rounded-xl
-                            bg-[#D4AF37]/10
-                            text-[#D4AF37]
                             flex
                             items-center
-                            justify-center
-                            font-semibold
+                            gap-3
                           "
                         >
-                          {item.nama_user
-                            ?.charAt(0)
-                            ?.toUpperCase() || "U"}
+                          <div
+                            className="
+                              w-10
+                              h-10
+                              rounded-xl
+                              bg-[#D4AF37]/10
+                              text-[#D4AF37]
+                              flex
+                              items-center
+                              justify-center
+                              font-semibold
+                            "
+                          >
+                            {item.nama_user
+                              ?.charAt(0)
+                              ?.toUpperCase() ||
+                              "U"}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">
+                              {item.nama_user ||
+                                "-"}
+                            </p>
+
+                            <p className="text-[11px] text-gray-600 mt-1 truncate">
+                              #
+                              {
+                                item.id_peminjaman
+                              }{" "}
+                              •{" "}
+                              {item.nama_kostum ||
+                                "Kostum"}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`
+                              text-[10px]
+                              px-2
+                              py-1
+                              rounded-full
+                              ${getStatusClass(
+                                item.status
+                              )}
+                            `}
+                          >
+                            {item.status ||
+                              "-"}
+                          </span>
                         </div>
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">
-                            {item.nama_user || "-"}
-                          </p>
-
-                          <p className="text-[11px] text-gray-600 mt-1 truncate">
-                            #{item.id_peminjaman} •{" "}
-                            {item.nama_kostum ||
-                              "Kostum"}
-                          </p>
-                        </div>
-
-                        <span
-                          className={`
-                            text-[10px]
-                            px-2
-                            py-1
-                            rounded-full
-                            ${getStatusClass(
-                              item.status
-                            )}
-                          `}
-                        >
-                          {item.status || "-"}
-                        </span>
-                      </div>
-                    </Link>
-                  ))
+                      </Link>
+                    )
+                  )
                 )}
               </div>
             </div>
           </section>
 
-          {/* ==================================================
-              PENGEMBALIAN TERBARU
-          ================================================== */}
+          {/* PENGEMBALIAN TERBARU */}
 
           <section
             className="
@@ -1949,7 +1955,8 @@ const menu = [
                 </thead>
 
                 <tbody>
-                  {recentReturns.length === 0 ? (
+                  {recentReturns.length ===
+                  0 ? (
                     <tr>
                       <td
                         colSpan="6"
@@ -1965,69 +1972,81 @@ const menu = [
                       </td>
                     </tr>
                   ) : (
-                    recentReturns.map((item) => (
-                      <tr
-                        key={item.id_pengembalian}
-                        className="
-                          border-t
-                          border-white/5
-                        "
-                      >
-                        <td className="px-5 py-4 text-[#D4AF37] font-semibold">
-                          #{item.id_pengembalian}
-                        </td>
+                    recentReturns.map(
+                      (item) => (
+                        <tr
+                          key={
+                            item.id_pengembalian
+                          }
+                          className="
+                            border-t
+                            border-white/5
+                          "
+                        >
+                          <td className="px-5 py-4 text-[#D4AF37] font-semibold">
+                            #
+                            {
+                              item.id_pengembalian
+                            }
+                          </td>
 
-                        <td className="px-5 py-4">
-                          #{item.id_peminjaman}
-                        </td>
+                          <td className="px-5 py-4">
+                            #
+                            {
+                              item.id_peminjaman
+                            }
+                          </td>
 
-                        <td className="px-5 py-4">
-                          {item.nama_user || "-"}
-                        </td>
+                          <td className="px-5 py-4">
+                            {item.nama_user ||
+                              "-"}
+                          </td>
 
-                        <td className="px-5 py-4 text-gray-300">
-                          {formatTanggal(
-                            item.tanggal_pengembalian
-                          )}
-                        </td>
+                          <td className="px-5 py-4 text-gray-300">
+                            {formatTanggal(
+                              item.tanggal_pengembalian
+                            )}
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <span
-                            className={`
-                              inline-flex
-                              px-3
-                              py-1.5
-                              rounded-full
-                              text-xs
-                              ${
-                                item.kondisi_baju ===
-                                "Baik"
-                                  ? "bg-green-500/10 text-green-400"
-                                  : item.kondisi_baju ===
-                                    "Kotor"
-                                  ? "bg-yellow-500/10 text-yellow-400"
-                                  : "bg-red-500/10 text-red-400"
-                              }
-                            `}
-                          >
-                            {item.kondisi_baju || "-"}
-                          </span>
-                        </td>
+                          <td className="px-5 py-4">
+                            <span
+                              className={`
+                                inline-flex
+                                px-3
+                                py-1.5
+                                rounded-full
+                                text-xs
+                                ${
+                                  item.kondisi_baju ===
+                                  "Baik"
+                                    ? "bg-green-500/10 text-green-400"
+                                    : item.kondisi_baju ===
+                                      "Kotor"
+                                    ? "bg-yellow-500/10 text-yellow-400"
+                                    : "bg-red-500/10 text-red-400"
+                                }
+                              `}
+                            >
+                              {item.kondisi_baju ||
+                                "-"}
+                            </span>
+                          </td>
 
-                        <td className="px-5 py-4 text-[#D4AF37] font-semibold">
-                          {formatRupiah(item.denda)}
-                        </td>
-                      </tr>
-                    ))
+                          <td className="px-5 py-4 text-[#D4AF37] font-semibold">
+                            {formatRupiah(
+                              item.denda
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    )
                   )}
                 </tbody>
               </table>
             </div>
           </section>
 
-          {/* ==================================================
-              KOLEKSI KOSTUM
-          ================================================== */}
+          {/* KOLEKSI KOSTUM */}
 
           <section
             className="
@@ -2106,7 +2125,8 @@ const menu = [
                 </thead>
 
                 <tbody>
-                  {popularCostumes.length === 0 ? (
+                  {popularCostumes.length ===
+                  0 ? (
                     <tr>
                       <td
                         colSpan="6"
@@ -2163,7 +2183,9 @@ const menu = [
 
                               <div>
                                 <p className="text-sm font-semibold">
-                                  {costume.nama_kostum}
+                                  {
+                                    costume.nama_kostum
+                                  }
                                 </p>
 
                                 <p className="text-[10px] text-gray-600 mt-1">
@@ -2182,7 +2204,8 @@ const menu = [
                           </td>
 
                           <td className="px-5 py-4 text-gray-300 text-sm">
-                            {costume.stok ?? "-"}
+                            {costume.stok ??
+                              "-"}
                           </td>
 
                           <td className="px-5 py-4 text-[#D4AF37] text-sm font-semibold">

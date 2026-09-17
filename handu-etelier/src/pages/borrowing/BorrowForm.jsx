@@ -8,10 +8,14 @@ function BorrowForm() {
   const navigate = useNavigate();
 
   // ======================================================
-  // STATE
+  // STATE KOSTUM
   // ======================================================
 
   const [costume, setCostume] = useState(null);
+
+  // ======================================================
+  // STATE PEMBAYARAN
+  // ======================================================
 
   const [paymentSettings, setPaymentSettings] = useState(null);
 
@@ -28,16 +32,32 @@ function BorrowForm() {
   const [qris, setQris] = useState(null);
   const [loadingQris, setLoadingQris] = useState(false);
 
+  // ======================================================
+  // STATE DOKUMEN JAMINAN
+  // ======================================================
+
+  const [jenisDokumen, setJenisDokumen] = useState("KTP");
+  const [dokumenJaminan, setDokumenJaminan] = useState(null);
+  const [dokumenPreview, setDokumenPreview] = useState("");
+
+  // ======================================================
+  // STATE UMUM
+  // ======================================================
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   // ======================================================
-  // STATE KETERSEDIAAN BERDASARKAN TANGGAL
+  // STATE KETERSEDIAAN
   // ======================================================
 
   const [availability, setAvailability] = useState(null);
   const [checkingAvailability, setCheckingAvailability] =
     useState(false);
+
+  // ======================================================
+  // ERROR / SUCCESS
+  // ======================================================
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -104,8 +124,7 @@ function BorrowForm() {
           "/api/pengaturan-pembayaran/qris-aktif"
         );
 
-        const result =
-          await response.json();
+        const result = await response.json();
 
         if (!response.ok) {
           throw new Error(
@@ -189,8 +208,6 @@ function BorrowForm() {
       [name]: value,
     }));
 
-    // Jika tanggal berubah, hasil availability
-    // sebelumnya tidak boleh langsung digunakan.
     if (
       name === "tanggal_peminjaman" ||
       name === "tanggal_kembali"
@@ -203,7 +220,7 @@ function BorrowForm() {
   };
 
   // ======================================================
-  // CEK KETERSEDIAAN KOSTUM BERDASARKAN TANGGAL
+  // CEK KETERSEDIAAN
   // ======================================================
 
   useEffect(() => {
@@ -216,10 +233,6 @@ function BorrowForm() {
         setAvailability(null);
         return;
       }
-
-      // ==================================================
-      // VALIDASI TANGGAL SEBELUM REQUEST
-      // ==================================================
 
       const start = new Date(
         `${formData.tanggal_peminjaman}T00:00:00`
@@ -278,9 +291,6 @@ function BorrowForm() {
           );
         }
 
-        // Backend dapat mengembalikan:
-        // { data: {...} }
-        // atau langsung {...}
         const data =
           result.data ||
           result;
@@ -394,6 +404,86 @@ function BorrowForm() {
     reader.onerror = () => {
       setError(
         "Gagal membaca file bukti pembayaran."
+      );
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  // ======================================================
+  // HANDLE DOKUMEN JAMINAN
+  // ======================================================
+
+  const handleDokumenChange = (e) => {
+    const file =
+      e.target.files?.[0];
+
+    setError("");
+    setSuccess("");
+
+    if (!file) {
+      setDokumenJaminan(null);
+      setDokumenPreview("");
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (
+      !allowedTypes.includes(
+        file.type
+      )
+    ) {
+      setDokumenJaminan(null);
+      setDokumenPreview("");
+
+      setError(
+        "Format dokumen jaminan harus JPG, PNG, atau WEBP."
+      );
+
+      e.target.value = "";
+      return;
+    }
+
+    // Maksimal 5 MB
+    if (
+      file.size >
+      5 * 1024 * 1024
+    ) {
+      setDokumenJaminan(null);
+      setDokumenPreview("");
+
+      setError(
+        "Ukuran dokumen jaminan maksimal 5 MB."
+      );
+
+      e.target.value = "";
+      return;
+    }
+
+    setDokumenJaminan(file);
+
+    const reader =
+      new FileReader();
+
+    reader.onload = () => {
+      if (
+        typeof reader.result ===
+        "string"
+      ) {
+        setDokumenPreview(
+          reader.result
+        );
+      }
+    };
+
+    reader.onerror = () => {
+      setError(
+        "Gagal membaca dokumen jaminan."
       );
     };
 
@@ -522,10 +612,6 @@ function BorrowForm() {
   // STATUS KOSTUM
   // ======================================================
 
-  // Status "Tersedia" menjadi status dasar.
-  // Stok tidak lagi dijadikan syarat mutlak di sini
-  // karena stok dapat sedang berada pada peminjaman aktif
-  // untuk periode lain.
   const costumeStatus =
     String(
       costume?.status || ""
@@ -538,19 +624,6 @@ function BorrowForm() {
 
   // ======================================================
   // KETERSEDIAAN FINAL
-  // ======================================================
-  //
-  // Jika tanggal belum dipilih:
-  // gunakan stok fisik sebagai informasi awal.
-  //
-  // Jika tanggal sudah dipilih:
-  // gunakan hasil check-availability berdasarkan
-  // periode tanggal yang dipilih.
-  //
-  // Hal ini penting karena stok fisik dapat bernilai 0
-  // ketika seluruh unit sedang dipinjam, tetapi unit yang
-  // sama dapat tersedia kembali pada tanggal yang berbeda.
-  //
   // ======================================================
 
   const hasCompleteDates =
@@ -575,7 +648,9 @@ function BorrowForm() {
   const getTodayLocal = () => {
     const now = new Date();
 
-    const year = now.getFullYear();
+    const year =
+      now.getFullYear();
+
     const month = String(
       now.getMonth() + 1
     ).padStart(2, "0");
@@ -587,7 +662,8 @@ function BorrowForm() {
     return `${year}-${month}-${day}`;
   };
 
-  const today = getTodayLocal();
+  const today =
+    getTodayLocal();
 
   // ======================================================
   // SUBMIT PEMINJAMAN
@@ -710,7 +786,7 @@ function BorrowForm() {
     }
 
     // ==================================================
-    // 4. WAJIB ADA HASIL CEK KETERSEDIAAN
+    // 4. VALIDASI KETERSEDIAAN
     // ==================================================
 
     if (checkingAvailability) {
@@ -798,19 +874,39 @@ function BorrowForm() {
     }
 
     // ==================================================
-    // 7. KIRIM PEMINJAMAN
+    // 7. VALIDASI DOKUMEN JAMINAN
+    // ==================================================
+
+    if (!dokumenJaminan) {
+      setError(
+        "Dokumen jaminan berupa KTP atau Kartu Keluarga wajib diunggah."
+      );
+
+      return;
+    }
+
+    if (
+      ![
+        "KTP",
+        "Kartu Keluarga",
+      ].includes(jenisDokumen)
+    ) {
+      setError(
+        "Jenis dokumen jaminan tidak valid."
+      );
+
+      return;
+    }
+
+    // ==================================================
+    // 8. SUBMIT
     // ==================================================
 
     try {
       setSubmitting(true);
 
       // ==================================================
-      // CEK ULANG KETERSEDIAAN SEBELUM CREATE
-      // ==================================================
-      //
-      // Tujuannya agar data tidak hanya bergantung
-      // pada hasil pengecekan sebelumnya.
-      //
+      // CEK ULANG KETERSEDIAAN
       // ==================================================
 
       const recheckParams =
@@ -866,11 +962,11 @@ function BorrowForm() {
       const dataPeminjaman = {
         id_user: idUser,
 
-        // Belum disetujui admin
-        disetujui_oleh: null,
+        disetujui_oleh:
+          null,
 
-        // Belum diproses petugas
-        diproses_oleh: null,
+        diproses_oleh:
+          null,
 
         tanggal_peminjaman:
           formData.tanggal_peminjaman,
@@ -881,8 +977,8 @@ function BorrowForm() {
         total_harga:
           totalHarga,
 
-        // Reservasi masuk sebagai Menunggu
-        status: "Menunggu",
+        status:
+          "Menunggu",
       };
 
       console.log(
@@ -929,7 +1025,9 @@ function BorrowForm() {
       // ==================================================
 
       const idPeminjaman =
-        peminjamanResult.id_peminjaman;
+        peminjamanResult.id_peminjaman ||
+        peminjamanResult.data?.id_peminjaman ||
+        peminjamanResult.peminjaman?.id_peminjaman;
 
       if (!idPeminjaman) {
         throw new Error(
@@ -948,15 +1046,12 @@ function BorrowForm() {
         id_kostum:
           costume.id_kostum,
 
-        // JUMLAH KOSTUM / UNIT
-        // BUKAN JUMLAH HARI
-        jumlah: 1,
+        jumlah:
+          1,
 
-        // HARGA SEWA PER HARI
         harga:
           hargaPerHari,
 
-        // TOTAL BERDASARKAN DURASI
         subtotal:
           totalHarga,
       };
@@ -1027,12 +1122,12 @@ function BorrowForm() {
         formData.metode_pembayaran
       );
 
+      // Untuk alur verifikasi petugas,
+      // pembayaran customer masuk sebagai
+      // Belum Bayar.
       paymentFormData.append(
         "status",
-        persentasePembayaran ===
-          100
-          ? "Lunas"
-          : "Belum Bayar"
+        "Belum Bayar"
       );
 
       if (buktiFile) {
@@ -1045,7 +1140,7 @@ function BorrowForm() {
       console.log(
         "DATA PEMBAYARAN:",
         {
-          id_peminjaman:
+          idPeminjaman:
             idPeminjaman,
 
           total:
@@ -1090,11 +1185,74 @@ function BorrowForm() {
       }
 
       // ==================================================
+      // SIMPAN DOKUMEN JAMINAN
+      // ==================================================
+
+      const dokumenFormData =
+        new FormData();
+
+      dokumenFormData.append(
+        "id_peminjaman",
+        String(idPeminjaman)
+      );
+
+      dokumenFormData.append(
+        "jenis_dokumen",
+        jenisDokumen
+      );
+
+      dokumenFormData.append(
+        "dokumen_jaminan",
+        dokumenJaminan
+      );
+
+      console.log(
+        "DATA DOKUMEN JAMINAN:",
+        {
+          idPeminjaman,
+          jenisDokumen,
+          namaFile:
+            dokumenJaminan.name,
+          ukuran:
+            dokumenJaminan.size,
+          tipe:
+            dokumenJaminan.type,
+        }
+      );
+
+      const dokumenResponse =
+        await fetch(
+          "/dokumen-jaminan",
+          {
+            method: "POST",
+            body:
+              dokumenFormData,
+          }
+        );
+
+      const dokumenResult =
+        await dokumenResponse.json();
+
+      console.log(
+        "HASIL DOKUMEN JAMINAN:",
+        dokumenResult
+      );
+
+      if (
+        !dokumenResponse.ok
+      ) {
+        throw new Error(
+          dokumenResult.message ||
+            "Peminjaman dan pembayaran berhasil, tetapi dokumen jaminan gagal disimpan."
+        );
+      }
+
+      // ==================================================
       // BERHASIL
       // ==================================================
 
       setSuccess(
-        "Peminjaman dan pembayaran berhasil diajukan!"
+        "Peminjaman, pembayaran, dan dokumen jaminan berhasil diajukan!"
       );
 
       setFormData({
@@ -1110,6 +1268,10 @@ function BorrowForm() {
 
       setBuktiFile(null);
       setBuktiPreview("");
+
+      setJenisDokumen("KTP");
+      setDokumenJaminan(null);
+      setDokumenPreview("");
 
       setTimeout(() => {
         navigate(
@@ -1334,7 +1496,7 @@ function BorrowForm() {
 
             {/* ==================================================
                 KOTAK 1
-                KOSTUM YANG DIPILIH
+                KOSTUM
             ================================================== */}
 
             <div
@@ -1374,8 +1536,6 @@ function BorrowForm() {
                   costume.nama_kategori ||
                   "-"}
               </p>
-
-              {/* DETAIL KOSTUM */}
 
               <div className="mt-8 space-y-5">
 
@@ -1448,11 +1608,10 @@ function BorrowForm() {
                       : "Tidak tersedia"}
                   </span>
                 </div>
-
               </div>
 
               {/* ==================================================
-                  STATUS KETERSEDIAAN BERDASARKAN TANGGAL
+                  STATUS KETERSEDIAAN
               ================================================== */}
 
               {hasCompleteDates && (
@@ -1544,7 +1703,9 @@ function BorrowForm() {
                 </div>
               )}
 
-              {/* HARGA */}
+              {/* ==================================================
+                  HARGA
+              ================================================== */}
 
               <div
                 className="
@@ -1772,9 +1933,7 @@ function BorrowForm() {
                 Pembayaran
               </h2>
 
-              {/* ==================================================
-                  METODE PEMBAYARAN
-              ================================================== */}
+              {/* METODE PEMBAYARAN */}
 
               <div className="mb-6">
                 <label
@@ -1931,9 +2090,7 @@ function BorrowForm() {
                 </div>
               </div>
 
-              {/* ==================================================
-                  PERSENTASE PEMBAYARAN
-              ================================================== */}
+              {/* PERSENTASE PEMBAYARAN */}
 
               <div className="mb-6">
                 <label
@@ -1977,9 +2134,7 @@ function BorrowForm() {
                 </select>
               </div>
 
-              {/* ==================================================
-                  INFO PEMBAYARAN
-              ================================================== */}
+              {/* INFO PEMBAYARAN */}
 
               <div
                 className="
@@ -2031,7 +2186,7 @@ function BorrowForm() {
               </div>
 
               {/* ==================================================
-                  INFO QRIS
+                  QRIS
               ================================================== */}
 
               {formData.metode_pembayaran ===
@@ -2117,7 +2272,7 @@ function BorrowForm() {
               )}
 
               {/* ==================================================
-                  INFO TRANSFER BANK
+                  TRANSFER BANK
               ================================================== */}
 
               {formData.metode_pembayaran ===
@@ -2154,8 +2309,6 @@ function BorrowForm() {
                     "
                   >
 
-                    {/* BANK */}
-
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-400">
                         Bank
@@ -2166,8 +2319,6 @@ function BorrowForm() {
                           "-"}
                       </span>
                     </div>
-
-                    {/* NOMOR REKENING */}
 
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-400">
@@ -2187,8 +2338,6 @@ function BorrowForm() {
                       </span>
                     </div>
 
-                    {/* NAMA PEMILIK */}
-
                     <div className="flex justify-between gap-4">
                       <span className="text-gray-400">
                         Atas Nama
@@ -2205,7 +2354,7 @@ function BorrowForm() {
               )}
 
               {/* ==================================================
-                  INFO CASH
+                  CASH
               ================================================== */}
 
               {formData.metode_pembayaran ===
@@ -2229,7 +2378,7 @@ function BorrowForm() {
               )}
 
               {/* ==================================================
-                  UPLOAD BUKTI
+                  UPLOAD BUKTI PEMBAYARAN
               ================================================== */}
 
               {membutuhkanBukti && (
@@ -2315,6 +2464,233 @@ function BorrowForm() {
               )}
 
               {/* ==================================================
+                  DOKUMEN JAMINAN
+              ================================================== */}
+
+              <div
+                className="
+                  mt-8
+                  p-6
+                  rounded-2xl
+                  bg-[#0D0D0D]
+                  border
+                  border-[#D4AF37]/20
+                "
+              >
+                <div className="mb-5">
+                  <h3 className="text-xl font-bold">
+                    Dokumen Jaminan
+                  </h3>
+
+                  <p className="text-gray-400 text-sm mt-2">
+                    Unggah salah satu dokumen identitas sebagai
+                    jaminan peminjaman.
+                  </p>
+                </div>
+
+                {/* JENIS DOKUMEN */}
+
+                <div className="mb-5">
+                  <label
+                    htmlFor="jenis_dokumen"
+                    className="
+                      block
+                      text-gray-300
+                      mb-2
+                    "
+                  >
+                    Jenis Dokumen
+                  </label>
+
+                  <select
+                    id="jenis_dokumen"
+                    value={jenisDokumen}
+                    onChange={(e) => {
+                      setJenisDokumen(
+                        e.target.value
+                      );
+
+                      setDokumenJaminan(null);
+                      setDokumenPreview("");
+
+                      const input =
+                        document.getElementById(
+                          "dokumen_jaminan"
+                        );
+
+                      if (input) {
+                        input.value = "";
+                      }
+
+                      setError("");
+                      setSuccess("");
+                    }}
+                    className="
+                      w-full
+                      bg-[#141414]
+                      border
+                      border-[#D4AF37]/20
+                      rounded-xl
+                      px-4
+                      py-3
+                      text-white
+                      outline-none
+                      focus:border-[#D4AF37]
+                    "
+                  >
+                    <option value="KTP">
+                      KTP
+                    </option>
+
+                    <option value="Kartu Keluarga">
+                      Kartu Keluarga
+                    </option>
+                  </select>
+                </div>
+
+                {/* INPUT DOKUMEN */}
+
+                <div>
+                  <label
+                    htmlFor="dokumen_jaminan"
+                    className="
+                      block
+                      text-gray-300
+                      mb-2
+                    "
+                  >
+                    File Dokumen Jaminan
+                  </label>
+
+                  <input
+                    id="dokumen_jaminan"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleDokumenChange}
+                    className="
+                      w-full
+                      bg-[#141414]
+                      border
+                      border-[#D4AF37]/20
+                      rounded-xl
+                      px-4
+                      py-3
+                      text-gray-300
+                      file:mr-4
+                      file:rounded-lg
+                      file:border-0
+                      file:px-4
+                      file:py-2
+                      file:bg-[#D4AF37]
+                      file:text-black
+                      file:font-semibold
+                    "
+                  />
+
+                  <p className="text-gray-500 text-xs mt-2">
+                    Format JPG, PNG, atau WEBP. Maksimal 5 MB.
+                  </p>
+                </div>
+
+                {/* PREVIEW DOKUMEN */}
+
+                {dokumenPreview && (
+                  <div className="mt-6">
+
+                    <p className="text-gray-400 text-sm mb-3">
+                      Preview Dokumen
+                    </p>
+
+                    <div
+                      className="
+                        rounded-xl
+                        overflow-hidden
+                        border
+                        border-[#D4AF37]/20
+                        bg-black
+                      "
+                    >
+                      <img
+                        src={dokumenPreview}
+                        alt="Preview dokumen jaminan"
+                        className="
+                          w-full
+                          max-h-80
+                          object-contain
+                        "
+                      />
+                    </div>
+
+                    {dokumenJaminan && (
+                      <div className="mt-3 space-y-1">
+                        <p className="text-gray-300 text-sm">
+                          <span className="text-gray-500">
+                            Jenis:
+                          </span>{" "}
+                          {jenisDokumen}
+                        </p>
+
+                        <p className="text-gray-500 text-xs">
+                          {dokumenJaminan.name}
+                        </p>
+
+                        <p className="text-gray-500 text-xs">
+                          {(
+                            dokumenJaminan.size /
+                            (1024 * 1024)
+                          ).toFixed(2)}{" "}
+                          MB
+                        </p>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+                {/* STATUS DOKUMEN */}
+
+                {!dokumenJaminan && (
+                  <div
+                    className="
+                      mt-5
+                      p-4
+                      rounded-xl
+                      bg-yellow-950/20
+                      border
+                      border-yellow-500/20
+                    "
+                  >
+                    <p className="text-yellow-300 text-sm">
+                      Dokumen jaminan wajib diunggah sebelum
+                      peminjaman dapat diajukan.
+                    </p>
+                  </div>
+                )}
+
+                {dokumenJaminan && (
+                  <div
+                    className="
+                      mt-5
+                      p-4
+                      rounded-xl
+                      bg-green-950/20
+                      border
+                      border-green-500/20
+                    "
+                  >
+                    <p className="text-green-400 text-sm font-semibold">
+                      Dokumen siap diunggah
+                    </p>
+
+                    <p className="text-gray-400 text-xs mt-1">
+                      {jenisDokumen} telah dipilih sebagai
+                      dokumen jaminan.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* ==================================================
                   ERROR
               ================================================== */}
 
@@ -2366,6 +2742,7 @@ function BorrowForm() {
                   !isAvailable ||
                   !costume ||
                   totalHarga <= 0 ||
+                  !dokumenJaminan ||
                   (
                     hasCompleteDates &&
                     availability?.tersedia !== true
@@ -2394,7 +2771,6 @@ function BorrowForm() {
               </button>
 
             </div>
-
           </form>
         </div>
       </main>

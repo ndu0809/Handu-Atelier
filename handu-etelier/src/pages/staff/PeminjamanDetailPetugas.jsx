@@ -22,6 +22,8 @@ import {
     FaReceipt,
     FaExternalLinkAlt,
     FaCreditCard,
+    FaIdCard,
+    FaFileAlt,
 } from "react-icons/fa";
 
 function PeminjamanDetailPetugas() {
@@ -31,16 +33,13 @@ function PeminjamanDetailPetugas() {
     const [user, setUser] = useState(null);
     const [data, setData] = useState(null);
     const [payment, setPayment] = useState(null);
+    const [dokumenJaminan, setDokumenJaminan] = useState(null);
 
     const [loading, setLoading] = useState(true);
     const [updatingStatus, setUpdatingStatus] = useState(false);
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
-    // ==================================================
-    // MODAL KONFIRMASI
-    // ==================================================
 
     const [confirmModal, setConfirmModal] = useState({
         open: false,
@@ -68,9 +67,7 @@ function PeminjamanDetailPetugas() {
             const parsedUser = JSON.parse(storedUser);
 
             if (!parsedUser?.id_user) {
-                throw new Error(
-                    "Data user tidak valid."
-                );
+                throw new Error("Data user tidak valid.");
             }
 
             // ROLE 2 = PETUGAS
@@ -84,10 +81,7 @@ function PeminjamanDetailPetugas() {
 
             setUser(parsedUser);
         } catch (err) {
-            console.error(
-                "Session error:",
-                err
-            );
+            console.error("Session error:", err);
 
             localStorage.removeItem("user");
             localStorage.removeItem("isLoggedIn");
@@ -99,7 +93,7 @@ function PeminjamanDetailPetugas() {
     }, [navigate]);
 
     // ==================================================
-    // LOAD DETAIL PEMINJAMAN
+    // LOAD DETAIL
     // ==================================================
 
     const loadDetail = async () => {
@@ -108,7 +102,7 @@ function PeminjamanDetailPetugas() {
             setError("");
 
             // ==================================================
-            // 1. AMBIL DETAIL PEMINJAMAN
+            // 1. DETAIL PEMINJAMAN
             // ==================================================
 
             const response = await fetch(
@@ -118,8 +112,7 @@ function PeminjamanDetailPetugas() {
                 }
             );
 
-            const rawResponse =
-                await response.text();
+            const rawResponse = await response.text();
 
             let result = {};
 
@@ -140,8 +133,7 @@ function PeminjamanDetailPetugas() {
                 );
             }
 
-            const detailData =
-                result.data || null;
+            const detailData = result.data || null;
 
             if (!detailData) {
                 throw new Error(
@@ -152,7 +144,70 @@ function PeminjamanDetailPetugas() {
             setData(detailData);
 
             // ==================================================
-            // 2. AMBIL DATA PEMBAYARAN
+            // 2. DOKUMEN JAMINAN
+            // ==================================================
+
+            try {
+                const dokumenResponse = await fetch(
+                    `/dokumen-jaminan/peminjaman/${id}?_=${Date.now()}`,
+                    {
+                        cache: "no-store",
+                    }
+                );
+
+                const dokumenRaw =
+                    await dokumenResponse.text();
+
+                let dokumenResult = {};
+
+                try {
+                    dokumenResult = dokumenRaw
+                        ? JSON.parse(dokumenRaw)
+                        : {};
+                } catch {
+                    dokumenResult = {};
+                }
+
+                if (dokumenResponse.ok) {
+                    let dokumenRows = [];
+
+                    if (Array.isArray(dokumenResult)) {
+                        dokumenRows = dokumenResult;
+                    } else if (
+                        Array.isArray(dokumenResult.data)
+                    ) {
+                        dokumenRows = dokumenResult.data;
+                    } else if (
+                        dokumenResult.data
+                    ) {
+                        dokumenRows = [
+                            dokumenResult.data,
+                        ];
+                    }
+
+                    if (dokumenRows.length > 0) {
+                        setDokumenJaminan(
+                            dokumenRows[
+                                dokumenRows.length - 1
+                            ]
+                        );
+                    } else {
+                        setDokumenJaminan(null);
+                    }
+                } else {
+                    setDokumenJaminan(null);
+                }
+            } catch (dokumenError) {
+                console.error(
+                    "Load dokumen jaminan:",
+                    dokumenError
+                );
+
+                setDokumenJaminan(null);
+            }
+
+            // ==================================================
+            // 3. DATA PEMBAYARAN
             // ==================================================
 
             try {
@@ -196,32 +251,17 @@ function PeminjamanDetailPetugas() {
                             ? paymentResult.pembayaran
                             : [];
 
-                    // Cari pembayaran berdasarkan ID PEMINJAMAN
                     const matchedPayments =
                         paymentRows.filter(
                             (item) =>
                                 Number(
                                     item.id_peminjaman
-                                ) ===
-                                Number(id)
+                                ) === Number(id)
                         );
 
                     if (
-                        matchedPayments.length >
-                        0
+                        matchedPayments.length > 0
                     ) {
-                        /*
-                         * Jika terdapat lebih dari satu
-                         * data pembayaran, jumlahkan seluruh
-                         * pembayaran yang terkait peminjaman.
-                         *
-                         * Data terakhir dipakai untuk:
-                         * - metode
-                         * - status
-                         * - tanggal
-                         * - bukti
-                         */
-
                         const latestPayment =
                             matchedPayments[
                                 matchedPayments.length -
@@ -296,9 +336,7 @@ function PeminjamanDetailPetugas() {
                 currency: "IDR",
                 maximumFractionDigits: 0,
             }
-        ).format(
-            Number(value) || 0
-        );
+        ).format(Number(value) || 0);
     };
 
     // ==================================================
@@ -339,36 +377,27 @@ function PeminjamanDetailPetugas() {
             return "";
         }
 
-        const value =
-            String(foto).trim();
+        const value = String(foto).trim();
 
         if (!value) {
             return "";
         }
 
         if (
-            value.startsWith(
-                "http://"
-            ) ||
-            value.startsWith(
-                "https://"
-            )
+            value.startsWith("http://") ||
+            value.startsWith("https://")
         ) {
             return value;
         }
 
         if (
-            value.startsWith(
-                "/uploads/"
-            )
+            value.startsWith("/uploads/")
         ) {
             return value;
         }
 
         if (
-            value.startsWith(
-                "uploads/"
-            )
+            value.startsWith("uploads/")
         ) {
             return `/${value}`;
         }
@@ -380,48 +409,62 @@ function PeminjamanDetailPetugas() {
     // URL BUKTI PEMBAYARAN
     // ==================================================
 
-    const getPaymentProofUrl = (
-        bukti
-    ) => {
+    const getPaymentProofUrl = (bukti) => {
         if (!bukti) {
             return "";
         }
 
-        const value =
-            String(bukti).trim();
+        const value = String(bukti).trim();
 
         if (!value) {
             return "";
         }
 
         if (
-            value.startsWith(
-                "http://"
-            ) ||
-            value.startsWith(
-                "https://"
-            )
+            value.startsWith("http://") ||
+            value.startsWith("https://")
         ) {
             return value;
         }
 
         if (
-            value.startsWith(
-                "/uploads/"
-            )
+            value.startsWith("/uploads/")
         ) {
             return value;
         }
 
         if (
-            value.startsWith(
-                "uploads/"
-            )
+            value.startsWith("uploads/")
         ) {
             return `/${value}`;
         }
 
         return `/uploads/pembayaran/${value}`;
+    };
+
+    // ==================================================
+    // URL DOKUMEN JAMINAN
+    // ==================================================
+
+    const getDokumenJaminanUrl = (
+        dokumen
+    ) => {
+        if (
+            !dokumen?.id_dokumen_jaminan
+        ) {
+            return "";
+        }
+
+        const query = new URLSearchParams({
+            id_user: String(
+                user?.id_user || ""
+            ),
+            id_role: String(
+                user?.id_role || ""
+            ),
+        });
+
+        return `/dokumen-jaminan/file/${dokumen.id_dokumen_jaminan}?${query.toString()}`;
     };
 
     // ==================================================
@@ -446,7 +489,6 @@ function PeminjamanDetailPetugas() {
                     totalDibayar
             );
 
-        // Tidak ada data pembayaran
         if (!payment) {
             return {
                 label: "Belum Dibayar",
@@ -461,7 +503,6 @@ function PeminjamanDetailPetugas() {
             };
         }
 
-        // Jika pembayaran sudah sama / lebih dari total
         if (
             totalDibayar >=
                 totalPeminjaman &&
@@ -479,7 +520,6 @@ function PeminjamanDetailPetugas() {
             };
         }
 
-        // Jika pembayaran lebih dari 0 tetapi belum lunas
         if (totalDibayar > 0) {
             const percentage =
                 totalPeminjaman > 0
@@ -555,7 +595,7 @@ function PeminjamanDetailPetugas() {
     };
 
     // ==================================================
-    // ICON STATUS
+    // STATUS ICON
     // ==================================================
 
     const getStatusIcon = (
@@ -567,9 +607,7 @@ function PeminjamanDetailPetugas() {
             ).toLowerCase()
         ) {
             case "menunggu":
-                return (
-                    <FaClipboardList />
-                );
+                return <FaClipboardList />;
 
             case "disetujui":
                 return <FaCheck />;
@@ -587,14 +625,12 @@ function PeminjamanDetailPetugas() {
                 return <FaUndo />;
 
             default:
-                return (
-                    <FaClipboardList />
-                );
+                return <FaClipboardList />;
         }
     };
 
     // ==================================================
-    // STATUS TRANSITION
+    // TRANSISI STATUS
     // ==================================================
 
     const allowedTransitions = {
@@ -618,7 +654,7 @@ function PeminjamanDetailPetugas() {
     };
 
     // ==================================================
-    // BUKA MODAL KONFIRMASI
+    // MODAL KONFIRMASI
     // ==================================================
 
     const openConfirmModal = (
@@ -717,10 +753,6 @@ function PeminjamanDetailPetugas() {
         });
     };
 
-    // ==================================================
-    // TUTUP MODAL
-    // ==================================================
-
     const closeConfirmModal = () => {
         if (updatingStatus) {
             return;
@@ -735,7 +767,7 @@ function PeminjamanDetailPetugas() {
     };
 
     // ==================================================
-    // KONFIRMASI STATUS
+    // UPDATE STATUS
     // ==================================================
 
     const confirmStatusChange =
@@ -762,10 +794,6 @@ function PeminjamanDetailPetugas() {
                 newStatus
             );
         };
-
-    // ==================================================
-    // UPDATE STATUS
-    // ==================================================
 
     const updateStatus = async (
         newStatus
@@ -810,12 +838,10 @@ function PeminjamanDetailPetugas() {
                     `/peminjaman/${data.id_peminjaman}/status`,
                     {
                         method: "PUT",
-
                         headers: {
                             "Content-Type":
                                 "application/json",
                         },
-
                         body: JSON.stringify({
                             status:
                                 newStatus,
@@ -873,7 +899,7 @@ function PeminjamanDetailPetugas() {
     };
 
     // ==================================================
-    // TOMBOL AKSI STATUS
+    // ACTION STATUS
     // ==================================================
 
     const renderStatusActions =
@@ -887,17 +913,12 @@ function PeminjamanDetailPetugas() {
                     data.status
                 ).toLowerCase();
 
-            // ==============================================
             // MENUNGGU
-            // ==============================================
-
             if (
-                status ===
-                "menunggu"
+                status === "menunggu"
             ) {
                 return (
                     <div className="grid sm:grid-cols-2 gap-3">
-
                         <button
                             type="button"
                             onClick={() =>
@@ -965,22 +986,16 @@ function PeminjamanDetailPetugas() {
                                 ? "Memproses..."
                                 : "Tolak Peminjaman"}
                         </button>
-
                     </div>
                 );
             }
 
-            // ==============================================
             // DISETUJUI
-            // ==============================================
-
             if (
-                status ===
-                "disetujui"
+                status === "disetujui"
             ) {
                 return (
                     <div className="grid sm:grid-cols-2 gap-3">
-
                         <button
                             type="button"
                             onClick={() =>
@@ -1048,18 +1063,13 @@ function PeminjamanDetailPetugas() {
                                 ? "Memproses..."
                                 : "Batalkan"}
                         </button>
-
                     </div>
                 );
             }
 
-            // ==============================================
             // DIPROSES
-            // ==============================================
-
             if (
-                status ===
-                "diproses"
+                status === "diproses"
             ) {
                 return (
                     <div
@@ -1113,13 +1123,9 @@ function PeminjamanDetailPetugas() {
                 );
             }
 
-            // ==============================================
             // SELESAI
-            // ==============================================
-
             if (
-                status ===
-                "selesai"
+                status === "selesai"
             ) {
                 return (
                     <div
@@ -1139,10 +1145,6 @@ function PeminjamanDetailPetugas() {
                     </div>
                 );
             }
-
-            // ==============================================
-            // DITOLAK / DIBATALKAN
-            // ==============================================
 
             return (
                 <div
@@ -1266,22 +1268,19 @@ function PeminjamanDetailPetugas() {
         );
     }
 
-    // ==================================================
-    // FOTO KOSTUM
-    // ==================================================
-
     const imageUrl =
         getImageUrl(
             data?.foto
         );
 
-    // ==================================================
-    // BUKTI PEMBAYARAN
-    // ==================================================
-
     const paymentProofUrl =
         getPaymentProofUrl(
             payment?.bukti_bayar
+        );
+
+    const dokumenJaminanUrl =
+        getDokumenJaminanUrl(
+            dokumenJaminan
         );
 
     // ==================================================
@@ -1296,7 +1295,6 @@ function PeminjamanDetailPetugas() {
                 text-white
             "
         >
-
             {/* ==================================================
                 HEADER
             ================================================== */}
@@ -1322,9 +1320,7 @@ function PeminjamanDetailPetugas() {
                         gap-5
                     "
                 >
-
                     <div>
-
                         <p
                             className="
                                 uppercase
@@ -1356,7 +1352,6 @@ function PeminjamanDetailPetugas() {
                             transaksi
                             peminjaman.
                         </p>
-
                     </div>
 
                     <Link
@@ -1374,7 +1369,6 @@ function PeminjamanDetailPetugas() {
                     >
                         Kembali
                     </Link>
-
                 </div>
             </header>
 
@@ -1390,7 +1384,6 @@ function PeminjamanDetailPetugas() {
                     py-10
                 "
             >
-
                 {/* SUCCESS */}
 
                 {success && (
@@ -1465,9 +1458,7 @@ function PeminjamanDetailPetugas() {
                             gap-6
                         "
                     >
-
                         <div>
-
                             <p className="text-gray-500 text-sm">
                                 ID Peminjaman
                             </p>
@@ -1484,7 +1475,6 @@ function PeminjamanDetailPetugas() {
                                     data.id_peminjaman
                                 }
                             </h2>
-
                         </div>
 
                         <div
@@ -1510,12 +1500,11 @@ function PeminjamanDetailPetugas() {
                             {data.status ||
                                 "-"}
                         </div>
-
                     </div>
                 </section>
 
                 {/* ==================================================
-                    DETAIL USER + KOSTUM + PEMINJAMAN
+                    USER + KOSTUM + PEMINJAMAN
                 ================================================== */}
 
                 <div
@@ -1525,10 +1514,7 @@ function PeminjamanDetailPetugas() {
                         gap-6
                     "
                 >
-
-                    {/* ==================================================
-                        USER
-                    ================================================== */}
+                    {/* USER */}
 
                     <section
                         className="
@@ -1539,7 +1525,6 @@ function PeminjamanDetailPetugas() {
                             p-7
                         "
                     >
-
                         <div
                             className="
                                 flex
@@ -1547,7 +1532,6 @@ function PeminjamanDetailPetugas() {
                                 gap-3
                             "
                         >
-
                             <div
                                 className="
                                     w-11
@@ -1564,7 +1548,6 @@ function PeminjamanDetailPetugas() {
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Informasi
                                 </p>
@@ -1572,9 +1555,7 @@ function PeminjamanDetailPetugas() {
                                 <h2 className="text-xl font-bold">
                                     Data User
                                 </h2>
-
                             </div>
-
                         </div>
 
                         <div
@@ -1583,9 +1564,7 @@ function PeminjamanDetailPetugas() {
                                 space-y-6
                             "
                         >
-
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Nama
                                 </p>
@@ -1594,7 +1573,6 @@ function PeminjamanDetailPetugas() {
                                     {data.nama_user ||
                                         "-"}
                                 </p>
-
                             </div>
 
                             <div
@@ -1604,11 +1582,9 @@ function PeminjamanDetailPetugas() {
                                     gap-3
                                 "
                             >
-
                                 <FaEnvelope className="text-gray-500 mt-1" />
 
                                 <div>
-
                                     <p className="text-gray-500 text-sm">
                                         Email
                                     </p>
@@ -1617,9 +1593,7 @@ function PeminjamanDetailPetugas() {
                                         {data.email_user ||
                                             "-"}
                                     </p>
-
                                 </div>
-
                             </div>
 
                             <div
@@ -1629,11 +1603,9 @@ function PeminjamanDetailPetugas() {
                                     gap-3
                                 "
                             >
-
                                 <FaPhone className="text-gray-500 mt-1" />
 
                                 <div>
-
                                     <p className="text-gray-500 text-sm">
                                         No. HP
                                     </p>
@@ -1642,13 +1614,10 @@ function PeminjamanDetailPetugas() {
                                         {data.no_hp_user ||
                                             "-"}
                                     </p>
-
                                 </div>
-
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Alamat
                                 </p>
@@ -1663,16 +1632,11 @@ function PeminjamanDetailPetugas() {
                                     {data.alamat_user ||
                                         "-"}
                                 </p>
-
                             </div>
-
                         </div>
-
                     </section>
 
-                    {/* ==================================================
-                        KOSTUM
-                    ================================================== */}
+                    {/* KOSTUM */}
 
                     <section
                         className="
@@ -1683,7 +1647,6 @@ function PeminjamanDetailPetugas() {
                             p-7
                         "
                     >
-
                         <div
                             className="
                                 flex
@@ -1691,7 +1654,6 @@ function PeminjamanDetailPetugas() {
                                 gap-3
                             "
                         >
-
                             <div
                                 className="
                                     w-11
@@ -1708,7 +1670,6 @@ function PeminjamanDetailPetugas() {
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Item
                                 </p>
@@ -1716,12 +1677,8 @@ function PeminjamanDetailPetugas() {
                                 <h2 className="text-xl font-bold">
                                     Kostum
                                 </h2>
-
                             </div>
-
                         </div>
-
-                        {/* FOTO KOSTUM */}
 
                         {imageUrl ? (
                             <img
@@ -1750,9 +1707,7 @@ function PeminjamanDetailPetugas() {
                                                 ".kostum-image-fallback"
                                             );
 
-                                    if (
-                                        fallback
-                                    ) {
+                                    if (fallback) {
                                         fallback.style.display =
                                             "flex";
                                     }
@@ -1777,9 +1732,7 @@ function PeminjamanDetailPetugas() {
                                 justify-center
                             `}
                         >
-
                             <div className="text-center">
-
                                 <FaImage
                                     className="
                                         mx-auto
@@ -1792,9 +1745,7 @@ function PeminjamanDetailPetugas() {
                                     Foto kostum
                                     belum tersedia
                                 </p>
-
                             </div>
-
                         </div>
 
                         <div
@@ -1803,9 +1754,7 @@ function PeminjamanDetailPetugas() {
                                 space-y-5
                             "
                         >
-
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Nama Kostum
                                 </p>
@@ -1820,11 +1769,9 @@ function PeminjamanDetailPetugas() {
                                     {data.nama_kostum ||
                                         "-"}
                                 </p>
-
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Kode Koleksi
                                 </p>
@@ -1839,11 +1786,9 @@ function PeminjamanDetailPetugas() {
                                     {data.kode_koleksi ||
                                         "-"}
                                 </p>
-
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Warna
                                 </p>
@@ -1852,11 +1797,9 @@ function PeminjamanDetailPetugas() {
                                     {data.warna ||
                                         "-"}
                                 </p>
-
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Ukuran
                                 </p>
@@ -1865,11 +1808,9 @@ function PeminjamanDetailPetugas() {
                                     {data.ukuran ||
                                         "-"}
                                 </p>
-
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Jumlah
                                 </p>
@@ -1878,16 +1819,11 @@ function PeminjamanDetailPetugas() {
                                     {data.jumlah ??
                                         0}
                                 </p>
-
                             </div>
-
                         </div>
-
                     </section>
 
-                    {/* ==================================================
-                        PEMINJAMAN
-                    ================================================== */}
+                    {/* PEMINJAMAN */}
 
                     <section
                         className="
@@ -1898,7 +1834,6 @@ function PeminjamanDetailPetugas() {
                             p-7
                         "
                     >
-
                         <div
                             className="
                                 flex
@@ -1906,7 +1841,6 @@ function PeminjamanDetailPetugas() {
                                 gap-3
                             "
                         >
-
                             <div
                                 className="
                                     w-11
@@ -1923,7 +1857,6 @@ function PeminjamanDetailPetugas() {
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Transaksi
                                 </p>
@@ -1931,9 +1864,7 @@ function PeminjamanDetailPetugas() {
                                 <h2 className="text-xl font-bold">
                                     Peminjaman
                                 </h2>
-
                             </div>
-
                         </div>
 
                         <div
@@ -1942,9 +1873,7 @@ function PeminjamanDetailPetugas() {
                                 space-y-6
                             "
                         >
-
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     ID Peminjaman
                                 </p>
@@ -1961,11 +1890,9 @@ function PeminjamanDetailPetugas() {
                                         data.id_peminjaman
                                     }
                                 </p>
-
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Status
                                 </p>
@@ -1994,7 +1921,6 @@ function PeminjamanDetailPetugas() {
                                     {data.status ||
                                         "-"}
                                 </span>
-
                             </div>
 
                             <div
@@ -2004,11 +1930,9 @@ function PeminjamanDetailPetugas() {
                                     gap-3
                                 "
                             >
-
                                 <FaCalendarAlt className="text-gray-500 mt-1" />
 
                                 <div>
-
                                     <p className="text-gray-500 text-sm">
                                         Tanggal
                                         Peminjaman
@@ -2019,9 +1943,7 @@ function PeminjamanDetailPetugas() {
                                             data.tanggal_peminjaman
                                         )}
                                     </p>
-
                                 </div>
-
                             </div>
 
                             <div
@@ -2031,11 +1953,9 @@ function PeminjamanDetailPetugas() {
                                     gap-3
                                 "
                             >
-
                                 <FaCalendarAlt className="text-gray-500 mt-1" />
 
                                 <div>
-
                                     <p className="text-gray-500 text-sm">
                                         Tanggal
                                         Kembali
@@ -2046,13 +1966,10 @@ function PeminjamanDetailPetugas() {
                                             data.tanggal_kembali
                                         )}
                                     </p>
-
                                 </div>
-
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Harga
                                 </p>
@@ -2068,11 +1985,9 @@ function PeminjamanDetailPetugas() {
                                         data.harga
                                     )}
                                 </p>
-
                             </div>
 
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Subtotal
                                 </p>
@@ -2088,9 +2003,7 @@ function PeminjamanDetailPetugas() {
                                         data.subtotal
                                     )}
                                 </p>
-
                             </div>
-
                         </div>
 
                         <div
@@ -2101,7 +2014,6 @@ function PeminjamanDetailPetugas() {
                                 border-white/5
                             "
                         >
-
                             <p className="text-gray-500 text-sm">
                                 Total Peminjaman
                             </p>
@@ -2118,11 +2030,8 @@ function PeminjamanDetailPetugas() {
                                     data.total_harga
                                 )}
                             </p>
-
                         </div>
-
                     </section>
-
                 </div>
 
                 {/* ==================================================
@@ -2139,7 +2048,6 @@ function PeminjamanDetailPetugas() {
                         p-7
                     "
                 >
-
                     <div
                         className="
                             flex
@@ -2147,7 +2055,6 @@ function PeminjamanDetailPetugas() {
                             gap-3
                         "
                     >
-
                         <div
                             className="
                                 w-11
@@ -2164,7 +2071,6 @@ function PeminjamanDetailPetugas() {
                         </div>
 
                         <div>
-
                             <p className="text-gray-500 text-sm">
                                 Transaksi
                             </p>
@@ -2172,23 +2078,19 @@ function PeminjamanDetailPetugas() {
                             <h2 className="text-xl font-bold">
                                 Informasi Pembayaran
                             </h2>
-
                         </div>
-
                     </div>
 
-                    {/* ==================================================
-                        STATUS PEMBAYARAN
-                    ================================================== */}
+                    {/* STATUS PEMBAYARAN */}
 
                     <div
-                        className="
+                        className={`
                             mt-7
                             rounded-2xl
                             border
                             p-5
                             ${paymentInfo.className}
-                        "
+                        `}
                     >
                         <div
                             className="
@@ -2200,9 +2102,7 @@ function PeminjamanDetailPetugas() {
                                 gap-4
                             "
                         >
-
                             <div>
-
                                 <p className="text-gray-500 text-sm">
                                     Status Pembayaran
                                 </p>
@@ -2236,13 +2136,13 @@ function PeminjamanDetailPetugas() {
                                 </div>
 
                                 <p className="text-gray-500 text-sm mt-3">
-                                    {paymentInfo.description}
+                                    {
+                                        paymentInfo.description
+                                    }
                                 </p>
-
                             </div>
 
                             <div className="text-left md:text-right">
-
                                 <p className="text-gray-500 text-sm">
                                     Persentase
                                 </p>
@@ -2253,17 +2153,11 @@ function PeminjamanDetailPetugas() {
                                     }
                                     %
                                 </p>
-
                             </div>
-
                         </div>
 
-                        {/* PROGRESS */}
-
                         <div className="mt-5">
-
                             <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-
                                 <div
                                     className="
                                         h-full
@@ -2278,16 +2172,11 @@ function PeminjamanDetailPetugas() {
                                         )}%`,
                                     }}
                                 />
-
                             </div>
-
                         </div>
-
                     </div>
 
-                    {/* ==================================================
-                        RINGKASAN NOMINAL
-                    ================================================== */}
+                    {/* RINGKASAN NOMINAL */}
 
                     <div
                         className="
@@ -2297,7 +2186,6 @@ function PeminjamanDetailPetugas() {
                             gap-4
                         "
                     >
-
                         <div
                             className="
                                 rounded-2xl
@@ -2307,7 +2195,6 @@ function PeminjamanDetailPetugas() {
                                 p-5
                             "
                         >
-
                             <p className="text-gray-500 text-sm">
                                 Total Peminjaman
                             </p>
@@ -2317,7 +2204,6 @@ function PeminjamanDetailPetugas() {
                                     data.total_harga
                                 )}
                             </p>
-
                         </div>
 
                         <div
@@ -2329,7 +2215,6 @@ function PeminjamanDetailPetugas() {
                                 p-5
                             "
                         >
-
                             <p className="text-gray-500 text-sm">
                                 Sudah Dibayar
                             </p>
@@ -2339,7 +2224,6 @@ function PeminjamanDetailPetugas() {
                                     paymentInfo.totalDibayar
                                 )}
                             </p>
-
                         </div>
 
                         <div
@@ -2351,7 +2235,6 @@ function PeminjamanDetailPetugas() {
                                 p-5
                             "
                         >
-
                             <p className="text-gray-500 text-sm">
                                 Sisa Pembayaran
                             </p>
@@ -2361,14 +2244,10 @@ function PeminjamanDetailPetugas() {
                                     paymentInfo.sisaPembayaran
                                 )}
                             </p>
-
                         </div>
-
                     </div>
 
-                    {/* ==================================================
-                        DETAIL PEMBAYARAN
-                    ================================================== */}
+                    {/* DETAIL PEMBAYARAN */}
 
                     <div
                         className="
@@ -2378,7 +2257,6 @@ function PeminjamanDetailPetugas() {
                             gap-6
                         "
                     >
-
                         <div
                             className="
                                 rounded-2xl
@@ -2388,7 +2266,6 @@ function PeminjamanDetailPetugas() {
                                 p-5
                             "
                         >
-
                             <div
                                 className="
                                     flex
@@ -2397,19 +2274,15 @@ function PeminjamanDetailPetugas() {
                                     mb-5
                                 "
                             >
-
                                 <FaCreditCard className="text-[#D4AF37]" />
 
                                 <h3 className="font-semibold">
                                     Detail Transaksi
                                 </h3>
-
                             </div>
 
                             <div className="space-y-5">
-
                                 <div>
-
                                     <p className="text-gray-500 text-sm">
                                         Metode Pembayaran
                                     </p>
@@ -2418,11 +2291,9 @@ function PeminjamanDetailPetugas() {
                                         {payment?.metode ||
                                             "-"}
                                     </p>
-
                                 </div>
 
                                 <div>
-
                                     <p className="text-gray-500 text-sm">
                                         Nominal Pembayaran
                                     </p>
@@ -2432,11 +2303,9 @@ function PeminjamanDetailPetugas() {
                                             paymentInfo.totalDibayar
                                         )}
                                     </p>
-
                                 </div>
 
                                 <div>
-
                                     <p className="text-gray-500 text-sm">
                                         Tanggal Pembayaran
                                     </p>
@@ -2448,11 +2317,9 @@ function PeminjamanDetailPetugas() {
                                               )
                                             : "-"}
                                     </p>
-
                                 </div>
 
                                 <div>
-
                                     <p className="text-gray-500 text-sm">
                                         Status Data Pembayaran
                                     </p>
@@ -2461,16 +2328,11 @@ function PeminjamanDetailPetugas() {
                                         {payment?.status ||
                                             "-"}
                                     </p>
-
                                 </div>
-
                             </div>
-
                         </div>
 
-                        {/* ==================================================
-                            BUKTI PEMBAYARAN
-                        ================================================== */}
+                        {/* BUKTI PEMBAYARAN */}
 
                         <div
                             className="
@@ -2481,7 +2343,6 @@ function PeminjamanDetailPetugas() {
                                 p-5
                             "
                         >
-
                             <div
                                 className="
                                     flex
@@ -2490,18 +2351,15 @@ function PeminjamanDetailPetugas() {
                                     mb-5
                                 "
                             >
-
                                 <FaReceipt className="text-[#D4AF37]" />
 
                                 <h3 className="font-semibold">
                                     Bukti Pembayaran
                                 </h3>
-
                             </div>
 
                             {paymentProofUrl ? (
                                 <div>
-
                                     <div
                                         className="
                                             rounded-2xl
@@ -2511,7 +2369,6 @@ function PeminjamanDetailPetugas() {
                                             bg-[#141414]
                                         "
                                     >
-
                                         <img
                                             src={
                                                 paymentProofUrl
@@ -2558,9 +2415,7 @@ function PeminjamanDetailPetugas() {
                                                 p-6
                                             "
                                         >
-
                                             <div>
-
                                                 <FaImage
                                                     className="
                                                         mx-auto
@@ -2574,11 +2429,8 @@ function PeminjamanDetailPetugas() {
                                                     tidak dapat
                                                     ditampilkan.
                                                 </p>
-
                                             </div>
-
                                         </div>
-
                                     </div>
 
                                     <a
@@ -2609,7 +2461,6 @@ function PeminjamanDetailPetugas() {
                                         Lihat Bukti
                                         Pembayaran
                                     </a>
-
                                 </div>
                             ) : (
                                 <div
@@ -2626,9 +2477,7 @@ function PeminjamanDetailPetugas() {
                                         p-6
                                     "
                                 >
-
                                     <div>
-
                                         <FaImage
                                             className="
                                                 mx-auto
@@ -2651,16 +2500,299 @@ function PeminjamanDetailPetugas() {
                                                 unggahan bukti.
                                             </p>
                                         )}
-
                                     </div>
-
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </section>
 
+                {/* ==================================================
+                    DOKUMEN JAMINAN
+                ================================================== */}
+
+                <section
+                    className="
+                        mt-7
+                        rounded-3xl
+                        bg-[#141414]
+                        border
+                        border-[#D4AF37]/15
+                        p-7
+                    "
+                >
+                    <div
+                        className="
+                            flex
+                            items-center
+                            gap-3
+                        "
+                    >
+                        <div
+                            className="
+                                w-11
+                                h-11
+                                rounded-xl
+                                bg-[#D4AF37]/10
+                                text-[#D4AF37]
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+                            <FaIdCard />
                         </div>
 
+                        <div>
+                            <p className="text-gray-500 text-sm">
+                                Verifikasi
+                            </p>
+
+                            <h2 className="text-xl font-bold">
+                                Dokumen Jaminan
+                            </h2>
+                        </div>
                     </div>
 
+                    {dokumenJaminan ? (
+                        <div
+                            className="
+                                mt-7
+                                grid
+                                lg:grid-cols-2
+                                gap-6
+                            "
+                        >
+                            {/* INFORMASI DOKUMEN */}
+
+                            <div
+                                className="
+                                    rounded-2xl
+                                    bg-[#1D1D1D]
+                                    border
+                                    border-white/5
+                                    p-5
+                                "
+                            >
+                                <div className="flex items-center gap-3">
+                                    <FaFileAlt className="text-[#D4AF37]" />
+
+                                    <div>
+                                        <p className="text-gray-500 text-sm">
+                                            Jenis Dokumen
+                                        </p>
+
+                                        <p className="font-semibold mt-1">
+                                            {
+                                                dokumenJaminan.jenis_dokumen
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-5">
+                                    <p className="text-gray-500 text-sm">
+                                        Nama File
+                                    </p>
+
+                                    <p className="text-white mt-1 break-all">
+                                        {
+                                            dokumenJaminan.nama_file
+                                        }
+                                    </p>
+                                </div>
+
+                                <div className="mt-5">
+                                    <p className="text-gray-500 text-sm">
+                                        Status Verifikasi
+                                    </p>
+
+                                    <span
+                                        className="
+                                            inline-flex
+                                            items-center
+                                            mt-2
+                                            px-3
+                                            py-1.5
+                                            rounded-full
+                                            border
+                                            border-yellow-500/20
+                                            bg-yellow-500/10
+                                            text-yellow-400
+                                            text-sm
+                                            font-semibold
+                                        "
+                                    >
+                                        {
+                                            dokumenJaminan.status
+                                        }
+                                    </span>
+                                </div>
+
+                                {dokumenJaminan.keterangan && (
+                                    <div className="mt-5">
+                                        <p className="text-gray-500 text-sm">
+                                            Keterangan
+                                        </p>
+
+                                        <p className="text-gray-300 mt-1 leading-6">
+                                            {
+                                                dokumenJaminan.keterangan
+                                            }
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* PREVIEW DOKUMEN */}
+
+                            <div
+                                className="
+                                    rounded-2xl
+                                    bg-[#1D1D1D]
+                                    border
+                                    border-white/5
+                                    p-5
+                                "
+                            >
+                                <p className="text-gray-500 text-sm mb-4">
+                                    Preview Dokumen
+                                </p>
+
+                                <div
+                                    className="
+                                        rounded-2xl
+                                        overflow-hidden
+                                        border
+                                        border-white/10
+                                        bg-[#0d0d0d]
+                                    "
+                                >
+                                    <img
+                                        src={
+                                            dokumenJaminanUrl
+                                        }
+                                        alt={
+                                            dokumenJaminan.jenis_dokumen ||
+                                            "Dokumen jaminan"
+                                        }
+                                        className="
+                                            w-full
+                                            h-72
+                                            object-contain
+                                            bg-[#0d0d0d]
+                                        "
+                                        onError={(
+                                            e
+                                        ) => {
+                                            e.currentTarget.style.display =
+                                                "none";
+
+                                            const fallback =
+                                                e.currentTarget
+                                                    .parentElement
+                                                    ?.querySelector(
+                                                        ".dokumen-jaminan-error"
+                                                    );
+
+                                            if (
+                                                fallback
+                                            ) {
+                                                fallback.style.display =
+                                                    "flex";
+                                            }
+                                        }}
+                                    />
+
+                                    <div
+                                        className="
+                                            dokumen-jaminan-error
+                                            hidden
+                                            h-72
+                                            items-center
+                                            justify-center
+                                            text-center
+                                            p-6
+                                        "
+                                    >
+                                        <div>
+                                            <FaFileAlt
+                                                className="
+                                                    mx-auto
+                                                    text-4xl
+                                                    text-gray-600
+                                                "
+                                            />
+
+                                            <p className="text-gray-500 text-sm mt-3">
+                                                Dokumen tidak dapat
+                                                ditampilkan.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <a
+                                    href={
+                                        dokumenJaminanUrl
+                                    }
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="
+                                        inline-flex
+                                        items-center
+                                        justify-center
+                                        gap-2
+                                        w-full
+                                        mt-4
+                                        px-5
+                                        py-3
+                                        rounded-xl
+                                        bg-[#D4AF37]
+                                        text-black
+                                        font-semibold
+                                        hover:brightness-110
+                                        transition
+                                    "
+                                >
+                                    <FaExternalLinkAlt />
+                                    Lihat Dokumen Jaminan
+                                </a>
+                            </div>
+                        </div>
+                    ) : (
+                        <div
+                            className="
+                                mt-7
+                                min-h-[180px]
+                                rounded-2xl
+                                border
+                                border-white/5
+                                bg-[#1D1D1D]
+                                flex
+                                items-center
+                                justify-center
+                                text-center
+                                p-6
+                            "
+                        >
+                            <div>
+                                <FaIdCard
+                                    className="
+                                        mx-auto
+                                        text-4xl
+                                        text-gray-600
+                                    "
+                                />
+
+                                <p className="text-gray-500 text-sm mt-3">
+                                    Belum ada dokumen jaminan
+                                    yang diunggah oleh
+                                    pelanggan.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </section>
 
                 {/* ==================================================
@@ -2677,9 +2809,7 @@ function PeminjamanDetailPetugas() {
                         p-7
                     "
                 >
-
                     <div className="mb-6">
-
                         <p
                             className="
                                 text-[#D4AF37]
@@ -2705,19 +2835,14 @@ function PeminjamanDetailPetugas() {
                             Perbarui status transaksi
                             sesuai proses peminjaman.
                         </p>
-
                     </div>
 
                     {renderStatusActions()}
-
                 </section>
 
-                {/* ==================================================
-                    BACK
-                ================================================== */}
+                {/* BACK */}
 
                 <div className="mt-7">
-
                     <Link
                         to="/petugas/peminjaman"
                         className="
@@ -2734,9 +2859,7 @@ function PeminjamanDetailPetugas() {
                         Kembali ke Daftar
                         Peminjaman
                     </Link>
-
                 </div>
-
             </main>
 
             {/* ==================================================
@@ -2760,7 +2883,6 @@ function PeminjamanDetailPetugas() {
                         closeConfirmModal
                     }
                 >
-
                     <div
                         className="
                             w-full
@@ -2777,9 +2899,6 @@ function PeminjamanDetailPetugas() {
                             e.stopPropagation()
                         }
                     >
-
-                        {/* ICON */}
-
                         <div
                             className={`
                                 w-14
@@ -2790,6 +2909,7 @@ function PeminjamanDetailPetugas() {
                                 justify-center
                                 mb-5
                                 text-xl
+
                                 ${
                                     confirmModal.newStatus ===
                                         "Ditolak" ||
@@ -2820,8 +2940,6 @@ function PeminjamanDetailPetugas() {
                             )}
                         </div>
 
-                        {/* TITLE */}
-
                         <h2
                             className="
                                 text-2xl
@@ -2833,8 +2951,6 @@ function PeminjamanDetailPetugas() {
                                 confirmModal.title
                             }
                         </h2>
-
-                        {/* MESSAGE */}
 
                         <p
                             className="
@@ -2848,8 +2964,6 @@ function PeminjamanDetailPetugas() {
                             }
                         </p>
 
-                        {/* DETAIL */}
-
                         <div
                             className="
                                 mt-5
@@ -2860,7 +2974,6 @@ function PeminjamanDetailPetugas() {
                                 p-4
                             "
                         >
-
                             <p
                                 className="
                                     text-xs
@@ -2873,7 +2986,6 @@ function PeminjamanDetailPetugas() {
                             </p>
 
                             <div className="mt-3">
-
                                 <p
                                     className="
                                         text-white
@@ -2911,12 +3023,8 @@ function PeminjamanDetailPetugas() {
                                         "Kostum"
                                     }
                                 </p>
-
                             </div>
-
                         </div>
-
-                        {/* BUTTON */}
 
                         <div
                             className="
@@ -2925,9 +3033,6 @@ function PeminjamanDetailPetugas() {
                                 mt-7
                             "
                         >
-
-                            {/* BATAL */}
-
                             <button
                                 type="button"
                                 onClick={
@@ -2954,8 +3059,6 @@ function PeminjamanDetailPetugas() {
                             >
                                 Batal
                             </button>
-
-                            {/* KONFIRMASI */}
 
                             <button
                                 type="button"
@@ -3009,14 +3112,10 @@ function PeminjamanDetailPetugas() {
                                     ? "Ya, Setujui"
                                     : "Konfirmasi"}
                             </button>
-
                         </div>
-
                     </div>
-
                 </div>
             )}
-
         </div>
     );
 }
