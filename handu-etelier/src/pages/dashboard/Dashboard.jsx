@@ -473,7 +473,7 @@ function Dashboard() {
                     rounded-3xl
                     border
                     border-[#D4AF37]/15
-                    bg-gradient-to-br
+                    bg-linear-to-br
                     from-[#1A160C]
                     to-[#111111]
                     p-7
@@ -916,7 +916,7 @@ function Dashboard() {
                                             gap-4
                                             px-5
                                             py-4
-                                            hover:bg-white/[0.02]
+                                            hover:bg-white/2
                                             transition
                                         "
                                     >

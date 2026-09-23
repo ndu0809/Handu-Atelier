@@ -697,6 +697,9 @@ function StaffDashboard() {
     <div
       className="
         min-h-screen
+        w-full
+        max-w-full
+        overflow-x-hidden
         bg-[#080808]
         text-white
       "
@@ -845,7 +848,7 @@ function StaffDashboard() {
           left-0
           top-0
           bottom-0
-          w-[245px]
+          w-61
           bg-[#0E0E0E]
           border-r
           border-[#D4AF37]/20
@@ -1032,7 +1035,7 @@ function StaffDashboard() {
                   <Icon
                     className="
                       text-sm
-                      flex-shrink-0
+                      shrink-0
                     "
                   />
 
@@ -1082,12 +1085,18 @@ function StaffDashboard() {
 
       <main
         className="
-          lg:ml-[245px]
+          lg:ml-61
           min-h-screen
+          w-full
+          min-w-0
+          max-w-full
+          overflow-x-hidden
         "
       >
         <div
           className="
+            w-full
+            min-w-0
             max-w-[1600px]
             mx-auto
             px-5
@@ -1124,9 +1133,11 @@ function StaffDashboard() {
 
               <h1
                 className="
-                  text-3xl
+                  text-2xl
+                  sm:text-3xl
                   md:text-4xl
                   font-bold
+                  wrap-break-word
                 "
               >
                 Selamat datang kembali,
@@ -1158,6 +1169,8 @@ function StaffDashboard() {
             >
               <div
                 className="
+                  w-full
+                  md:w-auto
                   px-4
                   py-3
                   rounded-xl
@@ -1778,6 +1791,7 @@ function StaffDashboard() {
               grid-cols-1
               xl:grid-cols-3
               gap-5
+              min-w-0
               mb-6
             "
           >
@@ -1786,6 +1800,8 @@ function StaffDashboard() {
             <section
               className="
                 xl:col-span-2
+                min-w-0
+                w-full
                 rounded-2xl
                 border
                 border-[#D4AF37]/15
@@ -1849,7 +1865,10 @@ function StaffDashboard() {
 
               <div
                 className="
-                  h-[260px]
+                  w-full
+                  max-w-full
+                  min-w-0
+                  h-65
                   flex
                   items-end
                   gap-1
@@ -1875,7 +1894,7 @@ function StaffDashboard() {
                         key={index}
                         className="
                           flex-1
-                          min-w-[10px]
+                          min-w-2.5
                           h-full
                           flex
                           items-end
@@ -2035,7 +2054,7 @@ function StaffDashboard() {
                         className="
                           block
                           py-3
-                          hover:bg-white/[0.02]
+                          hover:bg-white/2
                           transition
                         "
                       >
@@ -2057,7 +2076,7 @@ function StaffDashboard() {
                               flex
                               items-center
                               justify-center
-                              flex-shrink-0
+                              shrink-0
                             "
                           >
                             <FaClipboardList
@@ -2157,8 +2176,12 @@ function StaffDashboard() {
               <div
                 className="
                   flex
-                  items-center
+                  flex-col
+                  sm:flex-row
+                  sm:items-center
                   gap-3
+                  w-full
+                  md:w-auto
                 "
               >
                 <FaUndoAlt className="text-green-400" />
@@ -2184,11 +2207,11 @@ function StaffDashboard() {
               </Link>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="w-full max-w-full overflow-x-auto">
               <table
                 className="
                   w-full
-                  min-w-[850px]
+                  min-w-175
                 "
               >
                 <thead
@@ -2401,6 +2424,8 @@ function StaffDashboard() {
 
           <section
             className="
+              w-full
+              min-w-0
               rounded-2xl
               border
               border-[#D4AF37]/15
@@ -2696,6 +2721,7 @@ function StaffDashboard() {
               lg:grid-cols-2
               gap-5
               mt-6
+              min-w-0
             "
           >
             {/* AKTIVITAS PEMINJAMAN */}
@@ -3158,6 +3184,7 @@ function StaffDashboard() {
                 md:grid-cols-3
                 xl:grid-cols-6
                 gap-3
+                min-w-0
               "
             >
               <Link
