@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -20,6 +21,12 @@ import {
   FaComments,
   FaMoneyBillWave,
 } from "react-icons/fa";
+
+const rupiahFormatter = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
 
 function StaffDashboard() {
   const navigate = useNavigate();
@@ -83,8 +90,23 @@ function StaffDashboard() {
   // PARSE RESPONSE
   // ==================================================
 
-  const parseResponse = async (response) => {
+  const parseResponse = async (
+    response,
+    endpoint = "API"
+  ) => {
     const raw = await response.text();
+
+    if (!response.ok) {
+      if (response.status === 530) {
+        throw new Error(
+          `Tunnel Cloudflare gagal menghubungkan backend untuk ${endpoint} (HTTP 530). Pastikan cloudflared tunnel backend masih berjalan.`
+        );
+      }
+
+      throw new Error(
+        `Gagal mengambil ${endpoint}. HTTP ${response.status}.`
+      );
+    }
 
     if (!raw) {
       return {};
@@ -94,9 +116,60 @@ function StaffDashboard() {
       return JSON.parse(raw);
     } catch {
       throw new Error(
-        "Server mengembalikan response yang bukan JSON."
+        `Server mengembalikan response yang bukan JSON untuk ${endpoint}.`
       );
     }
+  };
+
+  const fetchWithRetry = async (
+    url,
+    endpoint,
+    attempts = 3
+  ) => {
+    let lastError = null;
+
+    for (
+      let attempt = 1;
+      attempt <= attempts;
+      attempt += 1
+    ) {
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (response.ok) {
+          return response;
+        }
+
+        if (
+          response.status !== 530 ||
+          attempt === attempts
+        ) {
+          return response;
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, 400 * attempt)
+        );
+      } catch (err) {
+        lastError = err;
+
+        if (attempt === attempts) {
+          throw err;
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, 400 * attempt)
+        );
+      }
+    }
+
+    throw (
+      lastError ||
+      new Error("Gagal menghubungi server.")
+    );
   };
 
   // ==================================================
@@ -119,10 +192,22 @@ function StaffDashboard() {
           peminjamanResponse,
           pengembalianResponse,
         ] = await Promise.all([
-          fetch("/kostum"),
-          fetch("/users"),
-          fetch("/peminjaman"),
-          fetch("/pengembalian"),
+          fetchWithRetry(
+            "/kostum",
+            "kostum"
+          ),
+          fetchWithRetry(
+            "/users",
+            "users"
+          ),
+          fetchWithRetry(
+            "/peminjaman",
+            "peminjaman"
+          ),
+          fetchWithRetry(
+            "/pengembalian",
+            "pengembalian"
+          ),
         ]);
 
         const [
@@ -131,15 +216,28 @@ function StaffDashboard() {
           peminjamanResult,
           pengembalianResult,
         ] = await Promise.all([
-          parseResponse(kostumResponse),
-          parseResponse(usersResponse),
-          parseResponse(peminjamanResponse),
-          parseResponse(pengembalianResponse),
+          parseResponse(
+            kostumResponse,
+            "kostum"
+          ),
+          parseResponse(
+            usersResponse,
+            "users"
+          ),
+          parseResponse(
+            peminjamanResponse,
+            "peminjaman"
+          ),
+          parseResponse(
+            pengembalianResponse,
+            "pengembalian"
+          ),
         ]);
 
-        const kostumRows = Array.isArray(kostumResult)
-          ? kostumResult
-          : kostumResult.data;
+        const kostumRows =
+          Array.isArray(kostumResult)
+            ? kostumResult
+            : kostumResult.data;
 
         setKostumData(
           Array.isArray(kostumRows)
@@ -147,9 +245,10 @@ function StaffDashboard() {
             : []
         );
 
-        const userRows = Array.isArray(usersResult)
-          ? usersResult
-          : usersResult.data;
+        const userRows =
+          Array.isArray(usersResult)
+            ? usersResult
+            : usersResult.data;
 
         const customerRows = (
           Array.isArray(userRows)
@@ -182,12 +281,16 @@ function StaffDashboard() {
         );
 
         const pengembalianRows =
-          Array.isArray(pengembalianResult)
+          Array.isArray(
+            pengembalianResult
+          )
             ? pengembalianResult
             : pengembalianResult.data;
 
         setPengembalianData(
-          Array.isArray(pengembalianRows)
+          Array.isArray(
+            pengembalianRows
+          )
             ? pengembalianRows
             : []
         );
@@ -227,11 +330,9 @@ function StaffDashboard() {
   // ==================================================
 
   const formatRupiah = (value) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(Number(value) || 0);
+    return rupiahFormatter.format(
+      Number(value) || 0
+    );
   };
 
   // ==================================================
@@ -288,124 +389,16 @@ function StaffDashboard() {
   };
 
   // ==================================================
-  // PEMINJAMAN AKTIF
+  // DATA DASHBOARD TERHITUNG
   // ==================================================
 
-  const activeBorrowings = useMemo(() => {
-    return peminjamanData.filter((item) => {
-      const status = String(
-        item.status || ""
-      ).toLowerCase();
-
-      return [
-        "disetujui",
-        "diproses",
-      ].includes(status);
-    }).length;
-  }, [peminjamanData]);
-
-  // ==================================================
-  // MENUNGGU
-  // ==================================================
-
-  const waitingBorrowings = useMemo(() => {
-    return peminjamanData.filter(
-      (item) =>
-        String(item.status || "")
-          .toLowerCase() === "menunggu"
-    ).length;
-  }, [peminjamanData]);
-
-  // ==================================================
-  // SELESAI
-  // ==================================================
-
-  const completedBorrowings = useMemo(() => {
-    return peminjamanData.filter(
-      (item) =>
-        String(item.status || "")
-          .toLowerCase() === "selesai"
-    ).length;
-  }, [peminjamanData]);
-
-  // ==================================================
-  // PENGEMBALIAN HARI INI
-  // ==================================================
-
-  const todayReturns = useMemo(() => {
-    const today = getDateKey(new Date());
-
-    return pengembalianData.filter(
-      (item) =>
-        getDateKey(
-          item.tanggal_pengembalian
-        ) === today
-    ).length;
-  }, [pengembalianData]);
-
-  // ==================================================
-  // TOTAL DENDA
-  // ==================================================
-
-  const totalDenda = useMemo(() => {
-    return pengembalianData.reduce(
-      (total, item) =>
-        total +
-        (Number(item.denda) || 0),
-      0
-    );
-  }, [pengembalianData]);
-
-  // ==================================================
-  // PEMINJAMAN TERBARU
-  // ==================================================
-
-  const recentBorrowings = useMemo(() => {
-    return [...peminjamanData]
-      .sort(
-        (a, b) =>
-          Number(b.id_peminjaman || 0) -
-          Number(a.id_peminjaman || 0)
-      )
-      .slice(0, 5);
-  }, [peminjamanData]);
-
-  // ==================================================
-  // PENGEMBALIAN TERBARU
-  // ==================================================
-
-  const recentReturns = useMemo(() => {
-    return [...pengembalianData]
-      .sort(
-        (a, b) =>
-          Number(b.id_pengembalian || 0) -
-          Number(a.id_pengembalian || 0)
-      )
-      .slice(0, 5);
-  }, [pengembalianData]);
-
-  // ==================================================
-  // KOSTUM
-  // ==================================================
-
-  const popularCostumes = useMemo(() => {
-    return [...kostumData]
-      .sort(
-        (a, b) =>
-          Number(b.stok || 0) -
-          Number(a.stok || 0)
-      )
-      .slice(0, 5);
-  }, [kostumData]);
-
-  // ==================================================
-  // GRAFIK PEMINJAMAN BULAN INI
-  // ==================================================
-
-  const monthlyBorrowingChart = useMemo(() => {
+  const dashboardStats = useMemo(() => {
     const now = new Date();
 
+    const today = getDateKey(now);
+
     const year = now.getFullYear();
+
     const month = now.getMonth();
 
     const daysInMonth = new Date(
@@ -414,138 +407,226 @@ function StaffDashboard() {
       0
     ).getDate();
 
-    const counts = Array(
-      daysInMonth
-    ).fill(0);
+    const counts =
+      Array(daysInMonth).fill(0);
 
-    peminjamanData.forEach((item) => {
-      if (!item.tanggal_peminjaman) {
-        return;
-      }
+    let active = 0;
+    let waiting = 0;
+    let completed = 0;
+    let todayReturnCount = 0;
+    let fineTotal = 0;
+    let monthTotal = 0;
 
-      const date = new Date(
-        item.tanggal_peminjaman
-      );
-
-      if (Number.isNaN(date.getTime())) {
-        return;
-      }
+    for (const item of peminjamanData) {
+      const status = String(
+        item.status || ""
+      ).toLowerCase();
 
       if (
-        date.getFullYear() !== year ||
-        date.getMonth() !== month
+        status === "disetujui" ||
+        status === "diproses"
       ) {
-        return;
+        active += 1;
+      } else if (
+        status === "menunggu"
+      ) {
+        waiting += 1;
+      } else if (
+        status === "selesai"
+      ) {
+        completed += 1;
       }
 
-      const day = date.getDate();
+      if (item.tanggal_peminjaman) {
+        const date = new Date(
+          item.tanggal_peminjaman
+        );
 
+        if (
+          !Number.isNaN(
+            date.getTime()
+          ) &&
+          date.getFullYear() === year &&
+          date.getMonth() === month
+        ) {
+          monthTotal += 1;
+
+          const day =
+            date.getDate();
+
+          if (
+            day >= 1 &&
+            day <= daysInMonth
+          ) {
+            counts[day - 1] += 1;
+          }
+        }
+      }
+    }
+
+    for (const item of pengembalianData) {
       if (
-        day >= 1 &&
-        day <= daysInMonth
+        item.tanggal_pengembalian &&
+        getDateKey(
+          item.tanggal_pengembalian
+        ) === today
       ) {
-        counts[day - 1] += 1;
+        todayReturnCount += 1;
       }
-    });
 
-    const maxCount = Math.max(
-      ...counts,
-      1
-    );
+      fineTotal +=
+        Number(item.denda) || 0;
+    }
+
+    const recentBorrowings =
+      [...peminjamanData]
+        .sort(
+          (a, b) =>
+            Number(
+              b.id_peminjaman || 0
+            ) -
+            Number(
+              a.id_peminjaman || 0
+            )
+        )
+        .slice(0, 5);
+
+    const recentReturns =
+      [...pengembalianData]
+        .sort(
+          (a, b) =>
+            Number(
+              b.id_pengembalian || 0
+            ) -
+            Number(
+              a.id_pengembalian || 0
+            )
+        )
+        .slice(0, 5);
+
+    const popularCostumes =
+      [...kostumData]
+        .sort(
+          (a, b) =>
+            Number(b.stok || 0) -
+            Number(a.stok || 0)
+        )
+        .slice(0, 5);
 
     return {
-      counts,
-      daysInMonth,
-      maxCount,
+      activeBorrowings: active,
+
+      waitingBorrowings: waiting,
+
+      completedBorrowings:
+        completed,
+
+      todayReturns:
+        todayReturnCount,
+
+      totalDenda: fineTotal,
+
+      recentBorrowings,
+
+      recentReturns,
+
+      popularCostumes,
+
+      monthlyBorrowingChart: {
+        counts,
+
+        daysInMonth,
+
+        maxCount: Math.max(
+          ...counts,
+          1
+        ),
+      },
+
+      monthlyBorrowingTotal:
+        monthTotal,
     };
-  }, [peminjamanData]);
+  }, [
+    kostumData,
+    peminjamanData,
+    pengembalianData,
+  ]);
 
-  // ==================================================
-  // TOTAL PEMINJAMAN BULAN INI
-  // ==================================================
-
-  const monthlyBorrowingTotal = useMemo(() => {
-    const now = new Date();
-
-    const year = now.getFullYear();
-    const month = now.getMonth();
-
-    return peminjamanData.filter((item) => {
-      if (!item.tanggal_peminjaman) {
-        return false;
-      }
-
-      const date = new Date(
-        item.tanggal_peminjaman
-      );
-
-      return (
-        !Number.isNaN(date.getTime()) &&
-        date.getFullYear() === year &&
-        date.getMonth() === month
-      );
-    }).length;
-  }, [peminjamanData]);
+  const {
+    activeBorrowings,
+    waitingBorrowings,
+    completedBorrowings,
+    todayReturns,
+    totalDenda,
+    recentBorrowings,
+    recentReturns,
+    popularCostumes,
+    monthlyBorrowingChart,
+    monthlyBorrowingTotal,
+  } = dashboardStats;
 
   // ==================================================
   // MENU PETUGAS
   // ==================================================
 
-  const menu = [
-    {
-      label: "Dashboard",
-      path: "/petugas/dashboard",
-      icon: FaHome,
-    },
+  const menu = useMemo(
+    () => [
+      {
+        label: "Dashboard",
+        path: "/petugas/dashboard",
+        icon: FaHome,
+      },
 
-    {
-      label: "Peminjaman",
-      path: "/petugas/peminjaman",
-      icon: FaClipboardList,
-    },
+      {
+        label: "Peminjaman",
+        path: "/petugas/peminjaman",
+        icon: FaClipboardList,
+      },
 
-    {
-      label: "Pengembalian",
-      path: "/petugas/pengembalian",
-      icon: FaUndoAlt,
-    },
+      {
+        label: "Pengembalian",
+        path: "/petugas/pengembalian",
+        icon: FaUndoAlt,
+      },
 
-    {
-      label: "Pembayaran",
-      path: "/petugas/pengaturan-pembayaran",
-      icon: FaCreditCard,
-    },
+      {
+        label: "Pembayaran",
+        path: "/petugas/pengaturan-pembayaran",
+        icon: FaCreditCard,
+      },
 
-    {
-      label: "Pembayaran Denda",
-      path: "/petugas/pembayaran-denda",
-      icon: FaMoneyBillWave,
-    },
+      {
+        label: "Pembayaran Denda",
+        path: "/petugas/pembayaran-denda",
+        icon: FaMoneyBillWave,
+      },
 
-    {
-      label: "Koleksi Kostum",
-      path: "/collections",
-      icon: FaTshirt,
-    },
+      {
+        label: "Koleksi Kostum",
+        path: "/collections",
+        icon: FaTshirt,
+      },
 
-    {
-      label: "Customer",
-      path: "/petugas/customer",
-      icon: FaUsers,
-    },
+      {
+        label: "Customer",
+        path: "/petugas/customer",
+        icon: FaUsers,
+      },
 
-    {
-      label: "Chat Pelanggan",
-      path: "/petugas/chat",
-      icon: FaComments,
-    },
+      {
+        label: "Chat Pelanggan",
+        path: "/petugas/chat",
+        icon: FaComments,
+      },
 
-    {
-      label: "Profil",
-      path: "/petugas/profile",
-      icon: FaUserCircle,
-    },
-  ];
+      {
+        label: "Profil",
+        path: "/petugas/profile",
+        icon: FaUserCircle,
+      },
+    ],
+    []
+  );
 
   // ==================================================
   // STATUS STYLE
@@ -789,17 +870,33 @@ function StaffDashboard() {
               gap-3
             "
           >
-            <FaHome
+            <div
               className="
-                text-[#D4AF37]
-                text-2xl
+                w-11
+                h-11
+                rounded-xl
+                bg-[#D4AF37]/10
+                border
+                border-[#D4AF37]/20
+                flex
+                items-center
+                justify-center
               "
-            />
+            >
+              <span
+                className="
+                  text-[#D4AF37]
+                  text-xl
+                "
+              >
+                ♛
+              </span>
+            </div>
 
             <div>
               <h1
                 className="
-                  text-2xl
+                  text-lg
                   font-bold
                   text-[#D4AF37]
                 "
@@ -812,10 +909,70 @@ function StaffDashboard() {
                   text-[9px]
                   tracking-[3px]
                   text-gray-500
-                  mt-1
                 "
               >
-                ELEGANCE FOR EVERY MOMENT
+                PETUGAS
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* USER */}
+
+        <div
+          className="
+            px-5
+            py-5
+            border-b
+            border-[#D4AF37]/10
+          "
+        >
+          <div
+            className="
+              flex
+              items-center
+              gap-3
+            "
+          >
+            <div
+              className="
+                w-10
+                h-10
+                rounded-full
+                bg-[#D4AF37]
+                text-black
+                flex
+                items-center
+                justify-center
+                font-bold
+              "
+            >
+              {user?.nama_user
+                ?.charAt(0)
+                ?.toUpperCase() || "P"}
+            </div>
+
+            <div className="min-w-0">
+              <p
+                className="
+                  text-sm
+                  font-semibold
+                  truncate
+                "
+              >
+                {user?.nama_user ||
+                  "Petugas"}
+              </p>
+
+              <p
+                className="
+                  text-[11px]
+                  text-gray-500
+                  truncate
+                "
+              >
+                {user?.email ||
+                  "petugas"}
               </p>
             </div>
           </div>
@@ -823,38 +980,34 @@ function StaffDashboard() {
 
         {/* MENU */}
 
-        <div
+        <nav
           className="
             flex-1
-            min-h-0
-            px-3
-            py-7
+            px-4
+            py-5
             overflow-y-auto
-            [scrollbar-width:none]
-            [-ms-overflow-style:none]
-            [&::-webkit-scrollbar]:hidden
           "
         >
           <p
             className="
-              text-[10px]
-              uppercase
+              text-[9px]
               tracking-[3px]
               text-gray-600
-              px-4
-              mb-4
+              uppercase
+              px-3
+              mb-3
             "
           >
             Menu Utama
           </p>
 
-          <nav className="space-y-1">
+          <div className="space-y-1">
             {menu.map((item) => {
               const Icon = item.icon;
 
-              const active =
-                item.path ===
-                "/petugas/dashboard";
+              const isActive =
+                window.location.pathname ===
+                item.path;
 
               return (
                 <Link
@@ -863,184 +1016,65 @@ function StaffDashboard() {
                   className={`
                     flex
                     items-center
-                    justify-between
-                    px-4
-                    py-3.5
+                    gap-3
+                    px-3
+                    py-3
                     rounded-xl
-                    transition-all
-                    duration-300
+                    text-sm
+                    transition
                     ${
-                      active
-                        ? "bg-gradient-to-r from-[#D4AF37]/30 to-[#D4AF37]/5 text-[#F1C75B]"
-                        : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
+                      isActive
+                        ? "bg-[#D4AF37]/10 text-[#D4AF37]"
+                        : "text-gray-400 hover:bg-white/5 hover:text-white"
                     }
                   `}
                 >
-                  <div
+                  <Icon
                     className="
-                      flex
-                      items-center
-                      gap-4
+                      text-sm
+                      flex-shrink-0
                     "
-                  >
-                    <Icon />
+                  />
 
-                    <span className="text-sm">
-                      {item.label}
-                    </span>
-                  </div>
-
-                  {item.label !==
-                    "Dashboard" && (
-                    <FaChevronRight
-                      className="
-                        text-[10px]
-                        opacity-40
-                      "
-                    />
-                  )}
+                  <span className="truncate">
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}
-          </nav>
-
-          {/* PENGATURAN */}
-
-          <div
-            className="
-              mt-9
-              pt-6
-              border-t
-              border-white/5
-            "
-          >
-            <p
-              className="
-                text-[10px]
-                uppercase
-                tracking-[3px]
-                text-gray-600
-                px-4
-                mb-4
-              "
-            >
-              Pengaturan
-            </p>
-
-            <Link
-              to="/petugas/profile"
-              className="
-                flex
-                items-center
-                gap-4
-                px-4
-                py-3.5
-                rounded-xl
-                text-gray-400
-                hover:bg-white/[0.04]
-                hover:text-white
-                transition
-              "
-            >
-              <FaUserCircle />
-
-              <span className="text-sm">
-                Profil
-              </span>
-            </Link>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="
-                w-full
-                flex
-                items-center
-                gap-4
-                px-4
-                py-3.5
-                mt-1
-                rounded-xl
-                text-red-400
-                hover:bg-red-500/5
-                transition
-              "
-            >
-              <FaSignOutAlt />
-
-              <span className="text-sm">
-                Keluar
-              </span>
-            </button>
           </div>
-        </div>
+        </nav>
 
-        {/* MINI PROFILE */}
+        {/* LOGOUT */}
 
         <div
           className="
-            p-4
+            px-4
+            py-5
             border-t
             border-[#D4AF37]/10
           "
         >
-          <div
+          <button
+            type="button"
+            onClick={handleLogout}
             className="
+              w-full
+              flex
+              items-center
+              gap-3
+              px-3
+              py-3
               rounded-xl
-              bg-[#151515]
-              border
-              border-[#D4AF37]/10
-              p-3
+              text-sm
+              text-red-400
+              hover:bg-red-500/5
+              transition
             "
           >
-            <div
-              className="
-                flex
-                items-center
-                gap-3
-              "
-            >
-              <div
-                className="
-                  w-9
-                  h-9
-                  rounded-full
-                  bg-[#D4AF37]
-                  text-black
-                  flex
-                  items-center
-                  justify-center
-                  font-bold
-                "
-              >
-                {user.nama
-                  ?.charAt(0)
-                  ?.toUpperCase() || "P"}
-              </div>
-
-              <div className="min-w-0">
-                <p
-                  className="
-                    text-sm
-                    font-semibold
-                    truncate
-                  "
-                >
-                  {user.nama}
-                </p>
-
-                <p
-                  className="
-                    text-[11px]
-                    text-gray-500
-                    truncate
-                  "
-                >
-                  Petugas
-                </p>
-              </div>
-            </div>
-          </div>
+            <FaSignOutAlt />
+            Keluar
+          </button>
         </div>
       </aside>
 
@@ -1054,122 +1088,119 @@ function StaffDashboard() {
       >
         <div
           className="
-            max-w-[1500px]
+            max-w-[1600px]
             mx-auto
             px-5
-            md:px-8
-            py-6
+            sm:px-7
+            lg:px-10
+            py-8
           "
         >
           {/* TOP BAR */}
 
-          <header
+          <div
             className="
               flex
-              items-center
-              justify-between
+              flex-col
+              md:flex-row
+              md:items-center
+              md:justify-between
               gap-5
-              mb-7
+              mb-8
             "
           >
             <div>
-              <h2
+              <p
+                className="
+                  text-[10px]
+                  tracking-[4px]
+                  text-[#D4AF37]
+                  uppercase
+                  mb-2
+                "
+              >
+                Dashboard
+              </p>
+
+              <h1
                 className="
                   text-3xl
                   md:text-4xl
                   font-bold
                 "
               >
-                Dashboard
-              </h2>
+                Selamat datang kembali,
+                <span className="text-[#D4AF37]">
+                  {" "}
+                  {user?.nama_user ||
+                    "Petugas"}
+                </span>
+              </h1>
 
               <p
                 className="
                   text-gray-500
-                  mt-1
+                  text-sm
+                  mt-2
                 "
               >
-                Selamat datang kembali,{" "}
-                {user.nama}
+                Kelola aktivitas penyewaan
+                kostum Handu Atelier.
               </p>
             </div>
 
             <div
               className="
-                hidden
-                md:flex
+                flex
                 items-center
-                gap-4
+                gap-3
               "
             >
               <div
                 className="
-                  flex
-                  items-center
-                  gap-3
-                  px-5
+                  px-4
                   py-3
                   rounded-xl
+                  bg-[#111111]
                   border
                   border-[#D4AF37]/15
-                  bg-[#121212]
                 "
               >
-                <FaCalendarAlt className="text-[#D4AF37]" />
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-2
+                  "
+                >
+                  <FaCalendarAlt
+                    className="
+                      text-[#D4AF37]
+                      text-sm
+                    "
+                  />
 
-                <div>
-                  <p className="text-xs font-semibold">
+                  <span
+                    className="
+                      text-xs
+                      text-gray-400
+                    "
+                  >
                     {new Date().toLocaleDateString(
                       "id-ID",
                       {
-                        weekday: "long",
-                        day: "numeric",
+                        weekday:
+                          "long",
+                        day: "2-digit",
                         month: "long",
                         year: "numeric",
                       }
                     )}
-                  </p>
-
-                  <p className="text-[10px] text-gray-500">
-                    Area Petugas
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div
-                  className="
-                    w-12
-                    h-12
-                    rounded-full
-                    border
-                    border-[#D4AF37]/50
-                    bg-[#D4AF37]/10
-                    text-[#D4AF37]
-                    flex
-                    items-center
-                    justify-center
-                    text-lg
-                    font-semibold
-                  "
-                >
-                  {user.nama
-                    ?.charAt(0)
-                    ?.toUpperCase() || "P"}
-                </div>
-
-                <div>
-                  <p className="text-sm font-semibold">
-                    {user.nama}
-                  </p>
-
-                  <p className="text-xs text-gray-500">
-                    Petugas
-                  </p>
+                  </span>
                 </div>
               </div>
             </div>
-          </header>
+          </div>
 
           {/* ERROR */}
 
@@ -1177,13 +1208,14 @@ function StaffDashboard() {
             <div
               className="
                 mb-6
-                rounded-2xl
+                rounded-xl
                 border
                 border-red-500/20
-                bg-red-500/10
-                text-red-400
+                bg-red-500/5
                 px-5
                 py-4
+                text-red-400
+                text-sm
               "
             >
               {error}
@@ -1192,12 +1224,14 @@ function StaffDashboard() {
 
           {/* STAT CARDS */}
 
-          <section
+          <div
             className="
               grid
+              grid-cols-1
               sm:grid-cols-2
-              xl:grid-cols-5
+              xl:grid-cols-4
               gap-4
+              mb-6
             "
           >
             {/* TOTAL KOSTUM */}
@@ -1207,30 +1241,41 @@ function StaffDashboard() {
               className="
                 rounded-2xl
                 border
-                border-[#D4AF37]/20
-                bg-gradient-to-br
-                from-[#1A160D]
-                to-[#101010]
+                border-[#D4AF37]/15
+                bg-[#111111]
                 p-5
-                hover:border-[#D4AF37]/50
+                hover:border-[#D4AF37]/40
                 transition
               "
             >
-              <p className="text-gray-400 text-sm">
-                Total Kostum
-              </p>
-
               <div
                 className="
                   flex
-                  items-end
+                  items-start
                   justify-between
-                  mt-3
                 "
               >
-                <p className="text-4xl font-bold text-[#D4AF37]">
-                  {kostumData.length}
-                </p>
+                <div>
+                  <p
+                    className="
+                      text-gray-500
+                      text-sm
+                    "
+                  >
+                    Total Kostum
+                  </p>
+
+                  <p
+                    className="
+                      text-3xl
+                      font-bold
+                      text-[#D4AF37]
+                      mt-2
+                    "
+                  >
+                    {kostumData.length}
+                  </p>
+                </div>
 
                 <FaTshirt
                   className="
@@ -1252,43 +1297,66 @@ function StaffDashboard() {
                   mt-4
                 "
               >
-                <span className="text-[#D4AF37] text-xs">
+                <span
+                  className="
+                    text-[#D4AF37]
+                    text-xs
+                  "
+                >
                   Lihat Detail
                 </span>
 
-                <FaChevronRight className="text-[#D4AF37] text-xs" />
+                <FaChevronRight
+                  className="
+                    text-[#D4AF37]
+                    text-xs
+                  "
+                />
               </div>
             </Link>
 
-            {/* USERS */}
+            {/* PELANGGAN */}
 
             <Link
               to="/petugas/customer"
               className="
                 rounded-2xl
                 border
-                border-[#D4AF37]/20
+                border-[#D4AF37]/15
                 bg-[#111111]
                 p-5
-                hover:border-[#D4AF37]/50
+                hover:border-[#D4AF37]/40
                 transition
               "
             >
-              <p className="text-gray-400 text-sm">
-                Pelanggan
-              </p>
-
               <div
                 className="
                   flex
-                  items-end
+                  items-start
                   justify-between
-                  mt-3
                 "
               >
-                <p className="text-4xl font-bold text-[#D4AF37]">
-                  {userData.length}
-                </p>
+                <div>
+                  <p
+                    className="
+                      text-gray-500
+                      text-sm
+                    "
+                  >
+                    Pelanggan
+                  </p>
+
+                  <p
+                    className="
+                      text-3xl
+                      font-bold
+                      text-[#D4AF37]
+                      mt-2
+                    "
+                  >
+                    {userData.length}
+                  </p>
+                </div>
 
                 <FaUsers
                   className="
@@ -1310,43 +1378,66 @@ function StaffDashboard() {
                   mt-4
                 "
               >
-                <span className="text-[#D4AF37] text-xs">
+                <span
+                  className="
+                    text-[#D4AF37]
+                    text-xs
+                  "
+                >
                   Lihat Detail
                 </span>
 
-                <FaChevronRight className="text-[#D4AF37] text-xs" />
+                <FaChevronRight
+                  className="
+                    text-[#D4AF37]
+                    text-xs
+                  "
+                />
               </div>
             </Link>
 
-            {/* AKTIF */}
+            {/* PEMINJAMAN AKTIF */}
 
             <Link
               to="/petugas/peminjaman"
               className="
                 rounded-2xl
                 border
-                border-[#D4AF37]/20
+                border-[#D4AF37]/15
                 bg-[#111111]
                 p-5
-                hover:border-[#D4AF37]/50
+                hover:border-[#D4AF37]/40
                 transition
               "
             >
-              <p className="text-gray-400 text-sm">
-                Peminjaman Aktif
-              </p>
-
               <div
                 className="
                   flex
-                  items-end
+                  items-start
                   justify-between
-                  mt-3
                 "
               >
-                <p className="text-4xl font-bold text-[#D4AF37]">
-                  {activeBorrowings}
-                </p>
+                <div>
+                  <p
+                    className="
+                      text-gray-500
+                      text-sm
+                    "
+                  >
+                    Peminjaman Aktif
+                  </p>
+
+                  <p
+                    className="
+                      text-3xl
+                      font-bold
+                      text-[#D4AF37]
+                      mt-2
+                    "
+                  >
+                    {activeBorrowings}
+                  </p>
+                </div>
 
                 <FaClipboardList
                   className="
@@ -1368,11 +1459,21 @@ function StaffDashboard() {
                   mt-4
                 "
               >
-                <span className="text-[#D4AF37] text-xs">
+                <span
+                  className="
+                    text-[#D4AF37]
+                    text-xs
+                  "
+                >
                   Disetujui + Diproses
                 </span>
 
-                <FaChevronRight className="text-[#D4AF37] text-xs" />
+                <FaChevronRight
+                  className="
+                    text-[#D4AF37]
+                    text-xs
+                  "
+                />
               </div>
             </Link>
 
@@ -1390,21 +1491,34 @@ function StaffDashboard() {
                 transition
               "
             >
-              <p className="text-gray-400 text-sm">
-                Menunggu Tindakan
-              </p>
-
               <div
                 className="
                   flex
-                  items-end
+                  items-start
                   justify-between
-                  mt-3
                 "
               >
-                <p className="text-4xl font-bold text-yellow-400">
-                  {waitingBorrowings}
-                </p>
+                <div>
+                  <p
+                    className="
+                      text-gray-500
+                      text-sm
+                    "
+                  >
+                    Menunggu Tindakan
+                  </p>
+
+                  <p
+                    className="
+                      text-3xl
+                      font-bold
+                      text-yellow-400
+                      mt-2
+                    "
+                  >
+                    {waitingBorrowings}
+                  </p>
+                </div>
 
                 <FaClock
                   className="
@@ -1426,151 +1540,44 @@ function StaffDashboard() {
                   mt-4
                 "
               >
-                <span className="text-yellow-400 text-xs">
+                <span
+                  className="
+                    text-yellow-400
+                    text-xs
+                  "
+                >
                   Perlu tindakan
                 </span>
 
-                <FaChevronRight className="text-yellow-400 text-xs" />
-              </div>
-            </Link>
-
-            {/* PENGEMBALIAN */}
-
-            <Link
-              to="/petugas/pengembalian"
-              className="
-                rounded-2xl
-                border
-                border-green-500/20
-                bg-[#111111]
-                p-5
-                hover:border-green-500/40
-                transition
-              "
-            >
-              <p className="text-gray-400 text-sm">
-                Pengembalian Hari Ini
-              </p>
-
-              <div
-                className="
-                  flex
-                  items-end
-                  justify-between
-                  mt-3
-                "
-              >
-                <p className="text-4xl font-bold text-green-400">
-                  {todayReturns}
-                </p>
-
-                <FaCheckCircle
+                <FaChevronRight
                   className="
-                    text-green-400
-                    text-3xl
-                    opacity-80
+                    text-yellow-400
+                    text-xs
                   "
                 />
               </div>
-
-              <div
-                className="
-                  border-t
-                  border-white/5
-                  pt-3
-                  mt-4
-                "
-              >
-                <span className="text-green-400 text-xs">
-                  Total denda:{" "}
-                  {formatRupiah(totalDenda)}
-                </span>
-              </div>
             </Link>
-          </section>
+          </div>
 
-          {/* SECONDARY SUMMARY */}
+          {/* SECONDARY STATISTICS */}
 
-          <section
+          <div
             className="
               grid
+              grid-cols-1
               sm:grid-cols-2
-              lg:grid-cols-3
+              lg:grid-cols-4
               gap-4
-              mt-5
+              mb-6
             "
           >
-            <div
-              className="
-                rounded-2xl
-                border
-                border-white/5
-                bg-[#111111]
-                p-5
-              "
-            >
-              <p className="text-gray-500 text-sm">
-                Total Peminjaman
-              </p>
-
-              <p className="text-2xl font-bold mt-2">
-                {peminjamanData.length}
-              </p>
-            </div>
+            {/* SELESAI */}
 
             <div
               className="
                 rounded-2xl
                 border
-                border-white/5
-                bg-[#111111]
-                p-5
-              "
-            >
-              <p className="text-gray-500 text-sm">
-                Selesai
-              </p>
-
-              <p className="text-2xl font-bold text-green-400 mt-2">
-                {completedBorrowings}
-              </p>
-            </div>
-
-            <div
-              className="
-                rounded-2xl
-                border
-                border-white/5
-                bg-[#111111]
-                p-5
-              "
-            >
-              <p className="text-gray-500 text-sm">
-                Peminjaman Bulan Ini
-              </p>
-
-              <p className="text-2xl font-bold text-[#D4AF37] mt-2">
-                {monthlyBorrowingTotal}
-              </p>
-            </div>
-          </section>
-
-          {/* GRAFIK + PEMINJAMAN TERBARU */}
-
-          <section
-            className="
-              grid
-              xl:grid-cols-5
-              gap-5
-              mt-5
-            "
-          >
-            <div
-              className="
-                xl:col-span-3
-                rounded-2xl
-                border
-                border-[#D4AF37]/15
+                border-green-500/10
                 bg-[#111111]
                 p-5
               "
@@ -1580,165 +1587,203 @@ function StaffDashboard() {
                   flex
                   items-center
                   justify-between
-                  mb-5
                 "
               >
-                <div
-                  className="
-                    flex
-                    items-center
-                    gap-3
-                  "
-                >
-                  <FaChartLine className="text-[#D4AF37]" />
-
-                  <div>
-                    <h2 className="text-lg font-semibold">
-                      Grafik Peminjaman
-                    </h2>
-
-                    <p className="text-xs text-gray-600 mt-1">
-                      Jumlah peminjaman per hari
-                      bulan berjalan
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  className="
-                    px-4
-                    py-2
-                    rounded-lg
-                    border
-                    border-white/10
-                    text-xs
-                    text-gray-400
-                  "
-                >
-                  Bulan Ini
-                </div>
-              </div>
-
-              <div
-                className="
-                  h-[270px]
-                  rounded-xl
-                  bg-[#0D0D0D]
-                  border
-                  border-white/5
-                  p-4
-                "
-              >
-                {peminjamanData.length ===
-                0 ? (
-                  <div
+                <div>
+                  <p
                     className="
-                      h-full
-                      flex
-                      items-center
-                      justify-center
-                      text-gray-600
+                      text-gray-500
                       text-sm
                     "
                   >
-                    Belum ada data
-                    peminjaman.
-                  </div>
-                ) : (
-                  <div
+                    Selesai
+                  </p>
+
+                  <p
                     className="
-                      h-full
-                      flex
-                      flex-col
-                      justify-end
+                      text-2xl
+                      font-bold
+                      text-green-400
+                      mt-2
                     "
                   >
-                    <div
-                      className="
-                        grid
-                        items-end
-                        gap-[3px]
-                        h-[210px]
-                        w-full
-                        overflow-hidden
-                      "
-                      style={{
-                        gridTemplateColumns:
-                          `repeat(${monthlyBorrowingChart.daysInMonth}, minmax(0, 1fr))`,
-                      }}
-                    >
-                      {monthlyBorrowingChart.counts.map(
-                        (count, index) => {
-                          const height =
-                            count === 0
-                              ? 4
-                              : Math.max(
-                                  12,
-                                  (count /
-                                    monthlyBorrowingChart.maxCount) *
-                                    180
-                                );
+                    {completedBorrowings}
+                  </p>
+                </div>
 
-                          return (
-                            <div
-                              key={index}
-                              className="
-                                min-w-0
-                                h-full
-                                flex
-                                flex-col
-                                items-center
-                                justify-end
-                                gap-1
-                              "
-                            >
-                              <span
-                                className="
-                                  text-[9px]
-                                  text-gray-600
-                                  leading-none
-                                "
-                              >
-                                {count > 0
-                                  ? count
-                                  : ""}
-                              </span>
-
-                              <div
-                                className="
-                                  w-full
-                                  min-w-[3px]
-                                  rounded-t-md
-                                  bg-gradient-to-t
-                                  from-[#8F6B16]
-                                  to-[#D4AF37]
-                                  opacity-80
-                                "
-                                style={{
-                                  height: `${height}px`,
-                                }}
-                              />
-
-                              <span
-                                className="
-                                  text-[8px]
-                                  text-gray-700
-                                  leading-none
-                                "
-                              >
-                                {index + 1}
-                              </span>
-                            </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  </div>
-                )}
+                <FaCheckCircle
+                  className="
+                    text-green-400
+                    text-2xl
+                  "
+                />
               </div>
             </div>
 
+            {/* PENGEMBALIAN HARI INI */}
+
             <div
+              className="
+                rounded-2xl
+                border
+                border-blue-500/10
+                bg-[#111111]
+                p-5
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                "
+              >
+                <div>
+                  <p
+                    className="
+                      text-gray-500
+                      text-sm
+                    "
+                  >
+                    Pengembalian Hari Ini
+                  </p>
+
+                  <p
+                    className="
+                      text-2xl
+                      font-bold
+                      text-blue-400
+                      mt-2
+                    "
+                  >
+                    {todayReturns}
+                  </p>
+                </div>
+
+                <FaUndoAlt
+                  className="
+                    text-blue-400
+                    text-2xl
+                  "
+                />
+              </div>
+            </div>
+
+            {/* TOTAL DENDA */}
+
+            <div
+              className="
+                rounded-2xl
+                border
+                border-red-500/10
+                bg-[#111111]
+                p-5
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                "
+              >
+                <div>
+                  <p
+                    className="
+                      text-gray-500
+                      text-sm
+                    "
+                  >
+                    Total Denda
+                  </p>
+
+                  <p
+                    className="
+                      text-xl
+                      font-bold
+                      text-red-400
+                      mt-2
+                    "
+                  >
+                    {formatRupiah(
+                      totalDenda
+                    )}
+                  </p>
+                </div>
+
+                <FaMoneyBillWave
+                  className="
+                    text-red-400
+                    text-2xl
+                  "
+                />
+              </div>
+            </div>
+
+            {/* PEMINJAMAN BULAN INI */}
+
+            <div
+              className="
+                rounded-2xl
+                border
+                border-purple-500/10
+                bg-[#111111]
+                p-5
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                "
+              >
+                <div>
+                  <p
+                    className="
+                      text-gray-500
+                      text-sm
+                    "
+                  >
+                    Peminjaman Bulan Ini
+                  </p>
+
+                  <p
+                    className="
+                      text-2xl
+                      font-bold
+                      text-purple-400
+                      mt-2
+                    "
+                  >
+                    {monthlyBorrowingTotal}
+                  </p>
+                </div>
+
+                <FaChartLine
+                  className="
+                    text-purple-400
+                    text-2xl
+                  "
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* GRAFIK + PEMINJAMAN TERBARU */}
+
+          <div
+            className="
+              grid
+              grid-cols-1
+              xl:grid-cols-3
+              gap-5
+              mb-6
+            "
+          >
+            {/* GRAFIK */}
+
+            <section
               className="
                 xl:col-span-2
                 rounded-2xl
@@ -1763,9 +1808,188 @@ function StaffDashboard() {
                     gap-3
                   "
                 >
-                  <FaCalendarAlt className="text-[#D4AF37]" />
+                  <FaChartLine
+                    className="
+                      text-[#D4AF37]
+                    "
+                  />
 
-                  <h2 className="text-lg font-semibold">
+                  <div>
+                    <h2
+                      className="
+                        text-lg
+                        font-semibold
+                      "
+                    >
+                      Grafik Peminjaman
+                    </h2>
+
+                    <p
+                      className="
+                        text-xs
+                        text-gray-600
+                        mt-1
+                      "
+                    >
+                      Aktivitas peminjaman
+                      bulan ini
+                    </p>
+                  </div>
+                </div>
+
+                <span
+                  className="
+                    text-xs
+                    text-gray-500
+                  "
+                >
+                  {monthlyBorrowingTotal} total
+                </span>
+              </div>
+
+              <div
+                className="
+                  h-[260px]
+                  flex
+                  items-end
+                  gap-1
+                  overflow-x-auto
+                  pb-7
+                  relative
+                "
+              >
+                {monthlyBorrowingChart.counts.map(
+                  (count, index) => {
+                    const height =
+                      Math.max(
+                        (count /
+                          monthlyBorrowingChart.maxCount) *
+                          100,
+                        count > 0
+                          ? 8
+                          : 2
+                      );
+
+                    return (
+                      <div
+                        key={index}
+                        className="
+                          flex-1
+                          min-w-[10px]
+                          h-full
+                          flex
+                          items-end
+                          group
+                          relative
+                        "
+                      >
+                        <div
+                          className="
+                            absolute
+                            bottom-full
+                            left-1/2
+                            -translate-x-1/2
+                            mb-2
+                            hidden
+                            group-hover:block
+                            bg-black
+                            border
+                            border-[#D4AF37]/20
+                            rounded-lg
+                            px-2
+                            py-1
+                            text-[10px]
+                            text-white
+                            whitespace-nowrap
+                            z-10
+                          "
+                        >
+                          {index + 1}:{" "}
+                          {count}
+                        </div>
+
+                        <div
+                          className="
+                            w-full
+                            rounded-t-md
+                            bg-[#D4AF37]/70
+                            hover:bg-[#D4AF37]
+                            transition
+                          "
+                          style={{
+                            height: `${height}%`,
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+                )}
+
+                <div
+                  className="
+                    absolute
+                    bottom-0
+                    left-0
+                    right-0
+                    flex
+                    justify-between
+                    text-[9px]
+                    text-gray-700
+                  "
+                >
+                  <span>1</span>
+                  <span>5</span>
+                  <span>10</span>
+                  <span>15</span>
+                  <span>20</span>
+                  <span>25</span>
+                  <span>
+                    {
+                      monthlyBorrowingChart.daysInMonth
+                    }
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {/* PEMINJAMAN TERBARU */}
+
+            <section
+              className="
+                rounded-2xl
+                border
+                border-[#D4AF37]/15
+                bg-[#111111]
+                p-5
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                  mb-5
+                "
+              >
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-3
+                  "
+                >
+                  <FaCalendarAlt
+                    className="
+                      text-[#D4AF37]
+                    "
+                  />
+
+                  <h2
+                    className="
+                      text-lg
+                      font-semibold
+                    "
+                  >
                     Peminjaman Terbaru
                   </h2>
                 </div>
@@ -1782,7 +2006,12 @@ function StaffDashboard() {
                 </Link>
               </div>
 
-              <div className="divide-y divide-white/5">
+              <div
+                className="
+                  divide-y
+                  divide-white/5
+                "
+              >
                 {recentBorrowings.length ===
                 0 ? (
                   <div
@@ -1823,67 +2052,93 @@ function StaffDashboard() {
                               h-10
                               rounded-xl
                               bg-[#D4AF37]/10
-                              text-[#D4AF37]
+                              border
+                              border-[#D4AF37]/10
                               flex
                               items-center
                               justify-center
-                              font-semibold
+                              flex-shrink-0
                             "
                           >
-                            {item.nama_user
-                              ?.charAt(0)
-                              ?.toUpperCase() ||
-                              "U"}
+                            <FaClipboardList
+                              className="
+                                text-[#D4AF37]
+                              "
+                            />
                           </div>
 
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">
-                              {item.nama_user ||
-                                "-"}
-                            </p>
-
-                            <p className="text-[11px] text-gray-600 mt-1 truncate">
-                              #
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className="
+                                text-sm
+                                font-medium
+                                truncate
+                              "
+                            >
+                              Peminjaman #
                               {
                                 item.id_peminjaman
-                              }{" "}
-                              •{" "}
-                              {item.nama_kostum ||
-                                "Kostum"}
+                              }
+                            </p>
+
+                            <p
+                              className="
+                                text-[11px]
+                                text-gray-600
+                                mt-1
+                                truncate
+                              "
+                            >
+                              {item.nama_user ||
+                                "Pelanggan"}
                             </p>
                           </div>
 
-                          <span
-                            className={`
-                              text-[10px]
-                              px-2
-                              py-1
-                              rounded-full
-                              ${getStatusClass(
-                                item.status
+                          <div className="text-right">
+                            <span
+                              className={`
+                                inline-flex
+                                px-2
+                                py-1
+                                rounded-full
+                                text-[9px]
+                                ${getStatusClass(
+                                  item.status
+                                )}
+                              `}
+                            >
+                              {item.status ||
+                                "-"}
+                            </span>
+
+                            <p
+                              className="
+                                text-[9px]
+                                text-gray-600
+                                mt-1
+                              "
+                            >
+                              {formatTanggal(
+                                item.tanggal_peminjaman
                               )}
-                            `}
-                          >
-                            {item.status ||
-                              "-"}
-                          </span>
+                            </p>
+                          </div>
                         </div>
                       </Link>
                     )
                   )
                 )}
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
 
           {/* PENGEMBALIAN TERBARU */}
 
           <section
             className="
-              mt-5
               rounded-2xl
               border
-              border-green-500/10
+              border-[#D4AF37]/15
               bg-[#111111]
               overflow-hidden
             "
@@ -1908,7 +2163,12 @@ function StaffDashboard() {
               >
                 <FaUndoAlt className="text-green-400" />
 
-                <h2 className="text-lg font-semibold">
+                <h2
+                  className="
+                    text-lg
+                    font-semibold
+                  "
+                >
                   Pengembalian Terbaru
                 </h2>
               </div>
@@ -1925,30 +2185,87 @@ function StaffDashboard() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[850px]">
-                <thead className="bg-[#161616]">
+              <table
+                className="
+                  w-full
+                  min-w-[850px]
+                "
+              >
+                <thead
+                  className="
+                    bg-[#161616]
+                  "
+                >
                   <tr>
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
+                    <th
+                      className="
+                        text-left
+                        px-5
+                        py-3
+                        text-gray-600
+                        text-xs
+                      "
+                    >
                       ID
                     </th>
 
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
+                    <th
+                      className="
+                        text-left
+                        px-5
+                        py-3
+                        text-gray-600
+                        text-xs
+                      "
+                    >
                       Peminjaman
                     </th>
 
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
+                    <th
+                      className="
+                        text-left
+                        px-5
+                        py-3
+                        text-gray-600
+                        text-xs
+                      "
+                    >
                       User
                     </th>
 
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
+                    <th
+                      className="
+                        text-left
+                        px-5
+                        py-3
+                        text-gray-600
+                        text-xs
+                      "
+                    >
                       Tanggal
                     </th>
 
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
+                    <th
+                      className="
+                        text-left
+                        px-5
+                        py-3
+                        text-gray-600
+                        text-xs
+                      "
+                    >
                       Kondisi
                     </th>
 
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
+                    <th
+                      className="
+                        text-left
+                        px-5
+                        py-3
+                        text-gray-600
+                        text-xs
+                      "
+                    >
                       Denda
                     </th>
                   </tr>
@@ -1983,32 +2300,60 @@ function StaffDashboard() {
                             border-white/5
                           "
                         >
-                          <td className="px-5 py-4 text-[#D4AF37] font-semibold">
+                          <td
+                            className="
+                              px-5
+                              py-4
+                              text-[#D4AF37]
+                              font-semibold
+                            "
+                          >
                             #
                             {
                               item.id_pengembalian
                             }
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td
+                            className="
+                              px-5
+                              py-4
+                            "
+                          >
                             #
                             {
                               item.id_peminjaman
                             }
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td
+                            className="
+                              px-5
+                              py-4
+                            "
+                          >
                             {item.nama_user ||
                               "-"}
                           </td>
 
-                          <td className="px-5 py-4 text-gray-300">
+                          <td
+                            className="
+                              px-5
+                              py-4
+                              text-gray-300
+                            "
+                          >
                             {formatTanggal(
                               item.tanggal_pengembalian
                             )}
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td
+                            className="
+                              px-5
+                              py-4
+                            "
+                          >
                             <span
                               className={`
                                 inline-flex
@@ -2032,7 +2377,14 @@ function StaffDashboard() {
                             </span>
                           </td>
 
-                          <td className="px-5 py-4 text-[#D4AF37] font-semibold">
+                          <td
+                            className="
+                              px-5
+                              py-4
+                              text-[#D4AF37]
+                              font-semibold
+                            "
+                          >
                             {formatRupiah(
                               item.denda
                             )}
@@ -2045,28 +2397,27 @@ function StaffDashboard() {
               </table>
             </div>
           </section>
-
-          {/* KOLEKSI KOSTUM */}
+                    {/* KOLEKSI KOSTUM */}
 
           <section
             className="
-              mt-5
               rounded-2xl
               border
               border-[#D4AF37]/15
               bg-[#111111]
-              overflow-hidden
+              p-5
+              mt-6
             "
           >
             <div
               className="
                 flex
-                items-center
-                justify-between
-                px-5
-                py-4
-                border-b
-                border-white/5
+                flex-col
+                sm:flex-row
+                sm:items-center
+                sm:justify-between
+                gap-3
+                mb-5
               "
             >
               <div
@@ -2076,196 +2427,960 @@ function StaffDashboard() {
                   gap-3
                 "
               >
-                <FaTshirt className="text-[#D4AF37]" />
+                <div
+                  className="
+                    w-10
+                    h-10
+                    rounded-xl
+                    bg-[#D4AF37]/10
+                    border
+                    border-[#D4AF37]/10
+                    flex
+                    items-center
+                    justify-center
+                  "
+                >
+                  <FaTshirt
+                    className="
+                      text-[#D4AF37]
+                    "
+                  />
+                </div>
 
-                <h2 className="text-lg font-semibold">
-                  Koleksi Kostum
-                </h2>
+                <div>
+                  <h2
+                    className="
+                      text-lg
+                      font-semibold
+                    "
+                  >
+                    Koleksi Kostum
+                  </h2>
+
+                  <p
+                    className="
+                      text-xs
+                      text-gray-600
+                      mt-1
+                    "
+                  >
+                    Ringkasan koleksi kostum
+                    yang tersedia
+                  </p>
+                </div>
               </div>
 
               <Link
                 to="/petugas/kostum"
                 className="
-                  text-xs
+                  inline-flex
+                  items-center
+                  justify-center
+                  gap-2
+                  px-4
+                  py-2
+                  rounded-lg
+                  border
+                  border-[#D4AF37]/20
                   text-[#D4AF37]
+                  text-xs
+                  hover:bg-[#D4AF37]/10
+                  transition
                 "
               >
-                Lihat Semua
+                Kelola Kostum
+
+                <FaChevronRight
+                  className="
+                    text-[10px]
+                  "
+                />
               </Link>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
-                <thead className="bg-[#161616]">
-                  <tr>
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
-                      No
-                    </th>
-
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
-                      Kostum
-                    </th>
-
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
-                      Kategori
-                    </th>
-
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
-                      Stok
-                    </th>
-
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
-                      Harga Sewa
-                    </th>
-
-                    <th className="text-left px-5 py-3 text-gray-600 text-xs">
-                      Aksi
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {popularCostumes.length ===
-                  0 ? (
-                    <tr>
-                      <td
-                        colSpan="6"
+            {popularCostumes.length ===
+            0 ? (
+              <div
+                className="
+                  py-12
+                  text-center
+                  text-gray-600
+                  text-sm
+                "
+              >
+                Belum ada data kostum.
+              </div>
+            ) : (
+              <div
+                className="
+                  grid
+                  grid-cols-1
+                  sm:grid-cols-2
+                  lg:grid-cols-3
+                  xl:grid-cols-5
+                  gap-4
+                "
+              >
+                {popularCostumes.map(
+                  (item, index) => (
+                    <div
+                      key={
+                        item.id_kostum ||
+                        item.id ||
+                        index
+                      }
+                      className="
+                        rounded-xl
+                        overflow-hidden
+                        border
+                        border-white/5
+                        bg-[#0D0D0D]
+                        hover:border-[#D4AF37]/20
+                        transition
+                      "
+                    >
+                      <div
                         className="
-                          text-center
-                          py-12
-                          text-gray-600
-                          text-sm
+                          h-36
+                          bg-[#171717]
+                          overflow-hidden
+                          relative
                         "
                       >
-                        Belum ada data
-                        kostum.
-                      </td>
-                    </tr>
-                  ) : (
-                    popularCostumes.map(
-                      (costume, index) => (
-                        <tr
-                          key={
-                            costume.id_kostum ||
-                            index
-                          }
+                        {item.gambar ||
+                        item.image ||
+                        item.foto ? (
+                          <img
+                            src={
+                              item.gambar ||
+                              item.image ||
+                              item.foto
+                            }
+                            alt={
+                              item.nama_kostum ||
+                              item.nama ||
+                              "Kostum"
+                            }
+                            className="
+                              w-full
+                              h-full
+                              object-cover
+                            "
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div
+                            className="
+                              w-full
+                              h-full
+                              flex
+                              items-center
+                              justify-center
+                            "
+                          >
+                            <FaTshirt
+                              className="
+                                text-4xl
+                                text-gray-700
+                              "
+                            />
+                          </div>
+                        )}
+
+                        <div
                           className="
-                            border-t
-                            border-white/5
+                            absolute
+                            top-3
+                            right-3
+                            px-2
+                            py-1
+                            rounded-full
+                            bg-black/70
+                            text-[9px]
+                            text-[#D4AF37]
                           "
                         >
-                          <td className="px-5 py-4 text-gray-500 text-sm">
-                            {index + 1}
-                          </td>
+                          #{index + 1}
+                        </div>
+                      </div>
 
-                          <td className="px-5 py-4">
-                            <div
-                              className="
-                                flex
-                                items-center
-                                gap-3
-                              "
-                            >
-                              <div
-                                className="
-                                  w-10
-                                  h-10
-                                  rounded-lg
-                                  bg-[#1D1D1D]
-                                  flex
-                                  items-center
-                                  justify-center
-                                  text-[#D4AF37]
-                                "
-                              >
-                                <FaTshirt />
-                              </div>
+                      <div className="p-4">
+                        <p
+                          className="
+                            text-sm
+                            font-semibold
+                            truncate
+                          "
+                        >
+                          {item.nama_kostum ||
+                            item.nama ||
+                            "Kostum"}
+                        </p>
 
-                              <div>
-                                <p className="text-sm font-semibold">
-                                  {
-                                    costume.nama_kostum
-                                  }
-                                </p>
+                        <div
+                          className="
+                            flex
+                            items-center
+                            justify-between
+                            gap-3
+                            mt-3
+                          "
+                        >
+                          <span
+                            className="
+                              text-[11px]
+                              text-gray-500
+                            "
+                          >
+                            Stok
+                          </span>
 
-                                <p className="text-[10px] text-gray-600 mt-1">
-                                  {costume.kode_koleksi ||
-                                    costume.id_kostum ||
-                                    "-"}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
+                          <span
+                            className="
+                              text-xs
+                              font-semibold
+                              text-[#D4AF37]
+                            "
+                          >
+                            {item.stok ??
+                              item.jumlah_stok ??
+                              0}
+                          </span>
+                        </div>
 
-                          <td className="px-5 py-4 text-gray-400 text-sm">
-                            {costume.nama_kategori ||
-                              costume.kategori ||
-                              "-"}
-                          </td>
+                        <div
+                          className="
+                            flex
+                            items-center
+                            justify-between
+                            gap-3
+                            mt-2
+                          "
+                        >
+                          <span
+                            className="
+                              text-[11px]
+                              text-gray-500
+                            "
+                          >
+                            Harga
+                          </span>
 
-                          <td className="px-5 py-4 text-gray-300 text-sm">
-                            {costume.stok ??
-                              "-"}
-                          </td>
-
-                          <td className="px-5 py-4 text-[#D4AF37] text-sm font-semibold">
+                          <span
+                            className="
+                              text-xs
+                              text-gray-300
+                            "
+                          >
                             {formatRupiah(
-                              costume.harga_sewa
+                              item.harga ||
+                                item.harga_sewa ||
+                                0
                             )}
-                          </td>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </section>
 
-                          <td className="px-5 py-4">
-                            <Link
-                              to="/petugas/kostum"
-                              className="
-                                inline-flex
-                                items-center
-                                gap-2
-                                px-4
-                                py-2
-                                rounded-lg
-                                border
-                                border-[#D4AF37]/30
-                                text-[#D4AF37]
-                                text-xs
-                              "
-                            >
-                              Detail
-                            </Link>
-                          </td>
-                        </tr>
-                      )
-                    )
-                  )}
-                </tbody>
-              </table>
+          {/* RINGKASAN AKTIVITAS */}
+
+          <section
+            className="
+              grid
+              grid-cols-1
+              lg:grid-cols-2
+              gap-5
+              mt-6
+            "
+          >
+            {/* AKTIVITAS PEMINJAMAN */}
+
+            <div
+              className="
+                rounded-2xl
+                border
+                border-[#D4AF37]/15
+                bg-[#111111]
+                p-5
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                  mb-5
+                "
+              >
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-3
+                  "
+                >
+                  <div
+                    className="
+                      w-10
+                      h-10
+                      rounded-xl
+                      bg-blue-500/10
+                      flex
+                      items-center
+                      justify-center
+                    "
+                  >
+                    <FaClipboardList
+                      className="
+                        text-blue-400
+                      "
+                    />
+                  </div>
+
+                  <div>
+                    <h2
+                      className="
+                        text-lg
+                        font-semibold
+                      "
+                    >
+                      Ringkasan Peminjaman
+                    </h2>
+
+                    <p
+                      className="
+                        text-xs
+                        text-gray-600
+                      "
+                    >
+                      Status transaksi saat ini
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="
+                  space-y-3
+                "
+              >
+                <div
+                  className="
+                    flex
+                    items-center
+                    justify-between
+                    p-4
+                    rounded-xl
+                    bg-yellow-500/5
+                    border
+                    border-yellow-500/10
+                  "
+                >
+                  <div
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                    "
+                  >
+                    <span
+                      className="
+                        w-2
+                        h-2
+                        rounded-full
+                        bg-yellow-400
+                      "
+                    />
+
+                    <span
+                      className="
+                        text-sm
+                        text-gray-300
+                      "
+                    >
+                      Menunggu
+                    </span>
+                  </div>
+
+                  <span
+                    className="
+                      font-bold
+                      text-yellow-400
+                    "
+                  >
+                    {waitingBorrowings}
+                  </span>
+                </div>
+
+                <div
+                  className="
+                    flex
+                    items-center
+                    justify-between
+                    p-4
+                    rounded-xl
+                    bg-blue-500/5
+                    border
+                    border-blue-500/10
+                  "
+                >
+                  <div
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                    "
+                  >
+                    <span
+                      className="
+                        w-2
+                        h-2
+                        rounded-full
+                        bg-blue-400
+                      "
+                    />
+
+                    <span
+                      className="
+                        text-sm
+                        text-gray-300
+                      "
+                    >
+                      Aktif
+                    </span>
+                  </div>
+
+                  <span
+                    className="
+                      font-bold
+                      text-blue-400
+                    "
+                  >
+                    {activeBorrowings}
+                  </span>
+                </div>
+
+                <div
+                  className="
+                    flex
+                    items-center
+                    justify-between
+                    p-4
+                    rounded-xl
+                    bg-green-500/5
+                    border
+                    border-green-500/10
+                  "
+                >
+                  <div
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                    "
+                  >
+                    <span
+                      className="
+                        w-2
+                        h-2
+                        rounded-full
+                        bg-green-400
+                      "
+                    />
+
+                    <span
+                      className="
+                        text-sm
+                        text-gray-300
+                      "
+                    >
+                      Selesai
+                    </span>
+                  </div>
+
+                  <span
+                    className="
+                      font-bold
+                      text-green-400
+                    "
+                  >
+                    {completedBorrowings}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* AKTIVITAS PENGEMBALIAN */}
+
+            <div
+              className="
+                rounded-2xl
+                border
+                border-[#D4AF37]/15
+                bg-[#111111]
+                p-5
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                  mb-5
+                "
+              >
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-3
+                  "
+                >
+                  <div
+                    className="
+                      w-10
+                      h-10
+                      rounded-xl
+                      bg-green-500/10
+                      flex
+                      items-center
+                      justify-center
+                    "
+                  >
+                    <FaUndoAlt
+                      className="
+                        text-green-400
+                      "
+                    />
+                  </div>
+
+                  <div>
+                    <h2
+                      className="
+                        text-lg
+                        font-semibold
+                      "
+                    >
+                      Pengembalian
+                    </h2>
+
+                    <p
+                      className="
+                        text-xs
+                        text-gray-600
+                      "
+                    >
+                      Aktivitas pengembalian
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="
+                  grid
+                  grid-cols-2
+                  gap-3
+                "
+              >
+                <div
+                  className="
+                    rounded-xl
+                    bg-[#0D0D0D]
+                    border
+                    border-white/5
+                    p-4
+                  "
+                >
+                  <p
+                    className="
+                      text-xs
+                      text-gray-600
+                    "
+                  >
+                    Hari Ini
+                  </p>
+
+                  <p
+                    className="
+                      text-2xl
+                      font-bold
+                      text-green-400
+                      mt-2
+                    "
+                  >
+                    {todayReturns}
+                  </p>
+                </div>
+
+                <div
+                  className="
+                    rounded-xl
+                    bg-[#0D0D0D]
+                    border
+                    border-white/5
+                    p-4
+                  "
+                >
+                  <p
+                    className="
+                      text-xs
+                      text-gray-600
+                    "
+                  >
+                    Total Data
+                  </p>
+
+                  <p
+                    className="
+                      text-2xl
+                      font-bold
+                      text-[#D4AF37]
+                      mt-2
+                    "
+                  >
+                    {pengembalianData.length}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className="
+                  mt-4
+                  rounded-xl
+                  border
+                  border-red-500/10
+                  bg-red-500/5
+                  p-4
+                "
+              >
+                <div
+                  className="
+                    flex
+                    items-center
+                    justify-between
+                  "
+                >
+                  <span
+                    className="
+                      text-xs
+                      text-gray-500
+                    "
+                  >
+                    Total denda tercatat
+                  </span>
+
+                  <span
+                    className="
+                      text-sm
+                      font-semibold
+                      text-red-400
+                    "
+                  >
+                    {formatRupiah(
+                      totalDenda
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* QUICK ACTION */}
+
+          <section
+            className="
+              rounded-2xl
+              border
+              border-[#D4AF37]/15
+              bg-[#111111]
+              p-5
+              mt-6
+            "
+          >
+            <div
+              className="
+                flex
+                items-center
+                gap-3
+                mb-5
+              "
+            >
+              <div
+                className="
+                  w-10
+                  h-10
+                  rounded-xl
+                  bg-[#D4AF37]/10
+                  flex
+                  items-center
+                  justify-center
+                "
+              >
+                <FaChartLine
+                  className="
+                    text-[#D4AF37]
+                  "
+                />
+              </div>
+
+              <div>
+                <h2
+                  className="
+                    text-lg
+                    font-semibold
+                  "
+                >
+                  Akses Cepat
+                </h2>
+
+                <p
+                  className="
+                    text-xs
+                    text-gray-600
+                    mt-1
+                  "
+                >
+                  Menu yang sering digunakan
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="
+                grid
+                grid-cols-2
+                md:grid-cols-3
+                xl:grid-cols-6
+                gap-3
+              "
+            >
+              <Link
+                to="/petugas/peminjaman"
+                className="
+                  rounded-xl
+                  bg-[#0D0D0D]
+                  border
+                  border-white/5
+                  p-4
+                  hover:border-[#D4AF37]/30
+                  hover:bg-[#D4AF37]/5
+                  transition
+                  group
+                "
+              >
+                <FaClipboardList
+                  className="
+                    text-[#D4AF37]
+                    mb-3
+                  "
+                />
+
+                <p
+                  className="
+                    text-sm
+                    font-medium
+                    group-hover:text-[#D4AF37]
+                  "
+                >
+                  Peminjaman
+                </p>
+              </Link>
+
+              <Link
+                to="/petugas/pengembalian"
+                className="
+                  rounded-xl
+                  bg-[#0D0D0D]
+                  border
+                  border-white/5
+                  p-4
+                  hover:border-[#D4AF37]/30
+                  hover:bg-[#D4AF37]/5
+                  transition
+                  group
+                "
+              >
+                <FaUndoAlt
+                  className="
+                    text-green-400
+                    mb-3
+                  "
+                />
+
+                <p
+                  className="
+                    text-sm
+                    font-medium
+                    group-hover:text-[#D4AF37]
+                  "
+                >
+                  Pengembalian
+                </p>
+              </Link>
+
+              <Link
+                to="/petugas/kostum"
+                className="
+                  rounded-xl
+                  bg-[#0D0D0D]
+                  border
+                  border-white/5
+                  p-4
+                  hover:border-[#D4AF37]/30
+                  hover:bg-[#D4AF37]/5
+                  transition
+                  group
+                "
+              >
+                <FaTshirt
+                  className="
+                    text-[#D4AF37]
+                    mb-3
+                  "
+                />
+
+                <p
+                  className="
+                    text-sm
+                    font-medium
+                    group-hover:text-[#D4AF37]
+                  "
+                >
+                  Koleksi Kostum
+                </p>
+              </Link>
+
+              <Link
+                to="/petugas/customer"
+                className="
+                  rounded-xl
+                  bg-[#0D0D0D]
+                  border
+                  border-white/5
+                  p-4
+                  hover:border-[#D4AF37]/30
+                  hover:bg-[#D4AF37]/5
+                  transition
+                  group
+                "
+              >
+                <FaUsers
+                  className="
+                    text-blue-400
+                    mb-3
+                  "
+                />
+
+                <p
+                  className="
+                    text-sm
+                    font-medium
+                    group-hover:text-[#D4AF37]
+                  "
+                >
+                  Customer
+                </p>
+              </Link>
+
+              <Link
+                to="/petugas/chat"
+                className="
+                  rounded-xl
+                  bg-[#0D0D0D]
+                  border
+                  border-white/5
+                  p-4
+                  hover:border-[#D4AF37]/30
+                  hover:bg-[#D4AF37]/5
+                  transition
+                  group
+                "
+              >
+                <FaComments
+                  className="
+                    text-purple-400
+                    mb-3
+                  "
+                />
+
+                <p
+                  className="
+                    text-sm
+                    font-medium
+                    group-hover:text-[#D4AF37]
+                  "
+                >
+                  Chat
+                </p>
+              </Link>
+
+              <Link
+                to="/petugas/profile"
+                className="
+                  rounded-xl
+                  bg-[#0D0D0D]
+                  border
+                  border-white/5
+                  p-4
+                  hover:border-[#D4AF37]/30
+                  hover:bg-[#D4AF37]/5
+                  transition
+                  group
+                "
+              >
+                <FaUserCircle
+                  className="
+                    text-gray-400
+                    mb-3
+                  "
+                />
+
+                <p
+                  className="
+                    text-sm
+                    font-medium
+                    group-hover:text-[#D4AF37]
+                  "
+                >
+                  Profil
+                </p>
+              </Link>
             </div>
           </section>
 
           {/* FOOTER */}
 
-          <div
+          <footer
             className="
+              mt-10
+              pt-6
+              border-t
+              border-white/5
               flex
               flex-col
-              md:flex-row
-              items-center
-              justify-between
+              sm:flex-row
+              sm:items-center
+              sm:justify-between
               gap-3
-              mt-6
               text-xs
               text-gray-600
             "
           >
             <p>
-              Handu Atelier — Area
-              Petugas
+              © {new Date().getFullYear()}{" "}
+              Handu Atelier
             </p>
 
             <p>
-              {new Date().getFullYear()}
+              Dashboard Petugas
             </p>
-          </div>
+          </footer>
         </div>
       </main>
     </div>

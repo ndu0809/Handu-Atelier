@@ -7,7 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 // ========================================
 
 const TUNNEL_URL =
-    "https://procedures-adelaide-shoppers-ralph.trycloudflare.com";
+    "https://testing-running-doug-marvel.trycloudflare.com";
 
 export default defineConfig({
 
