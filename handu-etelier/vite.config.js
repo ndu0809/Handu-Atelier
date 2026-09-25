@@ -7,7 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 // ========================================
 
 const TUNNEL_URL =
-    "https://pepper-dramatically-excluding-read.trycloudflare.com/";
+    "https://exclusion-pocket-iii-pizza.trycloudflare.com/";
 
 export default defineConfig({
 

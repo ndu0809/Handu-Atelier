@@ -922,7 +922,7 @@ function PengaturanPembayaran() {
                                     flex
                                     items-center
                                     justify-center
-                                    min-h-[380px]
+                                    min-h-95
                                 "
                             >
 
@@ -933,7 +933,7 @@ function PengaturanPembayaran() {
                                     alt="QRIS pembayaran"
                                     className="
                                         max-w-full
-                                        max-h-[420px]
+                                        max-h-105
                                         object-contain
                                     "
                                 />
@@ -944,7 +944,7 @@ function PengaturanPembayaran() {
 
                             <div
                                 className="
-                                    min-h-[380px]
+                                    min-h-95
                                     rounded-2xl
                                     border
                                     border-dashed
@@ -1139,7 +1139,7 @@ function PengaturanPembayaran() {
                                             }
                                             alt="Preview QRIS"
                                             className="
-                                                max-h-[350px]
+                                                max-h-87.5
                                                 max-w-full
                                                 object-contain
                                             "

@@ -58,6 +58,37 @@ const AdminDashboard = () => {
     };
 
     // =====================================================
+    // RESPONSIVE VIEWPORT
+    // =====================================================
+
+    const [viewportWidth, setViewportWidth] = useState(() => {
+        if (typeof window === "undefined") {
+            return 1440;
+        }
+
+        return window.innerWidth;
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            setViewportWidth(window.innerWidth);
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
+    }, []);
+
+    const isMobile = viewportWidth < 640;
+    const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
+    const isSmallDesktop = viewportWidth >= 1024 && viewportWidth < 1280;
+    const isDesktop = viewportWidth >= 1280;
+    const isCompact = viewportWidth < 960;
+
+    // =====================================================
     // STYLE
     // =====================================================
 
@@ -69,14 +100,14 @@ const AdminDashboard = () => {
         },
 
         pageHeader: {
-            marginBottom: "22px"
+            marginBottom: isMobile ? "16px" : "22px"
         },
 
         kicker: {
             display: "block",
             marginBottom: "6px",
             color: "#d4af37",
-            fontSize: "11px",
+            fontSize: isMobile ? "9px" : "11px",
             fontWeight: 700,
             letterSpacing: "0.18em"
         },
@@ -84,14 +115,15 @@ const AdminDashboard = () => {
         title: {
             margin: 0,
             color: "#ffffff",
-            fontSize: "30px",
+            fontSize: isMobile ? "24px" : isTablet ? "27px" : "30px",
             lineHeight: 1.2
         },
 
         subtitle: {
             margin: "7px 0 0",
             color: "#777777",
-            fontSize: "13px"
+            fontSize: isMobile ? "11px" : "13px",
+            lineHeight: 1.45
         },
 
         errorBox: {
@@ -110,29 +142,40 @@ const AdminDashboard = () => {
         statsGrid: {
             display: "grid",
             gridTemplateColumns:
-                "repeat(5, minmax(0, 1fr))",
-            gap: "14px",
-            marginBottom: "18px"
+                isMobile
+                    ? "1fr"
+                    : isTablet
+                        ? "repeat(2, minmax(0, 1fr))"
+                        : isSmallDesktop
+                            ? "repeat(3, minmax(0, 1fr))"
+                            : "repeat(5, minmax(0, 1fr))",
+            gap: isMobile ? "10px" : "14px",
+            marginBottom: "18px",
+            width: "100%",
+            minWidth: 0
         },
 
         statCard: {
             background: "#11100e",
             border: "1px solid #342d1e",
             borderRadius: "13px",
-            overflow: "hidden"
+            overflow: "hidden",
+            minWidth: 0,
+            width: "100%"
         },
 
         statTop: {
             display: "flex",
             alignItems: "flex-start",
-            gap: "12px",
-            padding: "18px"
+            gap: isMobile ? "9px" : "12px",
+            padding: isMobile ? "14px" : "18px",
+            minWidth: 0
         },
 
         statIcon: {
-            width: "40px",
-            height: "40px",
-            minWidth: "40px",
+            width: isMobile ? "34px" : "40px",
+            height: isMobile ? "34px" : "40px",
+            minWidth: isMobile ? "34px" : "40px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -147,27 +190,30 @@ const AdminDashboard = () => {
         statTitle: {
             margin: 0,
             color: "#8c8c8c",
-            fontSize: "10px"
+            fontSize: isMobile ? "9px" : "10px",
+            overflowWrap: "anywhere"
         },
 
         statValue: {
             margin: "5px 0 3px",
             color: "#ffffff",
-            fontSize: "22px",
+            fontSize: isMobile ? "19px" : "22px",
             lineHeight: 1.2,
             fontWeight: 700
         },
 
         statSubtitle: {
             color: "#606060",
-            fontSize: "9px"
+            fontSize: isMobile ? "8px" : "9px",
+            overflowWrap: "anywhere"
         },
 
         statDetail: {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "10px 16px",
+            gap: "8px",
+            padding: isMobile ? "9px 12px" : "10px 16px",
             borderTop:
                 "1px solid rgba(255,255,255,0.05)",
             color: "#d4af37",
@@ -178,24 +224,31 @@ const AdminDashboard = () => {
         dashboardGrid: {
             display: "grid",
             gridTemplateColumns:
-                "minmax(0, 1.4fr) minmax(320px, 0.9fr)",
-            gap: "18px",
-            marginBottom: "18px"
+                isCompact
+                    ? "1fr"
+                    : "minmax(0, 1.4fr) minmax(280px, 0.9fr)",
+            gap: isMobile ? "12px" : "18px",
+            marginBottom: "18px",
+            width: "100%",
+            minWidth: 0
         },
 
         card: {
             background: "#11100e",
             border: "1px solid #342d1e",
-            borderRadius: "14px",
-            overflow: "hidden"
+            borderRadius: isMobile ? "11px" : "14px",
+            overflow: "hidden",
+            minWidth: 0,
+            width: "100%"
         },
 
         cardHeader: {
             display: "flex",
-            alignItems: "center",
+            alignItems: isMobile ? "flex-start" : "center",
             justifyContent: "space-between",
-            gap: "12px",
-            padding: "17px 20px",
+            flexWrap: isMobile ? "wrap" : "nowrap",
+            gap: isMobile ? "9px" : "12px",
+            padding: isMobile ? "13px 14px" : "17px 20px",
             borderBottom:
                 "1px solid rgba(255,255,255,0.06)"
         },
@@ -206,7 +259,7 @@ const AdminDashboard = () => {
             gap: "8px",
             margin: 0,
             color: "#ffffff",
-            fontSize: "14px",
+            fontSize: isMobile ? "12px" : "14px",
             fontWeight: 600
         },
 
@@ -215,7 +268,8 @@ const AdminDashboard = () => {
         },
 
         select: {
-            height: "34px",
+            height: isMobile ? "31px" : "34px",
+            maxWidth: isMobile ? "100%" : "none",
             padding: "0 10px",
             border:
                 "1px solid #3a321f",
@@ -229,11 +283,11 @@ const AdminDashboard = () => {
         chartArea: {
             display: "grid",
             gridTemplateColumns:
-                "38px minmax(0, 1fr)",
-            gridTemplateRows:
-                "1fr 25px",
-            gap: "4px 8px",
-            padding: "18px 20px 12px"
+                isMobile ? "28px minmax(0, 1fr)" : "38px minmax(0, 1fr)",
+            gridTemplateRows: "1fr 25px",
+            gap: isMobile ? "4px 5px" : "4px 8px",
+            padding: isMobile ? "12px 12px 10px" : "18px 20px 12px",
+            minWidth: 0
         },
 
         chartY: {
@@ -245,14 +299,14 @@ const AdminDashboard = () => {
             alignItems: "flex-end",
             padding: "2px 0 3px",
             color: "#5d5d5d",
-            fontSize: "8px"
+            fontSize: isMobile ? "7px" : "8px"
         },
 
         chartSvgWrap: {
             gridColumn: "2",
             gridRow: "1",
             minWidth: 0,
-            height: "250px",
+            height: isMobile ? "200px" : "250px",
             borderBottom:
                 "1px solid rgba(255,255,255,0.05)",
             background:
@@ -272,14 +326,14 @@ const AdminDashboard = () => {
             justifyContent: "space-between",
             alignItems: "flex-end",
             color: "#5d5d5d",
-            fontSize: "8px"
+            fontSize: isMobile ? "7px" : "8px"
         },
 
         textButton: {
             border: "none",
             background: "transparent",
             color: "#d4af37",
-            fontSize: "10px",
+            fontSize: isMobile ? "9px" : "10px",
             cursor: "pointer",
             padding: "3px 0"
         },
@@ -292,10 +346,10 @@ const AdminDashboard = () => {
         latestItem: {
             display: "grid",
             gridTemplateColumns:
-                "34px minmax(0, 1fr) auto",
-            gap: "10px",
+                isMobile ? "34px minmax(0, 1fr)" : "34px minmax(0, 1fr) auto",
+            gap: isMobile ? "7px 9px" : "10px",
             alignItems: "center",
-            padding: "13px 18px",
+            padding: isMobile ? "11px 12px" : "13px 18px",
             borderBottom:
                 "1px solid rgba(255,255,255,0.045)"
         },
@@ -325,7 +379,7 @@ const AdminDashboard = () => {
 
         latestName: {
             color: "#eeeeee",
-            fontSize: "10px",
+            fontSize: isMobile ? "9px" : "10px",
             fontWeight: 600,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -334,21 +388,24 @@ const AdminDashboard = () => {
 
         latestCostume: {
             color: "#656565",
-            fontSize: "9px",
+            fontSize: isMobile ? "8px" : "9px",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap"
         },
 
         latestDate: {
-            gridColumn: "2 / 4",
-            marginTop: "-3px",
+            gridColumn: isMobile ? "2" : "2 / 4",
+            gridRow: isMobile ? "3" : "auto",
+            marginTop: isMobile ? "0" : "-3px",
             color: "#585858",
-            fontSize: "8px"
+            fontSize: isMobile ? "7px" : "8px"
         },
 
         statusPill: {
             display: "inline-flex",
+            gridColumn: isMobile ? "2" : "auto",
+            gridRow: isMobile ? "2" : "auto",
             alignItems: "center",
             padding: "4px 7px",
             borderRadius: "20px",
@@ -364,17 +421,26 @@ const AdminDashboard = () => {
         summaryBody: {
             display: "grid",
             gridTemplateColumns:
-                "repeat(4, minmax(0, 1fr))"
+                isMobile
+                    ? "1fr"
+                    : isTablet
+                        ? "repeat(2, minmax(0, 1fr))"
+                        : "repeat(4, minmax(0, 1fr))",
+            minWidth: 0
         },
 
         summaryItem: {
-            padding: "20px",
+            padding: isMobile ? "14px" : "20px",
             borderRight:
-                "1px solid rgba(255,255,255,0.05)"
+                isMobile ? "none" : "1px solid rgba(255,255,255,0.05)",
+            borderBottom:
+                isMobile ? "1px solid rgba(255,255,255,0.05)" : "none",
+            minWidth: 0
         },
 
         summaryItemLast: {
-            borderRight: "none"
+            borderRight: "none",
+            borderBottom: "none"
         },
 
         summaryLabel: {
@@ -385,7 +451,7 @@ const AdminDashboard = () => {
         summaryValue: {
             margin: "7px 0 0",
             color: "#ffffff",
-            fontSize: "21px",
+            fontSize: isMobile ? "18px" : "21px",
             fontWeight: 700
         },
 
@@ -401,7 +467,7 @@ const AdminDashboard = () => {
         },
 
         th: {
-            padding: "12px 15px",
+            padding: isMobile ? "10px 12px" : "12px 15px",
             background: "#151411",
             borderBottom:
                 "1px solid #312a1c",
@@ -413,7 +479,7 @@ const AdminDashboard = () => {
         },
 
         td: {
-            padding: "12px 15px",
+            padding: isMobile ? "10px 12px" : "12px 15px",
             borderBottom:
                 "1px solid rgba(255,255,255,0.045)",
             color: "#d0d0d0",
@@ -449,8 +515,8 @@ const AdminDashboard = () => {
         },
 
         detailButton: {
-            height: "29px",
-            padding: "0 9px",
+            height: isMobile ? "28px" : "29px",
+            padding: isMobile ? "0 8px" : "0 9px",
             border:
                 "1px solid rgba(212,175,55,0.25)",
             borderRadius: "6px",
@@ -478,22 +544,24 @@ const AdminDashboard = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "20px",
+            padding: isMobile ? "8px" : "20px",
             background:
                 "rgba(0,0,0,0.76)"
         },
 
         modal: {
-            width: "min(1000px, 100%)",
+            width: isMobile
+                ? "100%"
+                : "min(1000px, 100%)",
             maxHeight:
-                "calc(100vh - 40px)",
+                isMobile ? "calc(100vh - 16px)" : "calc(100vh - 40px)",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             background: "#151411",
             border:
                 "1px solid #40351f",
-            borderRadius: "15px",
+            borderRadius: isMobile ? "11px" : "15px",
             boxShadow:
                 "0 24px 80px rgba(0,0,0,0.55)"
         },
@@ -502,8 +570,8 @@ const AdminDashboard = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: "12px",
-            padding: "17px 20px",
+            gap: "10px",
+            padding: isMobile ? "13px 14px" : "17px 20px",
             borderBottom:
                 "1px solid #312a1c"
         },
@@ -511,7 +579,7 @@ const AdminDashboard = () => {
         modalTitle: {
             margin: 0,
             color: "#ffffff",
-            fontSize: "16px",
+            fontSize: isMobile ? "14px" : "16px",
             fontWeight: 700
         },
 
@@ -533,7 +601,8 @@ const AdminDashboard = () => {
         modalBody: {
             minHeight: 0,
             overflowY: "auto",
-            padding: "18px 20px"
+            padding: isMobile ? "12px" : "18px 20px",
+            minWidth: 0
         },
 
         modalTableWrap: {
@@ -543,7 +612,7 @@ const AdminDashboard = () => {
 
         modalTable: {
             width: "100%",
-            minWidth: "800px",
+            minWidth: isMobile ? "680px" : "800px",
             borderCollapse: "collapse"
         },
 
@@ -576,15 +645,16 @@ const AdminDashboard = () => {
         detailGrid: {
             display: "grid",
             gridTemplateColumns:
-                "repeat(2, minmax(0, 1fr))",
-            gap: "10px"
+                isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+            gap: "10px",
+            minWidth: 0
         },
 
         detailRow: {
             display: "flex",
             flexDirection: "column",
             gap: "5px",
-            padding: "12px",
+            padding: isMobile ? "10px" : "12px",
             border:
                 "1px solid rgba(255,255,255,0.06)",
             borderRadius: "8px",
@@ -607,7 +677,7 @@ const AdminDashboard = () => {
         incomeTotal: {
             marginBottom: "7px",
             color: "#d4af37",
-            fontSize: "28px",
+            fontSize: isMobile ? "22px" : "28px",
             fontWeight: 700
         },
 
@@ -620,12 +690,12 @@ const AdminDashboard = () => {
 
         ratingBox: {
             textAlign: "center",
-            padding: "30px 20px"
+            padding: isMobile ? "22px 12px" : "30px 20px"
         },
 
         ratingNumber: {
             color: "#ffffff",
-            fontSize: "52px",
+            fontSize: isMobile ? "42px" : "52px",
             fontWeight: 700,
             lineHeight: 1
         },
@@ -633,7 +703,7 @@ const AdminDashboard = () => {
         ratingStars: {
             margin: "14px 0",
             color: "#d4af37",
-            fontSize: "20px",
+            fontSize: isMobile ? "17px" : "20px",
             letterSpacing: "5px"
         },
 
