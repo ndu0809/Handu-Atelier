@@ -1019,7 +1019,7 @@ function BorrowingDetail() {
             rounded-3xl
             border
             border-[#D4AF37]/15
-            bg-gradient-to-br
+            bg-linear-to-br
             from-[#1A160C]
             to-[#111111]
             p-7
@@ -2230,7 +2230,7 @@ function BorrowingDetail() {
           className="
             fixed
             inset-0
-            z-[9999]
+            z-9999
             bg-black/80
             backdrop-blur-sm
             flex

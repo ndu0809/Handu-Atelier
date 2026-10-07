@@ -7,25 +7,23 @@ import { io } from "socket.io-client";
 // ======================================================
 
 const getSocketUrl = () => {
+  // Jika VITE_SOCKET_URL tersedia,
+  // gunakan URL tersebut.
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL;
+  }
 
-    if (
-        import.meta.env.VITE_SOCKET_URL
-    ) {
-        return (
-            import.meta.env.VITE_SOCKET_URL
-        );
-    }
+  // DEVELOPMENT
+  if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  ) {
+    return "http://localhost:3001";
+  }
 
-    if (
-        window.location.hostname ===
-            "localhost" ||
-        window.location.hostname ===
-            "127.0.0.1"
-    ) {
-        return "http://localhost:3001";
-    }
-
-    return window.location.origin;
+  // PRODUCTION
+  // Socket.IO menggunakan origin website yang sedang dibuka.
+  return window.location.origin;
 };
 
 // ======================================================
@@ -33,28 +31,20 @@ const getSocketUrl = () => {
 // ======================================================
 
 export const createChatSocket = () => {
+  return io(getSocketUrl(), {
+    transports: [
+      "websocket",
+      "polling",
+    ],
 
-    return io(
-        getSocketUrl(),
-        {
-            transports: [
-                "websocket",
-                "polling"
-            ],
+    reconnection: true,
 
-            reconnection: true,
+    reconnectionAttempts: Infinity,
 
-            reconnectionAttempts:
-                Infinity,
+    reconnectionDelay: 1000,
 
-            reconnectionDelay:
-                1000,
+    reconnectionDelayMax: 5000,
 
-            reconnectionDelayMax:
-                5000,
-
-            timeout:
-                10000
-        }
-    );
+    timeout: 10000,
+  });
 };

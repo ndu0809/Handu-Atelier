@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar";
+import api from "../../lib/api";
 
 function BorrowForm() {
 
@@ -76,29 +77,10 @@ function BorrowForm() {
                 setLoading(true);
                 setError("");
 
-                const response = await fetch(
-                    `/kostum/${code}`,
-                    {
-                        cache: "no-store"
-                    }
-                );
-
-                let result = {};
-
-                try {
-                    result = await response.json();
-                } catch {
-                    result = {};
-                }
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        result.message ||
-                        "Kostum tidak ditemukan."
+                const result =
+                    await api.get(
+                        `/kostum/${code}`
                     );
-
-                }
 
                 const data =
                     result.data ||
@@ -560,35 +542,10 @@ function BorrowForm() {
                         jumlah: "1"
                     });
 
-                const response =
-                    await fetch(
-                        `/peminjaman/check-availability?${params.toString()}`,
-                        {
-                            cache: "no-store"
-                        }
+                const result =
+                    await api.get(
+                        `/peminjaman/check-availability?${params.toString()}`
                     );
-
-                let result = {};
-
-                try {
-
-                    result =
-                        await response.json();
-
-                } catch {
-
-                    result = {};
-
-                }
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        result.message ||
-                        "Gagal mengecek ketersediaan kostum."
-                    );
-
-                }
 
                 const data =
                     result.data ||
@@ -907,45 +864,11 @@ function BorrowForm() {
 
             };
 
-            const peminjamanResponse =
-                await fetch(
+            const peminjamanResult =
+                await api.post(
                     "/peminjaman",
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify(
-                                dataPeminjaman
-                            )
-                    }
+                    dataPeminjaman
                 );
-
-            let peminjamanResult = {};
-
-            try {
-
-                peminjamanResult =
-                    await peminjamanResponse.json();
-
-            } catch {
-
-                peminjamanResult = {};
-
-            }
-
-            if (!peminjamanResponse.ok) {
-
-                throw new Error(
-                    peminjamanResult.message ||
-                    "Gagal membuat peminjaman."
-                );
-
-            }
 
             const idPeminjaman =
                 peminjamanResult.id_peminjaman ||
@@ -984,45 +907,10 @@ function BorrowForm() {
 
             };
 
-            const detailResponse =
-                await fetch(
-                    "/detail-peminjaman",
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify(
-                                dataDetail
-                            )
-                    }
-                );
-
-            let detailResult = {};
-
-            try {
-
-                detailResult =
-                    await detailResponse.json();
-
-            } catch {
-
-                detailResult = {};
-
-            }
-
-            if (!detailResponse.ok) {
-
-                throw new Error(
-                    detailResult.message ||
-                    "Peminjaman berhasil dibuat, tetapi detail kostum gagal disimpan."
-                );
-
-            }
+            await api.post(
+                "/detail-peminjaman",
+                dataDetail
+            );
 
             // ==================================================
             // 3. SIMPAN PEMBAYARAN
@@ -1070,36 +958,10 @@ function BorrowForm() {
 
             }
 
-            const paymentResponse =
-                await fetch(
-                    "/pembayaran",
-                    {
-                        method: "POST",
-                        body: paymentFormData
-                    }
-                );
-
-            let paymentResult = {};
-
-            try {
-
-                paymentResult =
-                    await paymentResponse.json();
-
-            } catch {
-
-                paymentResult = {};
-
-            }
-
-            if (!paymentResponse.ok) {
-
-                throw new Error(
-                    paymentResult.message ||
-                    "Peminjaman berhasil dibuat, tetapi pembayaran gagal disimpan."
-                );
-
-            }
+            await api.post(
+                "/pembayaran",
+                paymentFormData
+            );
 
             // ==================================================
             // 4. SIMPAN DOKUMEN JAMINAN
@@ -1129,36 +991,10 @@ function BorrowForm() {
                 dokumenJaminan.name
             );
 
-            const dokumenResponse =
-                await fetch(
-                    "/dokumen-jaminan",
-                    {
-                        method: "POST",
-                        body: dokumenFormData
-                    }
-                );
-
-            let dokumenResult = {};
-
-            try {
-
-                dokumenResult =
-                    await dokumenResponse.json();
-
-            } catch {
-
-                dokumenResult = {};
-
-            }
-
-            if (!dokumenResponse.ok) {
-
-                throw new Error(
-                    dokumenResult.message ||
-                    "Peminjaman dan pembayaran berhasil, tetapi dokumen jaminan gagal disimpan."
-                );
-
-            }
+            await api.post(
+                "/dokumen-jaminan",
+                dokumenFormData
+            );
 
             // ==================================================
             // BERHASIL

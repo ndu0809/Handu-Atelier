@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 
 import UserLayout from "./UserLayout";
+import api from "../../lib/api";
 
 function MyBorrowings() {
   const navigate = useNavigate();
@@ -36,8 +37,7 @@ function MyBorrowings() {
         // CEK LOGIN
         // ==================================================
 
-        const storedUser =
-          localStorage.getItem("user");
+        const storedUser = localStorage.getItem("user");
 
         if (!storedUser) {
           navigate("/login", {
@@ -50,13 +50,10 @@ function MyBorrowings() {
         let parsedUser;
 
         try {
-          parsedUser =
-            JSON.parse(storedUser);
+          parsedUser = JSON.parse(storedUser);
         } catch (err) {
           localStorage.removeItem("user");
-          localStorage.removeItem(
-            "isLoggedIn"
-          );
+          localStorage.removeItem("isLoggedIn");
 
           navigate("/login", {
             replace: true,
@@ -66,9 +63,7 @@ function MyBorrowings() {
         }
 
         if (!parsedUser?.id_user) {
-          throw new Error(
-            "Data user tidak valid."
-          );
+          throw new Error("Data user tidak valid.");
         }
 
         setUser(parsedUser);
@@ -77,29 +72,14 @@ function MyBorrowings() {
         // AMBIL PEMINJAMAN
         // ==================================================
 
-        const response =
-          await fetch("/peminjaman");
-
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.message ||
-              "Gagal mengambil data peminjaman."
-          );
-        }
+        const result = await api.get("/peminjaman");
 
         const allBorrowings =
           result.data ||
           result.peminjaman ||
           result;
 
-        if (
-          !Array.isArray(
-            allBorrowings
-          )
-        ) {
+        if (!Array.isArray(allBorrowings)) {
           throw new Error(
             "Format data peminjaman dari server tidak sesuai."
           );
@@ -109,14 +89,11 @@ function MyBorrowings() {
         // FILTER PEMINJAMAN USER
         // ==================================================
 
-        const userBorrowings =
-          allBorrowings.filter(
-            (item) =>
-              Number(item.id_user) ===
-              Number(
-                parsedUser.id_user
-              )
-          );
+        const userBorrowings = allBorrowings.filter(
+          (item) =>
+            Number(item.id_user) ===
+            Number(parsedUser.id_user)
+        );
 
         // ==================================================
         // AMBIL PEMBAYARAN
@@ -143,40 +120,27 @@ function MyBorrowings() {
                 // ==========================================
 
                 try {
-                  const paymentResponse =
-                    await fetch(
+                  const paymentResult =
+                    await api.get(
                       `/pembayaran/peminjaman/${idPeminjaman}`
                     );
 
+                  const paymentData =
+                    paymentResult.data ||
+                    paymentResult.pembayaran ||
+                    paymentResult;
+
                   if (
-                    paymentResponse.ok
+                    Array.isArray(paymentData) &&
+                    paymentData.length > 0
                   ) {
-                    const paymentResult =
-                      await paymentResponse.json();
-
-                    const paymentData =
-                      paymentResult.data ||
-                      paymentResult.pembayaran ||
-                      paymentResult;
-
-                    if (
-                      Array.isArray(
-                        paymentData
-                      ) &&
-                      paymentData.length > 0
-                    ) {
-                      payment =
-                        paymentData[0];
-                    } else if (
-                      paymentData &&
-                      !Array.isArray(
-                        paymentData
-                      ) &&
-                      paymentData.id_pembayaran
-                    ) {
-                      payment =
-                        paymentData;
-                    }
+                    payment = paymentData[0];
+                  } else if (
+                    paymentData &&
+                    !Array.isArray(paymentData) &&
+                    paymentData.id_pembayaran
+                  ) {
+                    payment = paymentData;
                   }
                 } catch (paymentError) {
                   console.error(
@@ -190,46 +154,31 @@ function MyBorrowings() {
                 // ==========================================
 
                 if (
-                  String(
-                    item.status || ""
-                  ).toLowerCase() ===
+                  String(item.status || "").toLowerCase() ===
                   "ditolak"
                 ) {
                   try {
-                    const refundResponse =
-                      await fetch(
+                    const refundResult =
+                      await api.get(
                         `/pengembalian-dana/peminjaman/${idPeminjaman}`
                       );
 
+                    const refundData =
+                      refundResult.data ||
+                      refundResult.pengembalian_dana ||
+                      refundResult;
+
                     if (
-                      refundResponse.ok
+                      Array.isArray(refundData) &&
+                      refundData.length > 0
                     ) {
-                      const refundResult =
-                        await refundResponse.json();
-
-                      const refundData =
-                        refundResult.data ||
-                        refundResult.pengembalian_dana ||
-                        refundResult;
-
-                      if (
-                        Array.isArray(
-                          refundData
-                        ) &&
-                        refundData.length > 0
-                      ) {
-                        refund =
-                          refundData[0];
-                      } else if (
-                        refundData &&
-                        !Array.isArray(
-                          refundData
-                        ) &&
-                        refundData.id_pengembalian_dana
-                      ) {
-                        refund =
-                          refundData;
-                      }
+                      refund = refundData[0];
+                    } else if (
+                      refundData &&
+                      !Array.isArray(refundData) &&
+                      refundData.id_pengembalian_dana
+                    ) {
+                      refund = refundData;
                     }
                   } catch (refundError) {
                     console.error(
@@ -248,9 +197,7 @@ function MyBorrowings() {
             )
           );
 
-        setBorrowings(
-          borrowingsWithPayment
-        );
+        setBorrowings(borrowingsWithPayment);
       } catch (err) {
         console.error(
           "Load borrowings error:",
@@ -274,16 +221,11 @@ function MyBorrowings() {
   // ======================================================
 
   const formatRupiah = (value) => {
-    return new Intl.NumberFormat(
-      "id-ID",
-      {
-        style: "currency",
-        currency: "IDR",
-        maximumFractionDigits: 0,
-      }
-    ).format(
-      Number(value) || 0
-    );
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(Number(value) || 0);
   };
 
   // ======================================================
@@ -296,25 +238,17 @@ function MyBorrowings() {
     }
 
     try {
-      const date =
-        new Date(value);
+      const date = new Date(value);
 
-      if (
-        Number.isNaN(
-          date.getTime()
-        )
-      ) {
+      if (Number.isNaN(date.getTime())) {
         return value;
       }
 
-      return date.toLocaleDateString(
-        "id-ID",
-        {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        }
-      );
+      return date.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
     } catch {
       return value;
     }
@@ -324,13 +258,8 @@ function MyBorrowings() {
   // STATUS PEMINJAMAN
   // ======================================================
 
-  const getStatusClass = (
-    status
-  ) => {
-    switch (
-      String(status || "")
-        .toLowerCase()
-    ) {
+  const getStatusClass = (status) => {
+    switch (String(status || "").toLowerCase()) {
       case "menunggu":
         return "bg-yellow-400/10 text-yellow-400 border-yellow-400/15";
 
@@ -358,13 +287,8 @@ function MyBorrowings() {
   // STATUS PEMBAYARAN
   // ======================================================
 
-  const getPaymentStatusClass = (
-    status
-  ) => {
-    switch (
-      String(status || "")
-        .toLowerCase()
-    ) {
+  const getPaymentStatusClass = (status) => {
+    switch (String(status || "").toLowerCase()) {
       case "lunas":
         return "bg-green-400/10 text-green-400 border-green-400/15";
 
@@ -380,13 +304,8 @@ function MyBorrowings() {
   // STATUS REFUND
   // ======================================================
 
-  const getRefundStatusClass = (
-    status
-  ) => {
-    switch (
-      String(status || "")
-        .toLowerCase()
-    ) {
+  const getRefundStatusClass = (status) => {
+    switch (String(status || "").toLowerCase()) {
       case "berhasil":
         return "bg-green-400/10 text-green-400 border-green-400/15";
 
@@ -408,24 +327,17 @@ function MyBorrowings() {
   // JENIS PEMBAYARAN
   // ======================================================
 
-  const getPaymentType = (
-    payment,
-    totalHarga
-  ) => {
+  const getPaymentType = (payment, totalHarga) => {
     if (!payment) {
       return "-";
     }
 
-    const jumlah =
-      Number(payment.total) || 0;
-
-    const total =
-      Number(totalHarga) || 0;
+    const jumlah = Number(payment.total) || 0;
+    const total = Number(totalHarga) || 0;
 
     if (
       total > 0 &&
-      jumlah ===
-        Math.round(total * 0.5)
+      jumlah === Math.round(total * 0.5)
     ) {
       return "DP 50%";
     }
@@ -445,39 +357,26 @@ function MyBorrowings() {
   // ======================================================
 
   const statistics = useMemo(() => {
-    const total =
-      borrowings.length;
+    const total = borrowings.length;
 
-    const active =
-      borrowings.filter(
-        (item) =>
-          [
-            "disetujui",
-            "diproses",
-          ].includes(
-            String(
-              item.status || ""
-            ).toLowerCase()
-          )
-      ).length;
+    const active = borrowings.filter(
+      (item) =>
+        ["disetujui", "diproses"].includes(
+          String(item.status || "").toLowerCase()
+        )
+    ).length;
 
-    const waiting =
-      borrowings.filter(
-        (item) =>
-          String(
-            item.status || ""
-          ).toLowerCase() ===
-          "menunggu"
-      ).length;
+    const waiting = borrowings.filter(
+      (item) =>
+        String(item.status || "").toLowerCase() ===
+        "menunggu"
+    ).length;
 
-    const completed =
-      borrowings.filter(
-        (item) =>
-          String(
-            item.status || ""
-          ).toLowerCase() ===
-          "selesai"
-      ).length;
+    const completed = borrowings.filter(
+      (item) =>
+        String(item.status || "").toLowerCase() ===
+        "selesai"
+    ).length;
 
     return {
       total,
@@ -519,10 +418,6 @@ function MyBorrowings() {
       title="Peminjaman Saya"
       subtitle="Riwayat dan status peminjaman kostum Anda"
     >
-      {/* ==================================================
-          ERROR
-      ================================================== */}
-
       {error && (
         <div
           className="
@@ -541,10 +436,6 @@ function MyBorrowings() {
         </div>
       )}
 
-      {/* ==================================================
-          STATISTICS
-      ================================================== */}
-
       <section
         className="
           grid
@@ -554,8 +445,6 @@ function MyBorrowings() {
           mb-5
         "
       >
-        {/* TOTAL */}
-
         <div
           className="
             rounded-2xl
@@ -579,8 +468,6 @@ function MyBorrowings() {
             <FaClipboardList className="text-[#D4AF37] text-2xl" />
           </div>
         </div>
-
-        {/* AKTIF */}
 
         <div
           className="
@@ -606,8 +493,6 @@ function MyBorrowings() {
           </div>
         </div>
 
-        {/* MENUNGGU */}
-
         <div
           className="
             rounded-2xl
@@ -631,8 +516,6 @@ function MyBorrowings() {
             <FaCalendarAlt className="text-[#D4AF37] text-2xl" />
           </div>
         </div>
-
-        {/* SELESAI */}
 
         <div
           className="
@@ -658,10 +541,6 @@ function MyBorrowings() {
           </div>
         </div>
       </section>
-
-      {/* ==================================================
-          EMPTY
-      ================================================== */}
 
       {borrowings.length === 0 && (
         <section
@@ -750,59 +629,178 @@ function MyBorrowings() {
         </section>
       )}
 
-      {/* ==================================================
-          LIST
-      ================================================== */}
-
       {borrowings.length > 0 && (
         <section className="space-y-4">
-          {borrowings.map(
-            (item, index) => {
-              const idPeminjaman =
-                item.id_peminjaman ||
-                item.id;
+          {borrowings.map((item, index) => {
+            const idPeminjaman =
+              item.id_peminjaman ||
+              item.id;
 
-              const payment =
-                item.payment;
+            const payment = item.payment;
+            const refund = item.refund;
 
-              const refund =
-                item.refund;
+            const statusPeminjaman =
+              String(item.status || "").toLowerCase();
 
-              const statusPeminjaman =
-                String(
-                  item.status || ""
-                ).toLowerCase();
+            const paymentStatus =
+              payment?.status ||
+              "Belum Bayar";
 
-              const paymentStatus =
-                payment?.status ||
-                "Belum Bayar";
+            const paymentType =
+              getPaymentType(
+                payment,
+                item.total_harga
+              );
 
-              const paymentType =
-                getPaymentType(
-                  payment,
-                  item.total_harga
-                );
+            return (
+              <article
+                key={idPeminjaman || index}
+                className="
+                  rounded-3xl
+                  border
+                  border-[#D4AF37]/15
+                  bg-[#111111]
+                  overflow-hidden
+                  hover:border-[#D4AF37]/30
+                  transition
+                "
+              >
+                <div className="p-6 md:p-7">
+                  <div
+                    className="
+                      flex
+                      flex-col
+                      md:flex-row
+                      md:items-center
+                      md:justify-between
+                      gap-4
+                    "
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="
+                          w-14
+                          h-14
+                          rounded-2xl
+                          bg-[#D4AF37]/10
+                          text-[#D4AF37]
+                          flex
+                          items-center
+                          justify-center
+                          text-xl
+                        "
+                      >
+                        <FaTshirt />
+                      </div>
 
-              return (
-                <article
-                  key={
-                    idPeminjaman ||
-                    index
-                  }
-                  className="
-                    rounded-3xl
-                    border
-                    border-[#D4AF37]/15
-                    bg-[#111111]
-                    overflow-hidden
-                    hover:border-[#D4AF37]/30
-                    transition
-                  "
-                >
-                  <div className="p-6 md:p-7">
+                      <div>
+                        <p
+                          className="
+                            text-[#D4AF37]
+                            text-xs
+                            uppercase
+                            tracking-[3px]
+                          "
+                        >
+                          Peminjaman #{idPeminjaman}
+                        </p>
 
-                    {/* HEADER */}
+                        <h2 className="text-xl font-bold mt-1">
+                          {item.nama_koleksi ||
+                            item.nama_kostum ||
+                            item.nama ||
+                            "Kostum"}
+                        </h2>
 
+                        {item.kode_koleksi && (
+                          <p className="text-gray-600 text-xs mt-1">
+                            Kode: {item.kode_koleksi}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <span
+                      className={`
+                        inline-flex
+                        items-center
+                        border
+                        rounded-full
+                        px-4
+                        py-2
+                        text-xs
+                        font-semibold
+                        w-fit
+                        ${getStatusClass(item.status)}
+                      `}
+                    >
+                      {item.status || "Tidak diketahui"}
+                    </span>
+                  </div>
+
+                  <div
+                    className="
+                      grid
+                      sm:grid-cols-2
+                      lg:grid-cols-4
+                      gap-5
+                      mt-6
+                      pt-6
+                      border-t
+                      border-white/5
+                    "
+                  >
+                    <div>
+                      <p className="text-gray-600 text-xs">
+                        Tanggal Peminjaman
+                      </p>
+
+                      <p className="mt-1">
+                        {formatDate(item.tanggal_peminjaman)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-600 text-xs">
+                        Tanggal Kembali
+                      </p>
+
+                      <p className="mt-1">
+                        {formatDate(item.tanggal_kembali)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-600 text-xs">
+                        Total Harga
+                      </p>
+
+                      <p className="mt-1 text-[#D4AF37] font-semibold">
+                        {formatRupiah(item.total_harga)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-600 text-xs">
+                        ID User
+                      </p>
+
+                      <p className="mt-1">
+                        {item.id_user || user.id_user}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    className="
+                      mt-6
+                      p-5
+                      rounded-2xl
+                      border
+                      border-[#D4AF37]/10
+                      bg-black/20
+                    "
+                  >
                     <div
                       className="
                         flex
@@ -813,51 +811,32 @@ function MyBorrowings() {
                         gap-4
                       "
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
                         <div
                           className="
-                            w-14
-                            h-14
-                            rounded-2xl
+                            w-10
+                            h-10
+                            rounded-xl
                             bg-[#D4AF37]/10
                             text-[#D4AF37]
                             flex
                             items-center
                             justify-center
-                            text-xl
                           "
                         >
-                          <FaTshirt />
+                          <FaMoneyBillWave />
                         </div>
 
                         <div>
-                          <p
-                            className="
-                              text-[#D4AF37]
-                              text-xs
-                              uppercase
-                              tracking-[3px]
-                            "
-                          >
-                            Peminjaman #
-                            {idPeminjaman}
+                          <p className="text-gray-500 text-xs">
+                            Pembayaran
                           </p>
 
-                          <h2 className="text-xl font-bold mt-1">
-                            {item.nama_koleksi ||
-                              item.nama_kostum ||
-                              item.nama ||
-                              "Kostum"}
-                          </h2>
-
-                          {item.kode_koleksi && (
-                            <p className="text-gray-600 text-xs mt-1">
-                              Kode:{" "}
-                              {
-                                item.kode_koleksi
-                              }
-                            </p>
-                          )}
+                          <p className="font-semibold mt-1">
+                            {payment
+                              ? paymentType
+                              : "Belum ada pembayaran"}
+                          </p>
                         </div>
                       </div>
 
@@ -872,90 +851,91 @@ function MyBorrowings() {
                           text-xs
                           font-semibold
                           w-fit
-                          ${getStatusClass(
-                            item.status
-                          )}
+                          ${getPaymentStatusClass(paymentStatus)}
                         `}
                       >
-                        {item.status ||
-                          "Tidak diketahui"}
+                        {paymentStatus}
                       </span>
                     </div>
 
-                    {/* DETAIL PEMINJAMAN */}
+                    {payment && (
+                      <div
+                        className="
+                          grid
+                          sm:grid-cols-2
+                          lg:grid-cols-4
+                          gap-4
+                          mt-5
+                          pt-5
+                          border-t
+                          border-white/5
+                        "
+                      >
+                        <div>
+                          <p className="text-gray-600 text-xs">
+                            Jumlah Dibayar
+                          </p>
 
+                          <p className="mt-1 text-[#D4AF37] font-semibold">
+                            {formatRupiah(payment.total)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-gray-600 text-xs">
+                            Metode
+                          </p>
+
+                          <p className="mt-1">
+                            {payment.metode || "-"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-gray-600 text-xs">
+                            Tanggal Bayar
+                          </p>
+
+                          <p className="mt-1">
+                            {formatDate(payment.tanggal_bayar)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-gray-600 text-xs">
+                            Sisa Pembayaran
+                          </p>
+
+                          <p className="mt-1">
+                            {formatRupiah(
+                              Math.max(
+                                0,
+                                Number(item.total_harga) -
+                                  Number(payment.total)
+                              )
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {!payment && (
+                      <p className="text-gray-600 text-sm mt-4">
+                        Belum terdapat data pembayaran
+                        untuk peminjaman ini.
+                      </p>
+                    )}
+                  </div>
+
+                  {statusPeminjaman === "ditolak" && (
                     <div
                       className="
-                        grid
-                        sm:grid-cols-2
-                        lg:grid-cols-4
-                        gap-5
-                        mt-6
-                        pt-6
-                        border-t
-                        border-white/5
-                      "
-                    >
-                      <div>
-                        <p className="text-gray-600 text-xs">
-                          Tanggal Peminjaman
-                        </p>
-
-                        <p className="mt-1">
-                          {formatDate(
-                            item.tanggal_peminjaman
-                          )}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-600 text-xs">
-                          Tanggal Kembali
-                        </p>
-
-                        <p className="mt-1">
-                          {formatDate(
-                            item.tanggal_kembali
-                          )}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-600 text-xs">
-                          Total Harga
-                        </p>
-
-                        <p className="mt-1 text-[#D4AF37] font-semibold">
-                          {formatRupiah(
-                            item.total_harga
-                          )}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-600 text-xs">
-                          ID User
-                        </p>
-
-                        <p className="mt-1">
-                          {item.id_user ||
-                            user.id_user}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* ==================================================
-                        PEMBAYARAN
-                    ================================================== */}
-
-                    <div
-                      className="
-                        mt-6
+                        mt-4
                         p-5
                         rounded-2xl
                         border
-                        border-[#D4AF37]/10
-                        bg-black/20
+                        border-red-500/10
+                        bg-red-950/10
                       "
                     >
                       <div
@@ -974,266 +954,107 @@ function MyBorrowings() {
                               w-10
                               h-10
                               rounded-xl
-                              bg-[#D4AF37]/10
-                              text-[#D4AF37]
+                              bg-red-400/10
+                              text-red-400
                               flex
                               items-center
                               justify-center
                             "
                           >
-                            <FaMoneyBillWave />
+                            <FaUndoAlt />
                           </div>
 
                           <div>
                             <p className="text-gray-500 text-xs">
-                              Pembayaran
+                              Pengembalian Dana
                             </p>
 
                             <p className="font-semibold mt-1">
-                              {payment
-                                ? paymentType
-                                : "Belum ada pembayaran"}
+                              {refund
+                                ? formatRupiah(
+                                    refund.jumlah_dana
+                                  )
+                                : "Sedang diproses"}
                             </p>
                           </div>
                         </div>
 
-                        <span
-                          className={`
-                            inline-flex
-                            items-center
-                            border
-                            rounded-full
-                            px-4
-                            py-2
-                            text-xs
-                            font-semibold
-                            w-fit
-                            ${getPaymentStatusClass(
-                              paymentStatus
-                            )}
-                          `}
-                        >
-                          {paymentStatus}
-                        </span>
+                        {refund && (
+                          <span
+                            className={`
+                              inline-flex
+                              items-center
+                              border
+                              rounded-full
+                              px-4
+                              py-2
+                              text-xs
+                              font-semibold
+                              w-fit
+                              ${getRefundStatusClass(
+                                refund.status
+                              )}
+                            `}
+                          >
+                            {refund.status}
+                          </span>
+                        )}
                       </div>
 
-                      {payment && (
-                        <div
-                          className="
-                            grid
-                            sm:grid-cols-2
-                            lg:grid-cols-4
-                            gap-4
-                            mt-5
-                            pt-5
-                            border-t
-                            border-white/5
-                          "
-                        >
-                          <div>
-                            <p className="text-gray-600 text-xs">
-                              Jumlah Dibayar
-                            </p>
-
-                            <p className="mt-1 text-[#D4AF37] font-semibold">
-                              {formatRupiah(
-                                payment.total
-                              )}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-gray-600 text-xs">
-                              Metode
-                            </p>
-
-                            <p className="mt-1">
-                              {payment.metode ||
-                                "-"}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-gray-600 text-xs">
-                              Tanggal Bayar
-                            </p>
-
-                            <p className="mt-1">
-                              {formatDate(
-                                payment.tanggal_bayar
-                              )}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-gray-600 text-xs">
-                              Sisa Pembayaran
-                            </p>
-
-                            <p className="mt-1">
-                              {formatRupiah(
-                                Math.max(
-                                  0,
-                                  Number(
-                                    item.total_harga
-                                  ) -
-                                    Number(
-                                      payment.total
-                                    )
-                                )
-                              )}
-                            </p>
-                          </div>
-                        </div>
+                      {!refund && (
+                        <p className="text-gray-500 text-sm mt-4">
+                          Peminjaman ditolak.
+                          Pengembalian dana akan
+                          diproses berdasarkan
+                          pembayaran yang telah
+                          diverifikasi.
+                        </p>
                       )}
 
-                      {!payment && (
-                        <p className="text-gray-600 text-sm mt-4">
-                          Belum terdapat data pembayaran
-                          untuk peminjaman ini.
+                      {refund?.tanggal_pengembalian && (
+                        <p className="text-gray-500 text-xs mt-4">
+                          Tanggal pengembalian:{" "}
+                          {formatDate(
+                            refund.tanggal_pengembalian
+                          )}
                         </p>
                       )}
                     </div>
+                  )}
 
-                    {/* ==================================================
-                        REFUND
-                    ================================================== */}
-
-                    {statusPeminjaman ===
-                      "ditolak" && (
-                      <div
-                        className="
-                          mt-4
-                          p-5
-                          rounded-2xl
-                          border
-                          border-red-500/10
-                          bg-red-950/10
-                        "
-                      >
-                        <div
-                          className="
-                            flex
-                            flex-col
-                            md:flex-row
-                            md:items-center
-                            md:justify-between
-                            gap-4
-                          "
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="
-                                w-10
-                                h-10
-                                rounded-xl
-                                bg-red-400/10
-                                text-red-400
-                                flex
-                                items-center
-                                justify-center
-                              "
-                            >
-                              <FaUndoAlt />
-                            </div>
-
-                            <div>
-                              <p className="text-gray-500 text-xs">
-                                Pengembalian Dana
-                              </p>
-
-                              <p className="font-semibold mt-1">
-                                {refund
-                                  ? formatRupiah(
-                                      refund.jumlah_dana
-                                    )
-                                  : "Sedang diproses"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {refund && (
-                            <span
-                              className={`
-                                inline-flex
-                                items-center
-                                border
-                                rounded-full
-                                px-4
-                                py-2
-                                text-xs
-                                font-semibold
-                                w-fit
-                                ${getRefundStatusClass(
-                                  refund.status
-                                )}
-                              `}
-                            >
-                              {refund.status}
-                            </span>
-                          )}
-                        </div>
-
-                        {!refund && (
-                          <p className="text-gray-500 text-sm mt-4">
-                            Peminjaman ditolak.
-                            Pengembalian dana akan
-                            diproses berdasarkan
-                            pembayaran yang telah
-                            diverifikasi.
-                          </p>
-                        )}
-
-                        {refund?.tanggal_pengembalian && (
-                          <p className="text-gray-500 text-xs mt-4">
-                            Tanggal pengembalian:{" "}
-                            {formatDate(
-                              refund.tanggal_pengembalian
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* ==================================================
-                        ACTION
-                    ================================================== */}
-
-                    <div
+                  <div
+                    className="
+                      mt-6
+                      pt-6
+                      border-t
+                      border-white/5
+                    "
+                  >
+                    <Link
+                      to={`/borrow-detail/${idPeminjaman}`}
                       className="
-                        mt-6
-                        pt-6
-                        border-t
-                        border-white/5
+                        w-full
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                        py-3.5
+                        rounded-xl
+                        bg-[#D4AF37]
+                        text-black
+                        font-semibold
+                        hover:scale-[1.01]
+                        transition
                       "
                     >
-                      <Link
-                        to={`/borrow-detail/${idPeminjaman}`}
-                        className="
-                          w-full
-                          flex
-                          items-center
-                          justify-center
-                          gap-2
-                          py-3.5
-                          rounded-xl
-                          bg-[#D4AF37]
-                          text-black
-                          font-semibold
-                          hover:scale-[1.01]
-                          transition
-                        "
-                      >
-                        Lihat Detail
-                        <FaChevronRight />
-                      </Link>
-                    </div>
-
+                      Lihat Detail
+                      <FaChevronRight />
+                    </Link>
                   </div>
-                </article>
-              );
-            }
-          )}
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
     </UserLayout>

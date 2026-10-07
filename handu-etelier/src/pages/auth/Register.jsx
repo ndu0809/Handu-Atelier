@@ -13,6 +13,7 @@ import {
 
 import Navbar from "../../components/layout/Navbar";
 import heroImage from "../../assets/images/hero.jpeg";
+import api from "../../lib/api";
 
 function Register() {
   const navigate = useNavigate();
@@ -34,18 +35,32 @@ function Register() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // ======================================================
+  // HANDLE INPUT
+  // ======================================================
+
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
+
+    setError("");
   };
+
+  // ======================================================
+  // HANDLE REGISTER
+  // ======================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError("");
     setSuccess("");
+
+    // ====================================================
+    // VALIDASI
+    // ====================================================
 
     if (!formData.nama.trim()) {
       setError("Nama lengkap wajib diisi.");
@@ -92,45 +107,55 @@ function Register() {
     try {
       setLoading(true);
 
+      // ==================================================
+      // ROLE USER
+      // ==================================================
+
       /*
-       * PENTING:
-       * Ganti angka 3 di bawah dengan id_role
-       * yang benar untuk role "User" di database.
+       * Ganti angka 3 apabila id_role
+       * untuk User di database berbeda.
        */
+
       const ID_ROLE_USER = 3;
+
+      // ==================================================
+      // DATA REGISTRASI
+      // ==================================================
 
       const data = {
         nama: formData.nama.trim(),
-        email: formData.email.trim(),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         no_hp: formData.no_hp.trim(),
         alamat: formData.alamat.trim(),
         id_role: ID_ROLE_USER,
       };
 
-      console.log("Data registrasi:", data);
+      console.log(
+        "Data registrasi:",
+        data
+      );
 
-      const response = await fetch("/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      // ==================================================
+      // REGISTER KE BACKEND
+      //
+      // api.js otomatis menjadi:
+      // /api/users
+      // ==================================================
 
-      const result = await response.json();
+      const result = await api.post(
+        "/users",
+        data
+      );
 
       console.log(
         "Register response:",
         result
       );
 
-      if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Registrasi gagal."
-        );
-      }
+      // ==================================================
+      // REGISTER BERHASIL
+      // ==================================================
 
       setSuccess(
         "Registrasi berhasil. Mengarahkan ke halaman login..."
@@ -145,6 +170,10 @@ function Register() {
         alamat: "",
       });
 
+      // ==================================================
+      // REDIRECT KE LOGIN
+      // ==================================================
+
       setTimeout(() => {
         navigate("/login");
       }, 1500);
@@ -156,8 +185,8 @@ function Register() {
       );
 
       setError(
-        err.message ||
-          "Terjadi kesalahan saat registrasi."
+        err?.message ||
+        "Terjadi kesalahan saat registrasi."
       );
     } finally {
       setLoading(false);
@@ -185,7 +214,9 @@ function Register() {
             "
           >
 
-            {/* IMAGE */}
+            {/* ==================================================
+                IMAGE
+            ================================================== */}
 
             <div className="hidden lg:block relative">
 
@@ -217,7 +248,9 @@ function Register() {
 
             </div>
 
-            {/* FORM */}
+            {/* ==================================================
+                FORM
+            ================================================== */}
 
             <div className="p-8 md:p-12">
 
@@ -251,7 +284,9 @@ function Register() {
                 className="mt-10 space-y-5"
               >
 
-                {/* NAMA */}
+                {/* ==================================================
+                    NAMA
+                ================================================== */}
 
                 <div>
 
@@ -278,6 +313,7 @@ function Register() {
                       onChange={handleChange}
                       placeholder="Masukkan nama lengkap"
                       autoComplete="name"
+                      disabled={loading}
                       className="
                         w-full
                         pl-12
@@ -289,6 +325,8 @@ function Register() {
                         border-[#D4AF37]/20
                         focus:border-[#D4AF37]
                         outline-none
+                        disabled:opacity-50
+                        disabled:cursor-not-allowed
                       "
                     />
 
@@ -296,7 +334,9 @@ function Register() {
 
                 </div>
 
-                {/* EMAIL */}
+                {/* ==================================================
+                    EMAIL
+                ================================================== */}
 
                 <div>
 
@@ -323,6 +363,7 @@ function Register() {
                       onChange={handleChange}
                       placeholder="Masukkan email"
                       autoComplete="email"
+                      disabled={loading}
                       className="
                         w-full
                         pl-12
@@ -334,6 +375,8 @@ function Register() {
                         border-[#D4AF37]/20
                         focus:border-[#D4AF37]
                         outline-none
+                        disabled:opacity-50
+                        disabled:cursor-not-allowed
                       "
                     />
 
@@ -341,7 +384,9 @@ function Register() {
 
                 </div>
 
-                {/* NOMOR HP */}
+                {/* ==================================================
+                    NOMOR HP
+                ================================================== */}
 
                 <div>
 
@@ -368,6 +413,7 @@ function Register() {
                       onChange={handleChange}
                       placeholder="Masukkan nomor HP"
                       autoComplete="tel"
+                      disabled={loading}
                       className="
                         w-full
                         pl-12
@@ -379,6 +425,8 @@ function Register() {
                         border-[#D4AF37]/20
                         focus:border-[#D4AF37]
                         outline-none
+                        disabled:opacity-50
+                        disabled:cursor-not-allowed
                       "
                     />
 
@@ -386,7 +434,9 @@ function Register() {
 
                 </div>
 
-                {/* ALAMAT */}
+                {/* ==================================================
+                    ALAMAT
+                ================================================== */}
 
                 <div>
 
@@ -411,6 +461,7 @@ function Register() {
                       onChange={handleChange}
                       placeholder="Masukkan alamat"
                       rows="3"
+                      disabled={loading}
                       className="
                         w-full
                         pl-12
@@ -423,6 +474,8 @@ function Register() {
                         focus:border-[#D4AF37]
                         outline-none
                         resize-none
+                        disabled:opacity-50
+                        disabled:cursor-not-allowed
                       "
                     />
 
@@ -430,7 +483,9 @@ function Register() {
 
                 </div>
 
-                {/* PASSWORD */}
+                {/* ==================================================
+                    PASSWORD
+                ================================================== */}
 
                 <div>
 
@@ -461,6 +516,7 @@ function Register() {
                       onChange={handleChange}
                       placeholder="Minimal 6 karakter"
                       autoComplete="new-password"
+                      disabled={loading}
                       className="
                         w-full
                         pl-12
@@ -472,6 +528,8 @@ function Register() {
                         border-[#D4AF37]/20
                         focus:border-[#D4AF37]
                         outline-none
+                        disabled:opacity-50
+                        disabled:cursor-not-allowed
                       "
                     />
 
@@ -482,12 +540,14 @@ function Register() {
                           !showPassword
                         )
                       }
+                      disabled={loading}
                       className="
                         absolute
                         right-4
                         top-1/2
                         -translate-y-1/2
                         text-gray-500
+                        disabled:opacity-50
                       "
                     >
                       {showPassword ? (
@@ -501,7 +561,9 @@ function Register() {
 
                 </div>
 
-                {/* KONFIRMASI PASSWORD */}
+                {/* ==================================================
+                    KONFIRMASI PASSWORD
+                ================================================== */}
 
                 <div>
 
@@ -534,6 +596,7 @@ function Register() {
                       onChange={handleChange}
                       placeholder="Ulangi password"
                       autoComplete="new-password"
+                      disabled={loading}
                       className="
                         w-full
                         pl-12
@@ -545,6 +608,8 @@ function Register() {
                         border-[#D4AF37]/20
                         focus:border-[#D4AF37]
                         outline-none
+                        disabled:opacity-50
+                        disabled:cursor-not-allowed
                       "
                     />
 
@@ -555,12 +620,14 @@ function Register() {
                           !showConfirmPassword
                         )
                       }
+                      disabled={loading}
                       className="
                         absolute
                         right-4
                         top-1/2
                         -translate-y-1/2
                         text-gray-500
+                        disabled:opacity-50
                       "
                     >
                       {showConfirmPassword ? (
@@ -574,7 +641,9 @@ function Register() {
 
                 </div>
 
-                {/* ERROR */}
+                {/* ==================================================
+                    ERROR
+                ================================================== */}
 
                 {error && (
                   <div
@@ -593,7 +662,9 @@ function Register() {
                   </div>
                 )}
 
-                {/* SUCCESS */}
+                {/* ==================================================
+                    SUCCESS
+                ================================================== */}
 
                 {success && (
                   <div
@@ -612,7 +683,9 @@ function Register() {
                   </div>
                 )}
 
-                {/* BUTTON */}
+                {/* ==================================================
+                    BUTTON
+                ================================================== */}
 
                 <button
                   type="submit"
@@ -637,6 +710,10 @@ function Register() {
                 </button>
 
               </form>
+
+              {/* ==================================================
+                  LOGIN
+              ================================================== */}
 
               <p className="text-center mt-8 text-gray-400">
 

@@ -14,9 +14,7 @@ const KostumManagement = () => {
   // =====================================================
 
   const [kostum, setKostum] = useState([]);
-
   const [kategori, setKategori] = useState([]);
-
   const [koleksi, setKoleksi] = useState([]);
 
   const [search, setSearch] = useState("");
@@ -24,27 +22,22 @@ const KostumManagement = () => {
   const [loading, setLoading] = useState(true);
 
   const [modalOpen, setModalOpen] = useState(false);
-
   const [editData, setEditData] = useState(null);
-
 
   const [
     confirmDelete,
     setConfirmDelete
   ] = useState(null);
 
-
   const [
     deleteLoading,
     setDeleteLoading
   ] = useState(false);
 
-
   const [
     message,
     setMessage
   ] = useState("");
-
 
   const [
     messageType,
@@ -63,7 +56,6 @@ const KostumManagement = () => {
     );
 
     setEditData(null);
-
     setModalOpen(true);
   };
 
@@ -82,7 +74,6 @@ const KostumManagement = () => {
       pointerEvents: "auto"
     },
 
-
     heading: {
       position: "relative",
       zIndex: 1001,
@@ -94,7 +85,6 @@ const KostumManagement = () => {
       marginBottom: "24px"
     },
 
-
     kicker: {
       display: "block",
       marginBottom: "6px",
@@ -104,7 +94,6 @@ const KostumManagement = () => {
       letterSpacing: "0.18em"
     },
 
-
     title: {
       margin: 0,
       color: "#ffffff",
@@ -112,13 +101,11 @@ const KostumManagement = () => {
       lineHeight: 1.2
     },
 
-
     subtitle: {
       margin: "7px 0 0",
       color: "#7e7e7e",
       fontSize: "13px"
     },
-
 
     primaryButton: {
       display: "inline-flex",
@@ -140,14 +127,12 @@ const KostumManagement = () => {
       userSelect: "none"
     },
 
-
     card: {
       background: "#11100e",
       border: "1px solid #342d1e",
       borderRadius: "14px",
       overflow: "hidden"
     },
-
 
     toolbar: {
       display: "flex",
@@ -158,7 +143,6 @@ const KostumManagement = () => {
       borderBottom: "1px solid rgba(255,255,255,0.06)",
       flexWrap: "wrap"
     },
-
 
     searchBox: {
       display: "flex",
@@ -173,7 +157,6 @@ const KostumManagement = () => {
       borderRadius: "8px"
     },
 
-
     searchInput: {
       width: "100%",
       border: "none",
@@ -183,12 +166,10 @@ const KostumManagement = () => {
       fontSize: "12px"
     },
 
-
     resultCount: {
       color: "#8a8a8a",
       fontSize: "11px"
     },
-
 
     message: {
       margin: "14px 20px 0",
@@ -198,20 +179,17 @@ const KostumManagement = () => {
       lineHeight: 1.5
     },
 
-
     successMessage: {
       background: "rgba(76,175,80,0.09)",
       border: "1px solid rgba(76,175,80,0.22)",
       color: "#8bd38d"
     },
 
-
     errorMessage: {
       background: "rgba(220,70,70,0.09)",
       border: "1px solid rgba(220,70,70,0.22)",
       color: "#ff8585"
     },
-
 
     loading: {
       minHeight: "260px",
@@ -222,19 +200,16 @@ const KostumManagement = () => {
       fontSize: "12px"
     },
 
-
     tableWrapper: {
       width: "100%",
       overflowX: "auto"
     },
-
 
     table: {
       width: "100%",
       minWidth: "1000px",
       borderCollapse: "collapse"
     },
-
 
     th: {
       padding: "13px 15px",
@@ -247,7 +222,6 @@ const KostumManagement = () => {
       whiteSpace: "nowrap"
     },
 
-
     td: {
       padding: "13px 15px",
       borderBottom: "1px solid rgba(255,255,255,0.045)",
@@ -256,13 +230,11 @@ const KostumManagement = () => {
       verticalAlign: "middle"
     },
 
-
     costumeItem: {
       display: "flex",
       alignItems: "center",
       gap: "10px"
     },
-
 
     costumeImage: {
       width: "44px",
@@ -278,13 +250,11 @@ const KostumManagement = () => {
       color: "#d4af37"
     },
 
-
     costumeImageImg: {
       width: "100%",
       height: "100%",
       objectFit: "cover"
     },
-
 
     costumeName: {
       display: "block",
@@ -293,14 +263,12 @@ const KostumManagement = () => {
       fontWeight: 600
     },
 
-
     costumeCode: {
       display: "block",
       marginTop: "4px",
       color: "#6c6c6c",
       fontSize: "9px"
     },
-
 
     stockBadge: {
       display: "inline-flex",
@@ -314,7 +282,6 @@ const KostumManagement = () => {
       fontSize: "10px"
     },
 
-
     statusBadge: {
       display: "inline-flex",
       padding: "5px 9px",
@@ -323,13 +290,11 @@ const KostumManagement = () => {
       fontWeight: 600
     },
 
-
     actionGroup: {
       display: "flex",
       alignItems: "center",
       gap: "6px"
     },
-
 
     actionButton: {
       width: "32px",
@@ -341,7 +306,6 @@ const KostumManagement = () => {
       cursor: "pointer"
     },
 
-
     empty: {
       minHeight: "230px",
       display: "flex",
@@ -350,7 +314,6 @@ const KostumManagement = () => {
       color: "#666666",
       fontSize: "12px"
     },
-
 
     modalOverlay: {
       position: "fixed",
@@ -363,7 +326,6 @@ const KostumManagement = () => {
       background: "rgba(0,0,0,0.70)"
     },
 
-
     confirmModal: {
       width: "min(430px, 100%)",
       background: "#151411",
@@ -372,11 +334,9 @@ const KostumManagement = () => {
       boxShadow: "0 20px 60px rgba(0,0,0,0.45)"
     },
 
-
     confirmHeader: {
       padding: "20px 22px 12px"
     },
-
 
     confirmTitle: {
       margin: 0,
@@ -385,7 +345,6 @@ const KostumManagement = () => {
       fontWeight: 700
     },
 
-
     confirmText: {
       margin: "8px 0 0",
       color: "#8c8c8c",
@@ -393,12 +352,10 @@ const KostumManagement = () => {
       lineHeight: 1.6
     },
 
-
     confirmName: {
       color: "#d4af37",
       fontWeight: 700
     },
-
 
     confirmActions: {
       display: "flex",
@@ -406,7 +363,6 @@ const KostumManagement = () => {
       gap: "8px",
       padding: "12px 22px 20px"
     },
-
 
     cancelButton: {
       height: "38px",
@@ -419,7 +375,6 @@ const KostumManagement = () => {
       fontSize: "11px",
       fontWeight: 600
     },
-
 
     deleteButton: {
       height: "38px",
@@ -445,7 +400,6 @@ const KostumManagement = () => {
   ) => {
 
     setMessage(text);
-
     setMessageType(type);
 
     window.setTimeout(() => {
@@ -462,64 +416,47 @@ const KostumManagement = () => {
     response
   ) => {
 
-    let data =
-      response;
-
+    let data = response;
 
     if (
       data &&
       typeof data === "object" &&
       data.data !== undefined
     ) {
-
-      data =
-        data.data;
+      data = data.data;
     }
-
 
     if (
       data &&
       typeof data === "object" &&
       Array.isArray(data.data)
     ) {
-
-      data =
-        data.data;
+      data = data.data;
     }
-
 
     if (
       data &&
       typeof data === "object" &&
       Array.isArray(data.kostum)
     ) {
-
-      data =
-        data.kostum;
+      data = data.kostum;
     }
-
 
     if (
       data &&
       typeof data === "object" &&
       Array.isArray(data.kategori)
     ) {
-
-      data =
-        data.kategori;
+      data = data.kategori;
     }
-
 
     if (
       data &&
       typeof data === "object" &&
       Array.isArray(data.koleksi)
     ) {
-
-      data =
-        data.koleksi;
+      data = data.koleksi;
     }
-
 
     return Array.isArray(data)
       ? data
@@ -537,7 +474,6 @@ const KostumManagement = () => {
 
       setLoading(true);
 
-
       const [
         kostumResponse,
         kategoriResponse,
@@ -545,37 +481,33 @@ const KostumManagement = () => {
       ] = await Promise.all([
 
         api.get(
-          "/api/kostum"
+          "/kostum"
         ),
 
         api.get(
-          "/api/kategori"
+          "/kategori"
         ),
 
         api.get(
-          "/api/koleksi"
+          "/koleksi"
         )
 
       ]);
-
 
       const kostumData =
         getArrayData(
           kostumResponse
         );
 
-
       const kategoriData =
         getArrayData(
           kategoriResponse
         );
 
-
       const koleksiData =
         getArrayData(
           koleksiResponse
         );
-
 
       console.log(
         "DATA KOSTUM:",
@@ -592,7 +524,6 @@ const KostumManagement = () => {
         koleksiData
       );
 
-
       setKostum(
         kostumData
       );
@@ -605,7 +536,6 @@ const KostumManagement = () => {
         koleksiData
       );
 
-
     } catch (error) {
 
       console.error(
@@ -613,20 +543,15 @@ const KostumManagement = () => {
         error
       );
 
-
       setKostum([]);
-
       setKategori([]);
-
       setKoleksi([]);
-
 
       showMessage(
         error?.message ||
         "Gagal mengambil data.",
         "error"
       );
-
 
     } finally {
 
@@ -661,7 +586,6 @@ const KostumManagement = () => {
         "FORM KOSTUM:",
         form
       );
-
 
       const formData =
         new FormData();
@@ -700,12 +624,10 @@ const KostumManagement = () => {
         form.kode_koleksi ?? ""
       );
 
-
       formData.append(
         "nama_koleksi",
         form.nama_koleksi ?? ""
       );
-
 
       formData.append(
         "kelompok_koleksi",
@@ -722,18 +644,15 @@ const KostumManagement = () => {
         form.nama_kostum ?? ""
       );
 
-
       formData.append(
         "ukuran",
         form.ukuran ?? ""
       );
 
-
       formData.append(
         "warna",
         form.warna ?? ""
       );
-
 
       formData.append(
         "stok",
@@ -742,7 +661,6 @@ const KostumManagement = () => {
         )
       );
 
-
       formData.append(
         "harga_sewa",
         String(
@@ -750,13 +668,11 @@ const KostumManagement = () => {
         )
       );
 
-
       formData.append(
         "status",
         form.status ||
         "Tersedia"
       );
-
 
       formData.append(
         "deskripsi",
@@ -767,16 +683,12 @@ const KostumManagement = () => {
       // =================================================
       // FEATURED
       // =================================================
-      //
-      // Ini dipisahkan dari FOTO.
-      //
-      // featured adalah 0/1.
-      // FOTO tetap dikirim sebagai FILE.
-      //
 
       formData.append(
         "featured",
-        form.featured ? "1" : "0"
+        form.featured
+          ? "1"
+          : "0"
       );
 
 
@@ -823,10 +735,9 @@ const KostumManagement = () => {
       if (editData) {
 
         await api.put(
-          `/api/kostum/${editData.id_kostum}`,
+          `/kostum/${editData.id_kostum}`,
           formData
         );
-
 
         showMessage(
           "Data kostum berhasil diperbarui."
@@ -835,10 +746,9 @@ const KostumManagement = () => {
       } else {
 
         await api.post(
-          "/api/kostum",
+          "/kostum",
           formData
         );
-
 
         showMessage(
           "Kostum berhasil ditambahkan."
@@ -851,7 +761,6 @@ const KostumManagement = () => {
       // =================================================
 
       setModalOpen(false);
-
       setEditData(null);
 
 
@@ -861,14 +770,12 @@ const KostumManagement = () => {
 
       await loadData();
 
-
     } catch (error) {
 
       console.error(
         "GAGAL SIMPAN KOSTUM:",
         error
       );
-
 
       showMessage(
         error?.message ||
@@ -899,10 +806,8 @@ const KostumManagement = () => {
       if (
         !confirmDelete
       ) {
-
         return;
       }
-
 
       try {
 
@@ -910,24 +815,19 @@ const KostumManagement = () => {
           true
         );
 
-
         await api.delete(
-          `/api/kostum/${confirmDelete.id_kostum}`
+          `/kostum/${confirmDelete.id_kostum}`
         );
-
 
         setConfirmDelete(
           null
         );
 
-
         showMessage(
           "Kostum berhasil dihapus."
         );
 
-
         await loadData();
-
 
       } catch (error) {
 
@@ -936,13 +836,11 @@ const KostumManagement = () => {
           error
         );
 
-
         showMessage(
           error?.message ||
           "Gagal menghapus kostum.",
           "error"
         );
-
 
       } finally {
 
@@ -965,17 +863,14 @@ const KostumManagement = () => {
       return "";
     }
 
-
     const value =
       String(
         foto
       ).trim();
 
-
     if (!value) {
       return "";
     }
-
 
     if (
       value.startsWith(
@@ -985,30 +880,24 @@ const KostumManagement = () => {
         "https://"
       )
     ) {
-
       return value;
     }
-
 
     if (
       value.startsWith(
         "/uploads/"
       )
     ) {
-
       return value;
     }
-
 
     if (
       value.startsWith(
         "uploads/"
       )
     ) {
-
       return `/${value}`;
     }
-
 
     return `/uploads/kostum/${value}`;
   };
@@ -1023,7 +912,6 @@ const KostumManagement = () => {
       .trim()
       .toLowerCase();
 
-
   const filtered =
     kostum.filter(
       (item) => {
@@ -1031,7 +919,6 @@ const KostumManagement = () => {
         if (!keyword) {
           return true;
         }
-
 
         return (
 
@@ -1135,7 +1022,6 @@ const KostumManagement = () => {
           .toLowerCase()
           .trim();
 
-
       if (
         normalized.includes(
           "tersedia"
@@ -1154,7 +1040,6 @@ const KostumManagement = () => {
             "#79d27d"
         };
       }
-
 
       if (
         normalized.includes(
@@ -1175,7 +1060,6 @@ const KostumManagement = () => {
         };
       }
 
-
       if (
         normalized.includes(
           "rusak"
@@ -1194,7 +1078,6 @@ const KostumManagement = () => {
             "#ff7e7e"
         };
       }
-
 
       return {
 
@@ -1242,7 +1125,6 @@ const KostumManagement = () => {
             KOLEKSI
           </span>
 
-
           <h2
             style={
               styles.title
@@ -1250,7 +1132,6 @@ const KostumManagement = () => {
           >
             Kostum
           </h2>
-
 
           <p
             style={
@@ -1316,7 +1197,6 @@ const KostumManagement = () => {
               name="search"
               size={17}
             />
-
 
             <input
               type="text"
@@ -1430,7 +1310,6 @@ const KostumManagement = () => {
                       No
                     </th>
 
-
                     <th
                       style={
                         styles.th
@@ -1438,7 +1317,6 @@ const KostumManagement = () => {
                     >
                       Kostum
                     </th>
-
 
                     <th
                       style={
@@ -1448,7 +1326,6 @@ const KostumManagement = () => {
                       Kategori
                     </th>
 
-
                     <th
                       style={
                         styles.th
@@ -1456,7 +1333,6 @@ const KostumManagement = () => {
                     >
                       Kelompok
                     </th>
-
 
                     <th
                       style={
@@ -1466,7 +1342,6 @@ const KostumManagement = () => {
                       Warna
                     </th>
 
-
                     <th
                       style={
                         styles.th
@@ -1474,7 +1349,6 @@ const KostumManagement = () => {
                     >
                       Stok
                     </th>
-
 
                     <th
                       style={
@@ -1484,7 +1358,6 @@ const KostumManagement = () => {
                       Harga Sewa
                     </th>
 
-
                     <th
                       style={
                         styles.th
@@ -1492,7 +1365,6 @@ const KostumManagement = () => {
                     >
                       Status
                     </th>
-
 
                     <th
                       style={
@@ -1520,7 +1392,6 @@ const KostumManagement = () => {
                           getFotoUrl(
                             item.foto
                           );
-
 
                         return (
 
@@ -1611,7 +1482,6 @@ const KostumManagement = () => {
                                       "-"
                                     }
                                   </span>
-
 
                                   <span
                                     style={
@@ -1836,7 +1706,6 @@ const KostumManagement = () => {
       ================================================= */}
 
       <AddKostumModal
-
         isOpen={
           modalOpen
         }
@@ -1868,7 +1737,6 @@ const KostumManagement = () => {
         initialData={
           editData
         }
-
       />
 
 
@@ -2012,6 +1880,5 @@ const KostumManagement = () => {
     </div>
   );
 };
-
 
 export default KostumManagement;

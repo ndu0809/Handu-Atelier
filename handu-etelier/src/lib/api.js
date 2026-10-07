@@ -47,22 +47,36 @@ const handleResponse = async (
     endpoint,
     method
 ) => {
-    let result;
+    const contentType =
+        response.headers.get("content-type") || "";
 
-    // Coba baca JSON
-    try {
-        result = await response.json();
-    } catch (error) {
-        throw new Error(
-            `${method} ${endpoint} mengembalikan response yang tidak valid`
-        );
+    let result = {};
+
+    // Response JSON
+    if (contentType.includes("application/json")) {
+        try {
+            result = await response.json();
+        } catch {
+            throw new Error(
+                `${method} ${endpoint} mengembalikan JSON yang tidak valid`
+            );
+        }
+    } else {
+        // Response kosong / bukan JSON
+        const text = await response.text();
+
+        if (text) {
+            result = {
+                message: text
+            };
+        }
     }
 
     // HTTP error
     if (!response.ok) {
         throw new Error(
             result?.message ||
-            `${method} ${endpoint} gagal`
+            `${method} ${endpoint} gagal (${response.status})`
         );
     }
 

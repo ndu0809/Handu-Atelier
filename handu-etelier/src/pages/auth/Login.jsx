@@ -5,6 +5,8 @@ import {
     useNavigate
 } from "react-router-dom";
 
+import api from "../../lib/api";
+
 function Login() {
     const navigate = useNavigate();
 
@@ -74,61 +76,17 @@ function Login() {
 
             // ==================================================
             // LOGIN KE BACKEND
+            // api.js otomatis menggunakan:
+            // /api/users/login
             // ==================================================
 
-            const response = await fetch(
+            const result = await api.post(
                 "/users/login",
                 {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        email,
-                        password
-                    })
+                    email,
+                    password
                 }
             );
-
-            // ==================================================
-            // BACA RESPONSE
-            // ==================================================
-
-            const rawResponse =
-                await response.text();
-
-            console.log(
-                "STATUS:",
-                response.status
-            );
-
-            console.log(
-                "RESPONSE:",
-                rawResponse
-            );
-
-            let result;
-
-            try {
-                result =
-                    rawResponse
-                        ? JSON.parse(
-                            rawResponse
-                        )
-                        : {};
-            } catch (jsonError) {
-                console.error(
-                    "Response bukan JSON:",
-                    rawResponse
-                );
-
-                throw new Error(
-                    "Server mengembalikan response yang tidak valid."
-                );
-            }
 
             console.log(
                 "Login response:",
@@ -136,23 +94,12 @@ function Login() {
             );
 
             // ==================================================
-            // LOGIN GAGAL
-            // ==================================================
-
-            if (!response.ok) {
-                throw new Error(
-                    result.message ||
-                    "Email atau password salah."
-                );
-            }
-
-            // ==================================================
             // AMBIL DATA USER
             // ==================================================
 
             const user =
-                result.data ||
-                result.user ||
+                result?.data ||
+                result?.user ||
                 null;
 
             if (!user?.id_user) {
@@ -325,6 +272,7 @@ function Login() {
                     max-w-md
                 "
             >
+
                 {/* ==================================================
                     HEADER
                 ================================================== */}
@@ -377,7 +325,9 @@ function Login() {
                     "
                 >
 
-                    {/* ERROR */}
+                    {/* ==================================================
+                        ERROR
+                    ================================================== */}
 
                     {error && (
                         <div
@@ -397,14 +347,18 @@ function Login() {
                         </div>
                     )}
 
-                    {/* FORM */}
+                    {/* ==================================================
+                        FORM
+                    ================================================== */}
 
                     <form
                         onSubmit={handleSubmit}
                         className="space-y-6"
                     >
 
-                        {/* EMAIL */}
+                        {/* ==================================================
+                            EMAIL
+                        ================================================== */}
 
                         <div>
 
@@ -450,7 +404,9 @@ function Login() {
 
                         </div>
 
-                        {/* PASSWORD */}
+                        {/* ==================================================
+                            PASSWORD
+                        ================================================== */}
 
                         <div>
 
@@ -535,7 +491,9 @@ function Login() {
 
                         </div>
 
-                        {/* SUBMIT */}
+                        {/* ==================================================
+                            SUBMIT
+                        ================================================== */}
 
                         <button
                             type="submit"
@@ -562,7 +520,9 @@ function Login() {
 
                     </form>
 
-                    {/* REGISTER */}
+                    {/* ==================================================
+                        REGISTER
+                    ================================================== */}
 
                     <div
                         className="
@@ -606,6 +566,7 @@ function Login() {
                         mt-6
                     "
                 >
+
                     <Link
                         to="/"
                         className="
@@ -616,6 +577,7 @@ function Login() {
                     >
                         ← Kembali ke Beranda
                     </Link>
+
                 </div>
 
             </div>

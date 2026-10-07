@@ -14,6 +14,8 @@ import {
   FaUndoAlt,
 } from "react-icons/fa";
 
+import api from "../../lib/api";
+
 function PeminjamanPetugas() {
   const navigate = useNavigate();
 
@@ -115,34 +117,22 @@ function PeminjamanPetugas() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("/peminjaman");
-
-      const raw = await response.text();
-
-      let result = {};
-
-      try {
-        result = raw ? JSON.parse(raw) : {};
-      } catch {
-        throw new Error(
-          "Server mengembalikan response yang bukan JSON."
-        );
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Gagal mengambil data peminjaman."
-        );
-      }
+      const result = await api.get("/peminjaman");
 
       const rows = Array.isArray(result)
         ? result
         : result.data;
 
-      setData(Array.isArray(rows) ? rows : []);
+      setData(
+        Array.isArray(rows)
+          ? rows
+          : []
+      );
     } catch (err) {
-      console.error("Load peminjaman:", err);
+      console.error(
+        "Load peminjaman:",
+        err
+      );
 
       setError(
         err.message ||
@@ -282,44 +272,15 @@ function PeminjamanPetugas() {
       setError("");
       setSuccess("");
 
-      const response = await fetch(
+      const result = await api.put(
         `/peminjaman/${id}/status`,
         {
-          method: "PUT",
-
-          headers: {
-            "Content-Type": "application/json",
-          },
-
-          body: JSON.stringify({
-            status,
-          }),
+          status,
         }
       );
 
-      const raw = await response.text();
-
-      let result = {};
-
-      try {
-        result = raw
-          ? JSON.parse(raw)
-          : {};
-      } catch {
-        throw new Error(
-          "Server mengembalikan response yang bukan JSON."
-        );
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Gagal mengubah status peminjaman."
-        );
-      }
-
       setSuccess(
-        result.message ||
+        result?.message ||
           "Status peminjaman berhasil diperbarui."
       );
 
@@ -452,11 +413,9 @@ function PeminjamanPetugas() {
       updatingId === item.id_peminjaman;
 
     return (
-      <div className="min-w-[190px] flex flex-col gap-2">
+      <div className="min-w-47.5 flex flex-col gap-2">
 
-        {/* ==================================================
-            DETAIL
-        ================================================== */}
+        {/* DETAIL */}
 
         <Link
           to={`/petugas/peminjaman/${item.id_peminjaman}`}
@@ -481,9 +440,7 @@ function PeminjamanPetugas() {
           Detail
         </Link>
 
-        {/* ==================================================
-            MENUNGGU
-        ================================================== */}
+        {/* MENUNGGU */}
 
         {status === "menunggu" && (
           <div className="grid grid-cols-2 gap-2">
@@ -560,9 +517,7 @@ function PeminjamanPetugas() {
           </div>
         )}
 
-        {/* ==================================================
-            DISETUJUI
-        ================================================== */}
+        {/* DISETUJUI */}
 
         {status === "disetujui" && (
           <div className="grid grid-cols-2 gap-2">
@@ -639,9 +594,7 @@ function PeminjamanPetugas() {
           </div>
         )}
 
-        {/* ==================================================
-            DIPROSES
-        ================================================== */}
+        {/* DIPROSES */}
 
         {status === "diproses" && (
           <Link
@@ -667,9 +620,7 @@ function PeminjamanPetugas() {
           </Link>
         )}
 
-        {/* ==================================================
-            SELESAI
-        ================================================== */}
+        {/* SELESAI */}
 
         {status === "selesai" && (
           <div
@@ -689,9 +640,7 @@ function PeminjamanPetugas() {
           </div>
         )}
 
-        {/* ==================================================
-            DITOLAK
-        ================================================== */}
+        {/* DITOLAK */}
 
         {status === "ditolak" && (
           <div
@@ -711,9 +660,7 @@ function PeminjamanPetugas() {
           </div>
         )}
 
-        {/* ==================================================
-            DIBATALKAN
-        ================================================== */}
+        {/* DIBATALKAN */}
 
         {status === "dibatalkan" && (
           <div
@@ -773,9 +720,7 @@ function PeminjamanPetugas() {
       "
     >
 
-      {/* ==================================================
-          HEADER
-      ================================================== */}
+      {/* HEADER */}
 
       <header
         className="
@@ -882,9 +827,7 @@ function PeminjamanPetugas() {
         "
       >
 
-        {/* ==================================================
-            TOAST NOTIFICATION
-        ================================================== */}
+        {/* TOAST NOTIFICATION */}
 
         {(success || error) && (
           <div
@@ -892,8 +835,8 @@ function PeminjamanPetugas() {
               fixed
               top-6
               right-6
-              z-[100]
-              w-[360px]
+              z-100
+              w-90
               max-w-[calc(100vw-32px)]
             "
           >
@@ -980,9 +923,7 @@ function PeminjamanPetugas() {
           </div>
         )}
 
-        {/* ==================================================
-            FILTER
-        ================================================== */}
+        {/* FILTER */}
 
         <section
           className="
@@ -1097,9 +1038,7 @@ function PeminjamanPetugas() {
 
         </section>
 
-        {/* ==================================================
-            SUMMARY
-        ================================================== */}
+        {/* SUMMARY */}
 
         <section
           className="
@@ -1110,8 +1049,6 @@ function PeminjamanPetugas() {
             mb-7
           "
         >
-
-          {/* TOTAL */}
 
           <div
             className="
@@ -1130,8 +1067,6 @@ function PeminjamanPetugas() {
               {data.length}
             </p>
           </div>
-
-          {/* MENUNGGU */}
 
           <div
             className="
@@ -1157,8 +1092,6 @@ function PeminjamanPetugas() {
             </p>
           </div>
 
-          {/* DIPROSES */}
-
           <div
             className="
               rounded-2xl
@@ -1182,8 +1115,6 @@ function PeminjamanPetugas() {
               }
             </p>
           </div>
-
-          {/* SELESAI */}
 
           <div
             className="
@@ -1211,9 +1142,7 @@ function PeminjamanPetugas() {
 
         </section>
 
-        {/* ==================================================
-            TABLE
-        ================================================== */}
+        {/* TABLE */}
 
         <section
           className="
@@ -1227,7 +1156,7 @@ function PeminjamanPetugas() {
 
           <div className="overflow-x-auto">
 
-            <table className="w-full min-w-[1150px]">
+            <table className="w-full min-w-287.5">
 
               <thead
                 className="
@@ -1302,13 +1231,9 @@ function PeminjamanPetugas() {
                         className="
                           border-b
                           border-white/5
-                          hover:bg-white/[0.02]
+                          hover:bg-white/2
                         "
                       >
-
-                        {/* ==================================================
-                            ID
-                        ================================================== */}
 
                         <td className="px-5 py-5">
 
@@ -1325,10 +1250,6 @@ function PeminjamanPetugas() {
                           </span>
 
                         </td>
-
-                        {/* ==================================================
-                            USER
-                        ================================================== */}
 
                         <td className="px-5 py-5">
 
@@ -1376,10 +1297,6 @@ function PeminjamanPetugas() {
 
                         </td>
 
-                        {/* ==================================================
-                            KOSTUM
-                        ================================================== */}
-
                         <td className="px-5 py-5">
 
                           <div>
@@ -1420,29 +1337,17 @@ function PeminjamanPetugas() {
 
                         </td>
 
-                        {/* ==================================================
-                            TANGGAL PINJAM
-                        ================================================== */}
-
                         <td className="px-5 py-5 text-gray-300">
                           {formatTanggal(
                             item.tanggal_peminjaman
                           )}
                         </td>
 
-                        {/* ==================================================
-                            TANGGAL KEMBALI
-                        ================================================== */}
-
                         <td className="px-5 py-5 text-gray-300">
                           {formatTanggal(
                             item.tanggal_kembali
                           )}
                         </td>
-
-                        {/* ==================================================
-                            TOTAL
-                        ================================================== */}
 
                         <td
                           className="
@@ -1456,10 +1361,6 @@ function PeminjamanPetugas() {
                             item.total_harga
                           )}
                         </td>
-
-                        {/* ==================================================
-                            STATUS
-                        ================================================== */}
 
                         <td className="px-5 py-5">
 
@@ -1483,10 +1384,6 @@ function PeminjamanPetugas() {
 
                         </td>
 
-                        {/* ==================================================
-                            AKSI
-                        ================================================== */}
-
                         <td className="px-5 py-5">
                           {renderActions(item)}
                         </td>
@@ -1504,9 +1401,7 @@ function PeminjamanPetugas() {
 
         </section>
 
-        {/* ==================================================
-            BACK
-        ================================================== */}
+        {/* BACK */}
 
         <div className="mt-6">
 
@@ -1529,16 +1424,14 @@ function PeminjamanPetugas() {
 
       </main>
 
-      {/* ==================================================
-          CONFIRM MODAL
-      ================================================== */}
+      {/* CONFIRM MODAL */}
 
       {confirmModal.open && (
         <div
           className="
             fixed
             inset-0
-            z-[200]
+            z-200
             flex
             items-center
             justify-center
@@ -1565,10 +1458,6 @@ function PeminjamanPetugas() {
               e.stopPropagation()
             }
           >
-
-            {/* ==================================================
-                ICON MODAL
-            ================================================== */}
 
             <div
               className={`
@@ -1612,11 +1501,6 @@ function PeminjamanPetugas() {
 
             </div>
 
-
-            {/* ==================================================
-                TITLE
-            ================================================== */}
-
             <h2
               className="
                 text-2xl
@@ -1627,11 +1511,6 @@ function PeminjamanPetugas() {
               {confirmModal.title}
             </h2>
 
-
-            {/* ==================================================
-                MESSAGE
-            ================================================== */}
-
             <p
               className="
                 text-gray-400
@@ -1641,11 +1520,6 @@ function PeminjamanPetugas() {
             >
               {confirmModal.message}
             </p>
-
-
-            {/* ==================================================
-                DETAIL PEMINJAMAN
-            ================================================== */}
 
             {confirmModal.item && (
               <div
@@ -1717,11 +1591,6 @@ function PeminjamanPetugas() {
               </div>
             )}
 
-
-            {/* ==================================================
-                BUTTON
-            ================================================== */}
-
             <div
               className="
                 flex
@@ -1729,8 +1598,6 @@ function PeminjamanPetugas() {
                 mt-7
               "
             >
-
-              {/* BATAL */}
 
               <button
                 type="button"
@@ -1758,9 +1625,6 @@ function PeminjamanPetugas() {
               >
                 Batal
               </button>
-
-
-              {/* KONFIRMASI */}
 
               <button
                 type="button"
