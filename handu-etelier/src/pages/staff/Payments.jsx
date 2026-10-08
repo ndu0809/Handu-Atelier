@@ -260,7 +260,7 @@ function Payments() {
             setError("");
 
             const response = await fetch(
-                "/pembayaran"
+                "/api/pembayaran"
             );
 
             const result =
@@ -308,7 +308,7 @@ function Payments() {
             setLoadingPeminjaman(true);
 
             const response = await fetch(
-                "/peminjaman"
+                "/api/peminjaman"
             );
 
             const result =
@@ -511,7 +511,7 @@ function Payments() {
 
             const response =
                 await fetch(
-                    `/pembayaran/${item.id_pembayaran}/status`,
+                    `/api/pembayaran/${item.id_pembayaran}/status`,
                     {
                         method: "PUT",
 
@@ -1352,7 +1352,7 @@ function Payments() {
                                                     className="
                                                         border-b
                                                         border-white/5
-                                                        hover:bg-white/[0.02]
+                                                        hover:bg-white/5
                                                     "
                                                 >
                                                     {/* ID */}
@@ -1747,7 +1747,7 @@ function Payments() {
                     className="
                         fixed
                         inset-0
-                        z-[9999]
+                        z-50
                         bg-black/80
                         backdrop-blur-sm
                         flex

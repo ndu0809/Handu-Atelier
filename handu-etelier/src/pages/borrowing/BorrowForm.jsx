@@ -71,8 +71,7 @@ function BorrowForm() {
       try {
         setLoading(true);
         setError("");
-
-        const response = await fetch(`/kostum/${code}`);
+const response = await fetch(`/api/kostum/${code}`);
         const result = await response.json();
 
         console.log("Response kostum:", result);
@@ -272,9 +271,9 @@ function BorrowForm() {
             jumlah: "1",
           });
 
-        const response = await fetch(
-          `/peminjaman/check-availability?${params.toString()}`
-        );
+       const response = await fetch(
+  `/api/peminjaman/check-availability?${params.toString()}`
+);
 
         const result =
           await response.json();
@@ -923,10 +922,10 @@ function BorrowForm() {
           jumlah: "1",
         });
 
-      const recheckResponse =
-        await fetch(
-          `/peminjaman/check-availability?${recheckParams.toString()}`
-        );
+     const recheckResponse =
+  await fetch(
+    `/api/peminjaman/check-availability?${recheckParams.toString()}`
+  );
 
       const recheckResult =
         await recheckResponse.json();
@@ -987,21 +986,21 @@ function BorrowForm() {
       );
 
       const peminjamanResponse =
-        await fetch(
-          "/peminjaman",
-          {
-            method: "POST",
+  await fetch(
+    "/api/peminjaman",
+    {
+      method: "POST",
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
 
-            body: JSON.stringify(
-              dataPeminjaman
-            ),
-          }
-        );
+      body: JSON.stringify(
+        dataPeminjaman
+      ),
+    }
+  );
 
       const peminjamanResult =
         await peminjamanResponse.json();
@@ -1061,22 +1060,22 @@ function BorrowForm() {
         dataDetail
       );
 
-      const detailResponse =
-        await fetch(
-          "/detail-peminjaman",
-          {
-            method: "POST",
+     const detailResponse =
+  await fetch(
+    "/api/detail-peminjaman",
+    {
+      method: "POST",
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
 
-            body: JSON.stringify(
-              dataDetail
-            ),
-          }
-        );
+      body: JSON.stringify(
+        dataDetail
+      ),
+    }
+  );
 
       const detailResult =
         await detailResponse.json();
@@ -1158,14 +1157,14 @@ function BorrowForm() {
       );
 
       const pembayaranResponse =
-        await fetch(
-          "/pembayaran",
-          {
-            method: "POST",
-            body:
-              paymentFormData,
-          }
-        );
+  await fetch(
+    "/api/pembayaran",
+    {
+      method: "POST",
+      body:
+        paymentFormData,
+    }
+  );
 
       const pembayaranResult =
         await pembayaranResponse.json();
@@ -1221,15 +1220,15 @@ function BorrowForm() {
       );
 
       const dokumenResponse =
-        await fetch(
-          "/dokumen-jaminan",
-          {
-            method: "POST",
-            body:
-              dokumenFormData,
-          }
-        );
-
+  await fetch(
+    "/api/dokumen-jaminan",
+    {
+      method: "POST",
+      body:
+        dokumenFormData,
+    }
+  );
+  
       const dokumenResult =
         await dokumenResponse.json();
 

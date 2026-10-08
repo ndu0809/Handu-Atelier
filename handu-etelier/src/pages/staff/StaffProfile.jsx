@@ -180,7 +180,7 @@ function StaffProfile() {
             setSuccess("");
 
             const response = await fetch(
-                `/users/${user.id_user}`,
+                `/api/users/${user.id_user}`,
                 {
                     method: "PUT",
 
@@ -336,7 +336,7 @@ function StaffProfile() {
 
                 const response =
                     await fetch(
-                        "/users/change-password",
+                        "/api/users/change-password",
                         {
                             method: "PUT",
 

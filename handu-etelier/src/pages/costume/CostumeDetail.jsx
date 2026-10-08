@@ -21,7 +21,7 @@ function CostumeDetail() {
                 setLoading(true);
                 setError("");
 
-                const response = await fetch(`/kostum/${code}`, {
+                const response = await fetch(`/api/kostum/${code}`, {
                     headers: {
                         Accept: "application/json",
                     },
@@ -321,8 +321,8 @@ function CostumeDetail() {
                         <div
                             className="
                                 relative
-                                min-h-[500px]
-                                lg:min-h-[650px]
+                                min-h-96
+                                lg:min-h-96
                                 bg-[#1D1D1D]
                                 flex
                                 items-center
@@ -339,8 +339,8 @@ function CostumeDetail() {
                                     className="
                                         w-full
                                         h-full
-                                        min-h-[500px]
-                                        lg:min-h-[650px]
+                                        min-h-96
+                                        lg:min-h-96
                                         object-cover
                                     "
                                     onError={(e) => {
